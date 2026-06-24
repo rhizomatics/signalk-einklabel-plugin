@@ -13,6 +13,10 @@ export class ZhsunycoDriver implements VendorDriver {
     return ZHSUNYCO_PID_METADATA[pid];
   }
 
+  supportedDevices(): DeviceMetadata[] {
+    return Object.values(ZHSUNYCO_PID_METADATA);
+  }
+
   async scan(_durationMs: number): Promise<DiscoveredDevice[]> {
     throw new Error('zhsunyco BLE scan not yet implemented (BlueZ/D-Bus, Linux only)');
   }

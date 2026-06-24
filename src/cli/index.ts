@@ -9,6 +9,22 @@ const program = new Command();
 program.name('esl-cli').description('Local CLI for testing ESL device scan and paint without a SignalK server');
 
 program
+  .command('vendors')
+  .description('List supported vendors and the device models each has confirmed metadata for')
+  .action(() => {
+    for (const driver of allDrivers()) {
+      const devices = driver.supportedDevices();
+      if (devices.length === 0) {
+        console.log(`${driver.vendor}\t(no confirmed devices yet)`);
+        continue;
+      }
+      for (const device of devices) {
+        console.log(`${driver.vendor}\t0x${device.pid.toString(16).padStart(4, '0')}\t${device.label}\t${device.width}x${device.height}\t${device.colours.join(',')}`);
+      }
+    }
+  });
+
+program
   .command('scan')
   .description('Scan for supported BLE ESL devices across all registered vendor drivers')
   .option('-d, --duration <seconds>', 'scan duration in seconds', '10')
