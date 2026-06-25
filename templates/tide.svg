@@ -32,11 +32,11 @@
      inkscape:window-maximized="0"
      inkscape:current-layer="svg1" />
   <rect
-     x="0"
-     y="0"
+     x="1.0169492"
+     y="2.0798673e-08"
      width="416"
      height="240"
-     fill="white"
+     fill="#ffffff"
      id="rect1" />
   <text
      id="station.name"
@@ -47,6 +47,16 @@
      fill="black"
      style="-inkscape-font-specification:'serif, Normal';font-family:serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:24px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{value}}</text>
   <text
+     id="station.name-8"
+     x="-1.7909826"
+     y="232.24034"
+     font-size="18"
+     font-family="serif"
+     fill="black"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.6667px;font-family:serif;-inkscape-font-specification:'serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000"><tspan
+       sodipodi:role="line"
+       id="tspan1">signalk-esl-plugin by Rhizomatics</tspan></text>
+  <text
      id="extremes.0"
      x="10"
      y="60"
@@ -56,49 +66,49 @@
      style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
   <text
      id="extremes.0.time"
-     x="120"
-     y="60"
+     x="7.1186438"
+     y="88.474571"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:21.3333px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:21.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
   <text
      id="extremes.1"
-     x="10"
-     y="84"
+     x="5.9322038"
+     y="118.57627"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
   <text
      id="extremes.1.time"
-     x="120"
-     y="84"
+     x="6.1017017"
+     y="149.08475"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:21.3333px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
-<text
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:21.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
+  <text
      id="extremes.2"
-     x="10"
-     y="84"
+     x="5.9322028"
+     y="177.55931"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
   <text
      id="extremes.2.time"
-     x="120"
-     y="84"
+     x="3.0508516"
+     y="202.98306"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:21.3333px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:21.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
   <text
      id="environment.time.timezoneRegion"
-     x="10"
+     x="345.59323"
      y="230"
-     font-size="12"
+     font-size="12px"
      font-family="sans-serif"
-     fill="red">{{value}}</text>
+     fill="#ff0000">{{value}}</text>
 </svg>
