@@ -18,12 +18,15 @@ function ensureWasmInitialized(): Promise<void> {
 /**
  * Renders an SVG+Handlebars template to a common RGBA bitmap.
  *
- * Binding model: any element with an `id` attribute has that id resolved as a
- * dotted path (supports array indices, e.g. "extremes.0.time") against the
+ * Binding model: any `<text>` element with an `id` attribute has that id resolved
+ * as a dotted path (supports array indices, e.g. "extremes.0.time") against the
  * supplied context. The resolved value is exposed as `value` alongside the
  * full context while rendering that element's text content as a Handlebars
  * template, so templates can use helpers like `{{truncate value 1}}` or
- * `{{formatTime value environment.time.timezoneRegion}}`.
+ * `{{formatTime value environment.time.timezoneRegion}}`. Scoped to `<text>`
+ * rather than all elements - setting `textContent` on a structural element
+ * (e.g. the root `<svg>`) wipes its children, and `getElementsByTagName` is a
+ * live NodeList, so that previously truncated the whole tree and rendered blank.
  *
  * resvg-wasm cannot see the host's installed fonts (`loadSystemFonts`/`fontFiles`
  * are silently no-ops under plain Node) - it only renders text if given font
@@ -53,7 +56,7 @@ export class SvgRenderer implements Renderer {
 
     const svgSource = await readFile(svgTemplatePath, 'utf-8');
     const doc = new DOMParser().parseFromString(svgSource, 'image/svg+xml');
-    const elements = doc.getElementsByTagName('*');
+    const elements = doc.getElementsByTagName('text');
 
     for (let i = 0; i < elements.length; i++) {
       const element = elements.item(i);

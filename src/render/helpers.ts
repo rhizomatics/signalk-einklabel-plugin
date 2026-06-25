@@ -20,4 +20,11 @@ Handlebars.registerHelper('truncate', (value: unknown, decimals: unknown) => {
   return value.toFixed(places);
 });
 
+Handlebars.registerHelper('tideLabel', (extreme: unknown) => {
+  const entry = extreme as { high?: boolean; low?: boolean } | undefined;
+  if (entry?.high) return 'High Water';
+  if (entry?.low) return 'Low Water';
+  return 'Other';
+});
+
 export { Handlebars };

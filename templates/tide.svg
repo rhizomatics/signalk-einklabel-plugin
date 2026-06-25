@@ -47,13 +47,13 @@
      fill="black"
      style="-inkscape-font-specification:'serif, Normal';font-family:serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:24px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{value}}</text>
   <text
-     id="extremes.0.label"
+     id="extremes.0"
      x="10"
      y="60"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{value}}</text>
+     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
   <text
      id="extremes.0.time"
      x="120"
@@ -63,13 +63,13 @@
      fill="black"
      style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:21.3333px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
   <text
-     id="extremes.1.label"
+     id="extremes.1"
      x="10"
      y="84"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{value}}</text>
+     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
   <text
      id="extremes.1.time"
      x="120"
@@ -79,13 +79,13 @@
      fill="black"
      style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:21.3333px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
 <text
-     id="extremes.2.label"
+     id="extremes.2"
      x="10"
      y="84"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{value}}</text>
+     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
   <text
      id="extremes.2.time"
      x="120"
