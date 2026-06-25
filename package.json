@@ -1,7 +1,7 @@
 {
   "name": "@rhizomatics/signalk-esl-plugin",
   "version": "0.1.0",
-  "description": "SignalK plugin that renders selected SignalK data to BLE eInk Electronic Shelf Labels",
+  "description": "SignalK plugin that renders selected SignalK data to eInk Electronic Shelf Labels",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -34,6 +34,7 @@
     "commander": "^12.1.0",
     "handlebars": "^4.7.9",
     "luxon": "^3.7.2",
+    "node-ble": "^1.13.0",
     "pngjs": "^7.0.0"
   },
   "devDependencies": {

@@ -36,7 +36,9 @@ program
     for (const driver of allDrivers()) {
       const found = await driver.scan(durationMs);
       for (const device of found) {
-        console.log(`${driver.vendor}\t${device.address}\t${device.name ?? ''}`);
+        const pid = device.pid !== undefined ? `0x${device.pid.toString(16).padStart(4, '0')}` : '';
+        const label = device.metadata?.label ?? '';
+        console.log(`${driver.vendor}\t${device.address}\t${device.name ?? ''}\t${pid}\t${label}\trssi=${device.rssi ?? ''}`);
       }
     }
   });
@@ -46,12 +48,21 @@ program
   .description('Render a template with dummy data and send it to a device')
   .requiredOption('-v, --vendor <vendor>', 'vendor driver to use')
   .requiredOption('-a, --address <address>', 'BLE address of the device')
+  .requiredOption('-t, --template <path>', 'path to SVG template')
+  .requiredOption('-d, --data <path>', 'path to JSON data fixture')
+  .requiredOption('-k, --aes-key <hex>', 'AES-128 key for device authentication, as 32 hex characters')
+  .option('-w, --width <px>', 'render width', '416')
+  .option('--height <px>', 'render height', '240')
   .action(async (opts) => {
     const driver = getDriver(opts.vendor);
     if (!driver) {
       throw new Error(`no driver registered for vendor "${opts.vendor}"`);
     }
-    throw new Error('paint not yet implemented: needs the SVG renderer (see SvgRenderer)');
+    const context = JSON.parse(await readFile(opts.data, 'utf-8'));
+    const renderer = new SvgRenderer();
+    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height));
+    await driver.paint(bitmap, { address: opts.address, aesKey: opts.aesKey });
+    console.log(`painted ${opts.address} (${bitmap.width}x${bitmap.height})`);
   });
 
 program
