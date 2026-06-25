@@ -45,7 +45,7 @@
      font-size="18"
      font-family="serif"
      fill="black"
-     style="-inkscape-font-specification:'serif, Normal';font-family:serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:24px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{value}}</text>
+     style="-inkscape-font-specification:'serif, Normal';font-family:serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:24px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffff00">{{value}}</text>
   <text
      id="station.name-8"
      x="-1.7909826"
@@ -63,15 +63,56 @@
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
+     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">{{tideLabel value}}</text>
   <text
      id="extremes.0.time"
-     x="7.1186438"
-     y="88.474571"
+     x="24.965683"
+     y="30.837837"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:21.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.43575px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:0.34855"
+     transform="scale(0.34855027,2.8690266)">{{formatTime value environment.time.timezoneRegion}}</text>
+  <text
+     id="extremes.0.level"
+     x="292.742"
+     y="30.769539"
+     font-size="14"
+     font-family="monospace"
+     fill="black"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.43575px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:0.34855"
+     transform="scale(0.34855027,2.8690266)"><tspan
+       sodipodi:role="line"
+       id="tspan2">{{ftruncate value 2}}</tspan></text>
+  <text
+     id="extremes.1.level"
+     x="286.51764"
+     y="51.69437"
+     font-size="14"
+     font-family="monospace"
+     fill="black"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.43575px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:0.34855"
+     transform="scale(0.34855027,2.8690266)"
+     inkscape:transform-center-y="-62.033899"><tspan
+       sodipodi:role="line"
+       id="tspan2-1"
+       x="286.51764"
+       y="51.69437">{{ftruncate value 2}}</tspan></text>
+  <text
+     id="extremes.2.level"
+     x="283.25961"
+     y="70.811462"
+     font-size="14"
+     font-family="monospace"
+     fill="black"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.43575px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:0.34855"
+     transform="scale(0.34855027,2.8690266)"
+     inkscape:transform-center-x="1.0169492"
+     inkscape:transform-center-y="-41.694915"><tspan
+       sodipodi:role="line"
+       id="tspan2-0"
+       x="283.25961"
+       y="70.811462">{{ftruncate value 2}}</tspan></text>
   <text
      id="extremes.1"
      x="5.9322038"
@@ -79,15 +120,16 @@
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">{{tideLabel value}}</text>
   <text
      id="extremes.1.time"
-     x="6.1017017"
-     y="149.08475"
+     x="21.891365"
+     y="52.315186"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:21.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.48602px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:0.350909"
+     transform="scale(0.35090902,2.8497415)">{{formatTime value environment.time.timezoneRegion}}</text>
   <text
      id="extremes.2"
      x="5.9322028"
@@ -95,15 +137,16 @@
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{tideLabel value}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">{{tideLabel value}}</text>
   <text
      id="extremes.2.time"
-     x="3.0508516"
-     y="202.98306"
+     x="12.477094"
+     y="74.95237"
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:21.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000">{{formatTime value environment.time.timezoneRegion}}</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.87741px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:0.369254"
+     transform="scale(0.36925431,2.7081607)">{{formatTime value environment.time.timezoneRegion}}</text>
   <text
      id="environment.time.timezoneRegion"
      x="345.59323"
