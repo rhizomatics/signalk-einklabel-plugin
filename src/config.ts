@@ -48,8 +48,8 @@ export interface PluginConfig {
   templatesDir: string;
   /** Run a short BLE scan on plugin start and report discoveries via plugin status, like signalk-bluetti-plugin does. */
   scanOnStart: boolean;
-  /** One-shot "rescan now" trigger - checking this and saving acts as a button, since saving restarts the plugin. Cleared automatically once that scan completes. */
-  forceRescan?: boolean;
+  /** How long the startup scan runs, in seconds. */
+  scanDurationSeconds: number;
   contexts: ContextConfig[];
   devices: DeviceConfig[];
 }
@@ -60,6 +60,7 @@ const BUNDLED_TEMPLATES_DIR = join(__dirname, '..', 'templates');
 export const DEFAULT_CONFIG: PluginConfig = {
   templatesDir: BUNDLED_TEMPLATES_DIR,
   scanOnStart: true,
+  scanDurationSeconds: 15,
   contexts: [],
   devices: [],
 };
@@ -134,12 +135,6 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         title: 'Scan for devices on plugin start',
         description: 'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below.',
         default: DEFAULT_CONFIG.scanOnStart,
-      },
-      forceRescan: {
-        type: 'boolean',
-        title: 'Rescan now',
-        description: 'Check and hit Save to scan again immediately (saving restarts the plugin) - unchecks itself automatically once the scan completes.',
-        default: false,
       },
       contexts: {
         type: 'array',
