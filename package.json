@@ -1,6 +1,6 @@
 {
   "name": "@rhizomatics/signalk-esl-plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "SignalK plugin that renders selected SignalK data to eInk Electronic Shelf Labels",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
