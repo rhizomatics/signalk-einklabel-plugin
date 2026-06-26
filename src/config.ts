@@ -116,6 +116,11 @@ function templateNameOptions(templatesDir: string): string[] {
   }
 }
 
+/** JSON Schema forbids an empty `enum` array, so only attach one when there's at least one option - otherwise the whole config schema fails validation. */
+function withEnum<T extends object>(schema: T, values: string[], names?: string[]): T & { enum?: string[]; enumNames?: string[] } {
+  return values.length > 0 ? { ...schema, enum: values, ...(names ? { enumNames: names } : {}) } : schema;
+}
+
 export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []): object {
   const current = { ...DEFAULT_CONFIG, ...(app.readPluginOptions() as Partial<PluginConfig>) };
   const { values: deviceValues, labels: deviceLabels } = deviceOptions(discovered, current);
@@ -135,6 +140,13 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         title: 'Scan for devices on plugin start',
         description: 'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below.',
         default: DEFAULT_CONFIG.scanOnStart,
+      },
+      scanDurationSeconds: {
+        type: 'number',
+        title: 'Scan duration (seconds)',
+        description: 'How long the startup scan runs - increase if devices are missing from the "Device" picker below.',
+        minimum: 1,
+        default: DEFAULT_CONFIG.scanDurationSeconds,
       },
       contexts: {
         type: 'array',
@@ -175,16 +187,18 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
           required: ['friendlyName', 'device', 'templateName', 'contextId', 'repaintTrigger'],
           properties: {
             friendlyName: { type: 'string', title: 'Friendly name' },
-            device: {
-              type: 'string',
-              title: 'Device',
-              description: 'Picked from devices found by a scan (plugin start, or `esl-cli scan`) - sets both the model and BLE address.',
-              enum: deviceValues,
-              enumNames: deviceLabels,
-            },
+            device: withEnum(
+              {
+                type: 'string',
+                title: 'Device',
+                description: 'Picked from devices found by a scan (plugin start, or `esl-cli scan`) - sets both the model and BLE address.',
+              },
+              deviceValues,
+              deviceLabels,
+            ),
             aesKey: { type: 'string', title: 'BLE AES key (vendor-specific; leave blank to use the vendor\'s stock default key)' },
-            templateName: { type: 'string', title: 'Template', enum: templateNameOptions(current.templatesDir) },
-            contextId: { type: 'string', title: 'Context', enum: contextIds },
+            templateName: withEnum({ type: 'string', title: 'Template' }, templateNameOptions(current.templatesDir)),
+            contextId: withEnum({ type: 'string', title: 'Context' }, contextIds),
             repaintTrigger: { type: 'string', title: 'Repaint trigger', enum: ['subscription', 'interval'] },
             triggerPath: { type: 'string', title: 'Trigger SignalK path (if repaint trigger is subscription)' },
             intervalHours: { type: 'number', title: 'Repaint every N hours (if repaint trigger is interval)', minimum: 1 },

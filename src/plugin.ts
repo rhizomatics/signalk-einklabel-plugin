@@ -5,7 +5,6 @@ import { ZhsunycoDriver } from './devices/zhsunyco';
 import { DiscoveredDevice } from './devices/types';
 import { startRepaintScheduler, RepaintScheduler } from './repaintScheduler';
 
-const STARTUP_SCAN_DURATION_MS = 15_000;
 const TIDES_CONTEXT_ID = 'tides';
 /** signalk-tides publishes this once it has a forecast - its presence means the plugin is loaded and running. */
 const TIDES_PROBE_PATH = 'environment.tide.stationName';
@@ -13,25 +12,25 @@ const TIDES_PROBE_PATH = 'environment.tide.stationName';
 const TIDES_DETECT_DELAY_MS = 5_000;
 
 /** Mirrors signalk-bluetti-plugin's convention: scan briefly, report finds via plugin status for the user to copy-paste. */
-async function runStartupScan(app: ServerAPI, discovered: DiscoveredDevice[]): Promise<void> {
-  app.setPluginStatus(`Scanning for ESL devices for ${STARTUP_SCAN_DURATION_MS / 1000}s...`);
-  let found = 0;
+async function runStartupScan(app: ServerAPI, discovered: DiscoveredDevice[], durationSeconds: number): Promise<void> {
+  app.setPluginStatus(`Scanning for ESL devices for ${durationSeconds}s...`);
   for (const driver of allDrivers()) {
-    const devices = await driver.scan(STARTUP_SCAN_DURATION_MS).catch((err) => {
+    const devices = await driver.scan(durationSeconds * 1000).catch((err) => {
       app.debug(`${driver.vendor} scan failed: ${err.message}`);
       return [];
     });
     for (const device of devices) {
-      found++;
       discovered.push(device);
       const pid = device.pid !== undefined ? `0x${device.pid.toString(16).padStart(4, '0')}` : 'unknown';
       app.debug(`discovered ${driver.vendor} device "${device.name ?? ''}" [${device.address}] pid=${pid}`);
-      app.setPluginStatus(`Discovered: ${device.name ?? driver.vendor} [${device.address}] - pick it from a device's "Device" field below`);
     }
   }
-  if (found === 0) {
+  if (discovered.length === 0) {
     app.setPluginStatus('Scan complete - no ESL devices found nearby.');
+    return;
   }
+  const summary = discovered.map((device) => `${device.name ?? device.vendor} [${device.address}]`).join(', ');
+  app.setPluginStatus(`Scan complete - found ${discovered.length} device(s): ${summary} - pick one from a device's "Device" field below`);
 }
 
 /**
@@ -78,7 +77,7 @@ export function createPlugin(app: ServerAPI): Plugin {
 
       if (pluginConfig.scanOnStart) {
         lastDiscovered.length = 0;
-        const scan = runStartupScan(app, lastDiscovered).catch((err) => app.debug(`startup scan failed: ${err.message}`));
+        runStartupScan(app, lastDiscovered, pluginConfig.scanDurationSeconds).catch((err) => app.debug(`startup scan failed: ${err.message}`));
       }
 
       addTidesContextIfDetected(app);
