@@ -1,4 +1,4 @@
-import { readdirSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { ServerAPI } from '@signalk/server-api';
 import { allDrivers } from './devices/registry';
@@ -54,16 +54,19 @@ export interface PluginConfig {
   devices: DeviceConfig[];
 }
 
-/** The package's own bundled `templates/` directory (ships alongside `dist/`, see package.json's `files`) - resolved from here rather than `process.cwd()` so it's found regardless of where the host SignalK server was started from. */
+/** The package's own bundled `templates/` directory (ships alongside `dist/`, see package.json's `files`) - templates here are always available, but a same-named template in the user's `templatesDir` takes priority. */
 const BUNDLED_TEMPLATES_DIR = join(__dirname, '..', 'templates');
 
-export const DEFAULT_CONFIG: PluginConfig = {
-  templatesDir: BUNDLED_TEMPLATES_DIR,
-  scanOnStart: true,
-  scanDurationSeconds: 15,
-  contexts: [],
-  devices: [],
-};
+/** Defaults that need `app` to compute (the templates dir lives under the SignalK config directory, not this package's install location). */
+export function defaultConfig(app: ServerAPI): PluginConfig {
+  return {
+    templatesDir: join(app.getDataDirPath(), 'templates', 'esl'),
+    scanOnStart: true,
+    scanDurationSeconds: 15,
+    contexts: [],
+    devices: [],
+  };
+}
 
 /**
  * Enum for the combined "device" field, built from recently scanned devices (only ones a
@@ -108,12 +111,25 @@ export function parseDevice(device: string): { vendor: string; pid: number; hwVe
   return vendor && address && Number.isInteger(pid) ? { vendor, pid, hwVersion, address } : undefined;
 }
 
-function templateNameOptions(templatesDir: string): string[] {
+function listSvgFiles(dir: string): string[] {
   try {
-    return readdirSync(templatesDir).filter((name) => name.endsWith('.svg'));
+    return readdirSync(dir).filter((name) => name.endsWith('.svg'));
   } catch {
     return [];
   }
+}
+
+/** Local templates take priority over a same-named bundled one; both show up as options. */
+function templateNameOptions(templatesDir: string): string[] {
+  const local = listSvgFiles(templatesDir);
+  const bundled = listSvgFiles(BUNDLED_TEMPLATES_DIR).filter((name) => !local.includes(name));
+  return [...local, ...bundled];
+}
+
+/** Resolves a template name to an actual file path - a local template overrides the bundled one of the same name. */
+export function resolveTemplatePath(templatesDir: string, templateName: string): string {
+  const localPath = join(templatesDir, templateName);
+  return existsSync(localPath) ? localPath : join(BUNDLED_TEMPLATES_DIR, templateName);
 }
 
 /** JSON Schema forbids an empty `enum` array, so only attach one when there's at least one option - otherwise the whole config schema fails validation. */
@@ -122,7 +138,8 @@ function withEnum<T extends object>(schema: T, values: string[], names?: string[
 }
 
 export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []): object {
-  const current = { ...DEFAULT_CONFIG, ...(app.readPluginOptions() as Partial<PluginConfig>) };
+  const defaults = defaultConfig(app);
+  const current = { ...defaults, ...(app.readPluginOptions() as Partial<PluginConfig>) };
   const { values: deviceValues, labels: deviceLabels } = deviceOptions(discovered, current);
   const contextIds = current.contexts.map((context) => context.id);
 
@@ -132,21 +149,21 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
       templatesDir: {
         type: 'string',
         title: 'Templates directory',
-        description: 'Directory to search for SVG/Handlebars template files',
-        default: DEFAULT_CONFIG.templatesDir,
+        description: 'Directory to search for local SVG/Handlebars template files - a template here with the same name as a bundled one takes priority.',
+        default: defaults.templatesDir,
       },
       scanOnStart: {
         type: 'boolean',
         title: 'Scan for devices on plugin start',
         description: 'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below.',
-        default: DEFAULT_CONFIG.scanOnStart,
+        default: defaults.scanOnStart,
       },
       scanDurationSeconds: {
         type: 'number',
         title: 'Scan duration (seconds)',
         description: 'How long the startup scan runs - increase if devices are missing from the "Device" picker below.',
         minimum: 1,
-        default: DEFAULT_CONFIG.scanDurationSeconds,
+        default: defaults.scanDurationSeconds,
       },
       contexts: {
         type: 'array',
@@ -196,13 +213,14 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               deviceValues,
               deviceLabels,
             ),
-            aesKey: { type: 'string', title: 'BLE AES key (vendor-specific; leave blank to use the vendor\'s stock default key)' },
+          
             templateName: withEnum({ type: 'string', title: 'Template' }, templateNameOptions(current.templatesDir)),
             contextId: withEnum({ type: 'string', title: 'Context' }, contextIds),
             repaintTrigger: { type: 'string', title: 'Repaint trigger', enum: ['subscription', 'interval'] },
             triggerPath: { type: 'string', title: 'Trigger SignalK path (if repaint trigger is subscription)' },
             intervalHours: { type: 'number', title: 'Repaint every N hours (if repaint trigger is interval)', minimum: 1 },
             intervalMinute: { type: 'number', title: 'Minute past the hour (if repaint trigger is interval)', minimum: 0, maximum: 59, default: 0 },
+            aesKey: { type: 'string', title: 'BLE AES key (vendor-specific; leave blank to use a default key)' },
             forceRepaint: {
               type: 'boolean',
               title: 'Force repaint',
@@ -211,6 +229,16 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
             },
           },
         },
+      },
+    },
+  };
+}
+
+export function configUiSchema(): object {
+  return {
+    devices: {
+      items: {
+        repaintTrigger: { 'ui:widget': 'radio' },
       },
     },
   };

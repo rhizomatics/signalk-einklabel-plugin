@@ -1,5 +1,5 @@
 import { Plugin, ServerAPI } from '@signalk/server-api';
-import { configSchema, DEFAULT_CONFIG, PluginConfig } from './config';
+import { configSchema, configUiSchema, defaultConfig, PluginConfig } from './config';
 import { registerDriver, allDrivers } from './devices/registry';
 import { ZhsunycoDriver } from './devices/zhsunyco';
 import { DiscoveredDevice } from './devices/types';
@@ -45,7 +45,7 @@ function addTidesContextIfDetected(app: ServerAPI): void {
     if (app.getSelfPath(TIDES_PROBE_PATH) === undefined) {
       return;
     }
-    const current = { ...DEFAULT_CONFIG, ...(app.readPluginOptions() as Partial<PluginConfig>) };
+    const current = { ...defaultConfig(app), ...(app.readPluginOptions() as Partial<PluginConfig>) };
     if (current.contexts.some((context) => context.id === TIDES_CONTEXT_ID)) {
       return;
     }
@@ -71,8 +71,9 @@ export function createPlugin(app: ServerAPI): Plugin {
     name: 'eInk ESL (Electronic Shelf Label)',
     description: 'Renders selected SignalK data to BLE eInk Electronic Shelf Labels',
     schema: () => configSchema(app, lastDiscovered),
+    uiSchema: () => configUiSchema(),
     start(config: object) {
-      const pluginConfig: PluginConfig = { ...DEFAULT_CONFIG, ...(config as Partial<PluginConfig>) };
+      const pluginConfig: PluginConfig = { ...defaultConfig(app), ...(config as Partial<PluginConfig>) };
       app.debug(`starting with ${pluginConfig.devices.length} configured device(s)`);
 
       if (pluginConfig.scanOnStart) {
