@@ -79,13 +79,19 @@ program
   .command('scan')
   .description('Scan for supported BLE ESL devices across all registered vendor drivers')
   .option('-d, --duration <seconds>', 'scan duration in seconds', '10')
+  .option(
+    '-u, --unmatched',
+    'also list nearby devices no registered driver recognised - address/name/mfr/rssi only, since there\'s no driver to do a vendor-specific read like battery',
+  )
   .action(async (opts) => {
     const durationMs = Number(opts.duration) * 1000;
     const header = ['vendor', 'address', 'name', 'pid', 'label', 'mfr', 'battery', 'rssi'];
     const rows: string[][] = [];
+    const matchedAddresses = new Set<string>();
     for (const driver of allDrivers()) {
       const found = await driver.scan(durationMs);
       for (const device of found) {
+        matchedAddresses.add(device.address);
         const pid = device.pid !== undefined ? `0x${device.pid.toString(16).padStart(4, '0')}` : '';
         const label = device.metadata?.label ?? '';
         const manufacturerId = device.manufacturerId !== undefined ? `0x${device.manufacturerId.toString(16).padStart(4, '0')}` : '';
@@ -93,8 +99,32 @@ program
         rows.push([driver.vendor, device.address, device.name ?? '', pid, label, manufacturerId, battery, String(device.rssi ?? '')]);
       }
     }
-    if (rows.length === 0) {
+    if (matchedAddresses.size === 0) {
       console.log(`no devices found in ${opts.duration}s - try a longer scan with -d, e.g. "-d 30"`);
+    }
+    if (opts.unmatched) {
+      const { bluetooth, destroy } = createBluetooth();
+      try {
+        const adapter = await bluetooth.defaultAdapter();
+        for (const address of await adapter.devices()) {
+          if (matchedAddresses.has(address)) {
+            continue;
+          }
+          const device = await adapter.getDevice(address);
+          const name = await device.getName().catch(() => undefined);
+          const manufacturerId = await getManufacturerId(device);
+          const mfr = manufacturerId !== undefined ? `0x${manufacturerId.toString(16).padStart(4, '0')}` : '';
+          const rssi = await device
+            .getRSSI()
+            .then((value) => (value === undefined ? undefined : Number(value)))
+            .catch(() => undefined);
+          rows.push(['(unmatched)', address, name ?? '', '', '', mfr, '', String(rssi ?? '')]);
+        }
+      } finally {
+        destroy();
+      }
+    }
+    if (rows.length === 0) {
       return;
     }
     const widths = header.map((title, col) => Math.max(title.length, ...rows.map((row) => row[col].length)));
