@@ -23,9 +23,8 @@ function nearestColour(r: number, g: number, b: number): WolinkColour {
  * relative to the displayed image). Mirrors `make_image`/`from_pillow` in the reference
  * driver (examples/device_driver/zhunyco/wolink_ble.py).
  *
- * Rows above `voffset` (present on some panel sizes, not the user's current 0x000E
- * hardware) are sent as black, matching the reference driver pasting the source image
- * at a vertical offset onto a blank canvas.
+ * Rows above `voffset` (present on some panel sizes) are sent as black, matching the
+ * reference driver pasting the source image at a vertical offset onto a blank canvas.
  */
 export function encodeBitmap(bitmap: Bitmap, metadata: DeviceMetadata): Buffer {
   const { width, height, voffset } = metadata;

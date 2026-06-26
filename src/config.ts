@@ -46,23 +46,27 @@ export const DEFAULT_CONFIG: PluginConfig = {
   devices: [],
 };
 
-/** "<vendor>:<pid>" tokens for every device model every registered driver currently has confirmed metadata for. */
+/**
+ * "<vendor>:<pid>[:<hwVersion>]" tokens for every device model every registered driver
+ * currently has confirmed metadata for. The hwVersion suffix only appears for models
+ * that need it to disambiguate a PID reused across panel sizes (see `DeviceMetadata.hwVersion`).
+ */
 function deviceModelOptions(): { values: string[]; labels: string[] } {
   const values: string[] = [];
   const labels: string[] = [];
   for (const driver of allDrivers()) {
     for (const device of driver.supportedDevices()) {
-      values.push(`${driver.vendor}:${device.pid}`);
+      values.push([driver.vendor, device.pid, device.hwVersion].filter((part) => part !== undefined).join(':'));
       labels.push(`${driver.vendor} ${device.label} ${device.width}x${device.height} ${device.colours.length}-colour`);
     }
   }
   return { values, labels };
 }
 
-export function parseDeviceModel(deviceModel: string): { vendor: string; pid: number } | undefined {
-  const [vendor, pidStr] = deviceModel.split(':');
+export function parseDeviceModel(deviceModel: string): { vendor: string; pid: number; hwVersion?: string } | undefined {
+  const [vendor, pidStr, hwVersion] = deviceModel.split(':');
   const pid = Number(pidStr);
-  return vendor && Number.isInteger(pid) ? { vendor, pid } : undefined;
+  return vendor && Number.isInteger(pid) ? { vendor, pid, hwVersion } : undefined;
 }
 
 function templateNameOptions(templatesDir: string): string[] {

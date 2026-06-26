@@ -8,6 +8,12 @@ export type Colour = 'black' | 'white' | 'red' | 'yellow';
  */
 export interface DeviceMetadata {
   pid: number;
+  /**
+   * Disambiguates physical hardware that shares a PID (some vendors reuse PIDs across
+   * panel sizes) - the exact advertised value to match against; omit for the variant
+   * that should be treated as the default/fallback for that PID.
+   */
+  hwVersion?: string;
   label: string;
   width: number;
   height: number;
@@ -46,7 +52,8 @@ export interface VendorDriver {
   /** Does this advertisement look like it came from one of this vendor's devices? */
   matchesAdvertisement(name: string | undefined, manufacturerId: number | undefined): boolean;
 
-  metadataForPid(pid: number): DeviceMetadata | undefined;
+  /** hwVersion disambiguates PIDs a vendor reuses across panel sizes - see `DeviceMetadata.hwVersion`. */
+  metadataForPid(pid: number, hwVersion?: string): DeviceMetadata | undefined;
 
   /** All device models this driver currently has confirmed metadata for. */
   supportedDevices(): DeviceMetadata[];

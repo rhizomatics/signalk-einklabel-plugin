@@ -48,7 +48,7 @@ Handlebars.registerHelper('utcOffset', (zone: unknown) => {
 });
 
 /**
- * Converts a base-SI value (always what SignalK paths/APIs deliver) to the user's preferred
+ * Converts a base-SI value (always what SignalK paths/APIs deliver) to the preferred
  * display unit and formats it with the unit's symbol, e.g. 3.42 -> "11.2ft".
  */
 Handlebars.registerHelper('unitValue', (value: unknown, preference: unknown) => {

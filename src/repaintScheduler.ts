@@ -97,7 +97,7 @@ function clearForceRepaint(app: ServerAPI, friendlyName: string): void {
 async function considerRepaint(app: ServerAPI, config: PluginConfig, device: DeviceConfig, state: RepaintState): Promise<void> {
   const model = parseDeviceModel(device.deviceModel);
   const driver = model && getDriver(model.vendor);
-  const metadata = model && driver?.metadataForPid(model.pid);
+  const metadata = model && driver?.metadataForPid(model.pid, model.hwVersion);
   if (!driver || !metadata) {
     app.debug(`"${device.friendlyName}": no driver/metadata for device model "${device.deviceModel}", skipping`);
     return;

@@ -35,12 +35,13 @@ export class ZhsunycoDriver implements VendorDriver {
     return manufacturerId === ZHSUNYCO_MANUFACTURER_ID || (name ?? '').startsWith('WL') || (name ?? '').startsWith('WOESL');
   }
 
-  metadataForPid(pid: number): DeviceMetadata | undefined {
-    return ZHSUNYCO_PID_METADATA[pid];
+  metadataForPid(pid: number, hwVersion?: string): DeviceMetadata | undefined {
+    const candidates = ZHSUNYCO_PID_METADATA.filter((model) => model.pid === pid);
+    return candidates.find((model) => model.hwVersion === hwVersion) ?? candidates.find((model) => model.hwVersion === undefined);
   }
 
   supportedDevices(): DeviceMetadata[] {
-    return Object.values(ZHSUNYCO_PID_METADATA);
+    return ZHSUNYCO_PID_METADATA;
   }
 
   async scan(durationMs: number): Promise<DiscoveredDevice[]> {
@@ -72,7 +73,7 @@ export class ZhsunycoDriver implements VendorDriver {
           name,
           vendor: this.vendor,
           pid: info?.pid,
-          metadata: info ? this.metadataForPid(info.pid) : undefined,
+          metadata: info ? this.metadataForPid(info.pid, info.hwVersion) : undefined,
           manufacturerId,
           batteryMv: await readBatteryMv(device),
           rssi: await device
@@ -108,7 +109,9 @@ export class ZhsunycoDriver implements VendorDriver {
         if (!info) {
           throw new Error('zhsunyco device did not return valid config data');
         }
-        const metadata = config.modelOverride ? { pid: info.pid, ...config.modelOverride } : this.metadataForPid(info.pid);
+        const metadata = config.modelOverride
+          ? { pid: info.pid, ...config.modelOverride }
+          : this.metadataForPid(info.pid, info.hwVersion);
         if (!metadata) {
           throw new Error(
             `zhsunyco device reports unrecognised PID 0x${info.pid.toString(16).padStart(4, '0')} - ` +
