@@ -65,6 +65,11 @@ export function createPlugin(app: ServerAPI): Plugin {
 
   let scheduler: RepaintScheduler | undefined;
   const lastDiscovered: DiscoveredDevice[] = [];
+  // node-ble/BlueZ has no scan-cancellation API, so a scan started by a previous start()
+  // keeps running its full duration even after stop() - tracking it here stops a quick
+  // disable/re-enable from opening a second concurrent D-Bus/BlueZ session, which was
+  // making the new scan fail (and report "no devices found") almost immediately.
+  let scanInProgress: Promise<unknown> | undefined;
 
   const plugin: Plugin = {
     id: 'signalk-esl-plugin',
@@ -77,8 +82,18 @@ export function createPlugin(app: ServerAPI): Plugin {
       app.debug(`starting with ${pluginConfig.devices.length} configured device(s)`);
 
       if (pluginConfig.scanOnStart) {
-        lastDiscovered.length = 0;
-        runStartupScan(app, lastDiscovered, pluginConfig.scanDurationSeconds).catch((err) => app.debug(`startup scan failed: ${err.message}`));
+        if (scanInProgress) {
+          app.debug('a scan from before this restart is still running - skipping a new one to avoid a second concurrent BLE session');
+        } else {
+          lastDiscovered.length = 0;
+          const scan = runStartupScan(app, lastDiscovered, pluginConfig.scanDurationSeconds).catch((err) =>
+            app.debug(`startup scan failed: ${err.message}`),
+          );
+          scanInProgress = scan;
+          scan.finally(() => {
+            scanInProgress = undefined;
+          });
+        }
       }
 
       addTidesContextIfDetected(app);
