@@ -1,3 +1,4 @@
+import { Device } from 'node-ble';
 import { Bitmap } from '../../render/types';
 import { DeviceMetadata, DiscoveredDevice, VendorDeviceConfig, VendorDriver } from '../types';
 import { createBluetooth, getOrDiscoverDevice } from '../bleDiscovery';
@@ -10,6 +11,7 @@ import {
   authResponse,
   commandHeader,
   decodeAdvertisedInfo,
+  decodeBatteryMv,
   decodeStatus,
   resolveAesKey,
 } from './protocol';
@@ -71,6 +73,7 @@ export class ZhsunycoDriver implements VendorDriver {
           pid: info?.pid,
           metadata: info ? this.metadataForPid(info.pid) : undefined,
           manufacturerId,
+          batteryMv: await readBatteryMv(device),
           rssi: await device
             .getRSSI()
             .then((value) => (value === undefined ? undefined : Number(value)))
@@ -140,5 +143,22 @@ export class ZhsunycoDriver implements VendorDriver {
     } finally {
       destroy();
     }
+  }
+}
+
+/** Briefly connects to read the battery characteristic; returns undefined if the device won't cooperate. */
+async function readBatteryMv(device: Device): Promise<number | undefined> {
+  try {
+    await device.connect();
+    try {
+      const gatt = await device.gatt();
+      const service = await gatt.getPrimaryService(WOLINK_SERVICE_UUID);
+      const batteryChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.battery);
+      return decodeBatteryMv(await batteryChar.readValue());
+    } finally {
+      await device.disconnect();
+    }
+  } catch {
+    return undefined;
   }
 }

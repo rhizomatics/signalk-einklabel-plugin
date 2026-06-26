@@ -24,6 +24,8 @@ export interface DiscoveredDevice {
   rssi?: number;
   /** BLE manufacturer ID (the key of the advertisement's manufacturer data), if advertised. */
   manufacturerId?: number;
+  /** Battery level in millivolts, if the driver was able to read it during the scan. */
+  batteryMv?: number;
 }
 
 /** Per-device settings the user supplies when registering a device, beyond what's in DeviceMetadata. */

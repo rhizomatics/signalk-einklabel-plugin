@@ -66,6 +66,7 @@ program
   .action(async (opts) => {
     const durationMs = Number(opts.duration) * 1000;
     let totalFound = 0;
+    console.log('vendor\taddress\tname\tpid\tlabel\tmfr\tbattery\trssi');
     for (const driver of allDrivers()) {
       const found = await driver.scan(durationMs);
       totalFound += found.length;
@@ -73,7 +74,8 @@ program
         const pid = device.pid !== undefined ? `0x${device.pid.toString(16).padStart(4, '0')}` : '';
         const label = device.metadata?.label ?? '';
         const manufacturerId = device.manufacturerId !== undefined ? `0x${device.manufacturerId.toString(16).padStart(4, '0')}` : '';
-        console.log(`${driver.vendor}\t${device.address}\t${device.name ?? ''}\t${pid}\t${label}\tmfr=${manufacturerId}\trssi=${device.rssi ?? ''}`);
+        const battery = device.batteryMv !== undefined ? `${device.batteryMv}mV` : '';
+        console.log(`${driver.vendor}\t${device.address}\t${device.name ?? ''}\t${pid}\t${label}\t${manufacturerId}\t${battery}\t${device.rssi ?? ''}`);
       }
     }
     if (totalFound === 0) {
