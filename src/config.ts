@@ -62,7 +62,7 @@ export function defaultConfig(app: ServerAPI): PluginConfig {
   return {
     templatesDir: join(app.getDataDirPath(), 'templates'),
     scanOnStart: true,
-    scanDurationSeconds: 15,
+    scanDurationSeconds: 20,
     contexts: [],
     devices: [],
   };

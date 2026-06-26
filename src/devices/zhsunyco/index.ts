@@ -5,6 +5,7 @@ import { createBluetooth, getOrDiscoverDevice } from '../bleDiscovery';
 import { ZHSUNYCO_PID_METADATA } from './metadata';
 import { encodeBitmap } from './encode';
 import {
+  AdvertisedDeviceInfo,
   COMMAND,
   WOLINK_CHARACTERISTIC_UUIDS,
   WOLINK_SERVICE_UUID,
@@ -67,7 +68,8 @@ export class ZhsunycoDriver implements VendorDriver {
           continue;
         }
 
-        const info = manufacturerData ? decodeAdvertisedInfo(Object.values(manufacturerData)[0]) : undefined;
+        const advertisedInfo = manufacturerData ? decodeAdvertisedInfo(Object.values(manufacturerData)[0]) : undefined;
+        const { info, batteryMv } = await readDeviceDetails(device, advertisedInfo);
         found.push({
           address,
           name,
@@ -75,7 +77,7 @@ export class ZhsunycoDriver implements VendorDriver {
           pid: info?.pid,
           metadata: info ? this.metadataForPid(info.pid, info.hwVersion) : undefined,
           manufacturerId,
-          batteryMv: await readBatteryMv(device),
+          batteryMv,
           rssi: await device
             .getRSSI()
             .then((value) => (value === undefined ? undefined : Number(value)))
@@ -153,19 +155,36 @@ export class ZhsunycoDriver implements VendorDriver {
   }
 }
 
-/** Briefly connects to read the battery characteristic; returns undefined if the device won't cooperate. */
-async function readBatteryMv(device: Device): Promise<number | undefined> {
+/**
+ * Battery level needs a connection regardless, so reuse it to also fill in the PID/hwVersion
+ * when the advertisement didn't carry decodable manufacturer data - BlueZ's cached
+ * advertisement for a device matched purely by its name prefix can lack that, which would
+ * otherwise leave a real, nearby device's model (and so its entry in the config UI's
+ * device picker - see `deviceOptions()` in `config.ts`) silently missing. Reads the same
+ * config characteristic `paint()` reads, just to identify the device rather than to size a
+ * render.
+ */
+async function readDeviceDetails(
+  device: Device,
+  advertisedInfo: AdvertisedDeviceInfo | undefined,
+): Promise<{ info: AdvertisedDeviceInfo | undefined; batteryMv: number | undefined }> {
   try {
     await device.connect();
     try {
       const gatt = await device.gatt();
       const service = await gatt.getPrimaryService(WOLINK_SERVICE_UUID);
       const batteryChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.battery);
-      return decodeBatteryMv(await batteryChar.readValue());
+      const batteryMv = decodeBatteryMv(await batteryChar.readValue());
+      let info = advertisedInfo;
+      if (!info) {
+        const configChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.config);
+        info = decodeAdvertisedInfo(await configChar.readValue());
+      }
+      return { info, batteryMv };
     } finally {
       await device.disconnect();
     }
   } catch {
-    return undefined;
+    return { info: advertisedInfo, batteryMv: undefined };
   }
 }
