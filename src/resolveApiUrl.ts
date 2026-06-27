@@ -1,6 +1,15 @@
 import { fetchJson } from './httpJson';
 
 /**
+ * This whole module is a workaround for a gap in the plugin API, not a permanent design choice -
+ * `resourcesApi`/`weatherApi`/`courseApi` etc. on `ServerAPI` exist because of an ongoing upstream
+ * effort to broaden what plugins can reach in-process; unit-preferences resolution (and enhanced
+ * per-path metadata) just hasn't been added yet. If/when it is, this probing - and `unitCategories.ts`'s
+ * client-side recomposition of the same resolution - can likely be replaced with a direct in-process
+ * call, dropping the need for `signalkApiUrl` entirely.
+ */
+
+/**
  * The only realistic values for this server's own base URL, in likelihood order - the plugin always
  * runs on the same host as the server, so it's always the loopback address, and the port is determined
  * entirely by install method: a bare `npm install` defaults to 3000; container/systemd installs
