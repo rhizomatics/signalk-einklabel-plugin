@@ -34,14 +34,14 @@ export interface PluginConfig {
   /** How long the startup scan runs, in seconds. */
   scanDurationSeconds: number;
   /**
-   * Base URL of this SignalK server (e.g. `http://10.36.10.20:3000`), reachable from wherever the
-   * plugin runs - the plugin can't know its own externally-reachable address (may be behind a reverse
-   * proxy). `source=resources` bindings go through `app.resourcesApi` in-process, and a `signalk` path's
-   * own unit-preference metadata is read via `app.getMetadata` in-process too - neither needs this. It's
-   * only used by an explicit `category=` binding (e.g. `category=depth` on a resource-sourced value with
-   * no per-path metadata of its own), which composes signalk-server's unit-preferences REST endpoints
-   * (`/signalk/v1/unitpreferences/{categories,active,definitions}`) - that resolution logic isn't
-   * exposed via the plugin API, only the server's own internal modules.
+   * Base URL of this SignalK server, used for: (1) a `signalk`-sourced numeric value's automatic unit
+   * conversion (`GET .../vessels/<context>/meta`, see `../pathMeta.ts`) unless `format=raw`, and (2) an
+   * explicit `category=` binding (e.g. `category=depth` on a resource-sourced value with no path
+   * metadata of its own, see `../unitCategories.ts`). Neither has an in-process equivalent reachable via
+   * the plugin API - confirmed against the signalk-server source, this resolution only happens in its
+   * REST layer. Defaults to the local loopback address - the plugin always runs on the same host as the
+   * server it's configured for, so `localhost` is reachable regardless of any external reverse proxy;
+   * override only if the server uses a non-default port.
    */
   signalkApiUrl?: string;
   devices: DeviceConfig[];
@@ -56,6 +56,7 @@ export function defaultConfig(app: ServerAPI): PluginConfig {
     templatesDir: join(app.getDataDirPath(), 'templates'),
     scanOnStart: true,
     scanDurationSeconds: 20,
+    signalkApiUrl: 'http://localhost:3000',
     devices: [],
   };
 }
@@ -160,7 +161,8 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         type: 'string',
         title: 'SignalK API base URL',
         description:
-          'Base URL of this SignalK server (e.g. http://10.36.10.20:3000), reachable from wherever this plugin runs - only needed for an explicit `category=` binding (e.g. `category=depth` on a resource-sourced value with no SignalK path of its own, like a tide level). `source=resources` bindings and a SignalK path\'s own automatic unit conversion don\'t need this. The plugin can\'t auto-detect its own externally-reachable address (e.g. behind a reverse proxy).',
+          'Used for a `signalk` path\'s automatic unit conversion (unless `format=raw`) and for an explicit `category=` binding (e.g. on a resource-sourced value like a tide level, which has no path metadata of its own). Defaults to the local loopback address, which always works since this plugin runs on the same host as the server - override only if it uses a non-default port.',
+        default: defaults.signalkApiUrl,
       },
       devices: {
         type: 'array',

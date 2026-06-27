@@ -8,6 +8,7 @@ import { SvgRenderer } from './render/svgRenderer';
 import { Binding, findBindings } from './render/binding';
 import { TemplateContext } from './render/types';
 import { fetchCategoryDisplayUnits } from './unitCategories';
+import { fetchPathMeta } from './pathMeta';
 
 const INTERVAL_POLL_MS = 60_000;
 const SUBSCRIPTION_DEBOUNCE_MS = 2_000;

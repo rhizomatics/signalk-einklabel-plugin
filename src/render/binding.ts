@@ -15,9 +15,9 @@ export interface Binding {
   /** Required when `source === 'resources'` - the Resources API resource type, e.g. `tides`, `waypoints`. */
   resource?: string;
   path: string;
-  /** A named formatter (see `./formatters.ts`) - `local_time`, `utc_offset`, `position`. */
+  /** A named formatter (see `./formatters.ts`), or `'raw'` to suppress automatic unit conversion (see `renderBinding`). */
   format?: string;
-  /** Explicit unit-preferences category (e.g. `depth`, `speed`, `temperature`) for a numeric value - see `../unitCategories.ts`. */
+  /** Explicit unit-preferences category (e.g. `depth`, `speed`, `temperature`) for a numeric value with no path metadata of its own, e.g. a `source=resources` value - see `../unitCategories.ts`. */
   category?: string;
   round?: number;
 }
@@ -27,10 +27,11 @@ const KNOWN_KEYS = new Set(['source', 'context', 'resource', 'path', 'format', '
 /**
  * Parses a `<desc>` element's text content into a `Binding`, e.g.
  * `source=resources,resource=tides,path=extremes.[0].level,category=depth,round=2` or, using the
- * defaults (`source=signalk,context=self`), plain `path=navigation.speedOverGround,category=speed`.
- * A bare path with no `key=value` pairs at all, e.g. `environment.forecast.description`, is shorthand
- * for `path=environment.forecast.description` (source/context still default to signalk/self) - SignalK
- * paths never contain `=`, so its absence unambiguously signals this shorthand.
+ * defaults (`source=signalk,context=self`), plain `path=navigation.speedOverGround` (auto-converts via
+ * that path's own metadata - see `renderBinding`). A bare path with no `key=value` pairs at all, e.g.
+ * `environment.forecast.description`, is shorthand for `path=environment.forecast.description`
+ * (source/context still default to signalk/self) - SignalK paths never contain `=`, so its absence
+ * unambiguously signals this shorthand.
  */
 export function parseBinding(desc: string): Binding {
   const trimmedDesc = desc.trim();
@@ -128,6 +129,20 @@ export function resolveBinding(binding: Binding, context: TemplateContext): unkn
 }
 
 /**
+ * Looks up a `signalk`-sourced binding's path in `context.pathMeta` - a flat `{ [context]:
+ * { [dottedPath]: { displayUnits } } }` map (see `../pathMeta.ts`), matching the flat shape
+ * `GET .../vessels/<context>/meta` itself returns, unlike `context.signalk`'s nested tree. Unlike
+ * `resolveBinding`, never throws - metadata is always best-effort (a `source=resources` binding, a
+ * path with no metadata, or a server unreachable at `signalkApiUrl` all resolve to "no metadata"
+ * rather than an error).
+ */
+function resolveDisplayUnits(binding: Binding, context: TemplateContext): DisplayUnits | undefined {
+  if (binding.source !== 'signalk') return undefined;
+  const pathMeta = context.pathMeta as Record<string, Record<string, { displayUnits?: DisplayUnits }>> | undefined;
+  return pathMeta?.[binding.context]?.[binding.path]?.displayUnits;
+}
+
+/**
  * Looks up an explicit `category=` binding's resolved conversion info from `context.categories` (built
  * by `fetchCategoryDisplayUnits` in `../unitCategories.ts`) - same throw-on-missing pattern as
  * `resolveBinding`'s context/resource lookups, since naming a category is a declared dependency.
@@ -145,17 +160,23 @@ function resolveCategoryDisplayUnits(binding: Binding, context: TemplateContext)
  * Resolves a binding and renders it to text exactly as `SvgRenderer` does for a `<desc>` - shared so
  * the CLI's `field`/`fields` commands show the same thing a real render would.
  *
- * A named `format=` (`local_time`/`utc_offset`/`position`) takes precedence; otherwise a numeric value
- * with an explicit `category=` (e.g. `category=depth` on a `source=resources` value) converts via that
- * category's resolved unit preference. Falls through to `round=` (`toFixed`), `JSON.stringify` for an
- * unformatted object/array value (e.g. a path that resolved to a whole sub-tree rather than a leaf)
- * instead of the useless `String(value)` -> `"[object Object]"`, else `String`.
+ * Precedence for a numeric value:
+ * 1. An explicit named `format=` (anything other than `raw`) - `local_time`/`utc_offset`/`position`.
+ * 2. An explicit `category=` - for values with no path metadata of their own, e.g. a `source=resources`
+ *    value.
+ * 3. Otherwise, a `signalk`-sourced value auto-converts to its path's own preferred display unit (from
+ *    `context.pathMeta`) by default - `format=raw` opts out of this step only.
+ * 4. Falls through to `round=` (`toFixed`), `JSON.stringify` for an unformatted object/array value
+ *    (e.g. a path that resolved to a whole sub-tree rather than a leaf) instead of the useless
+ *    `String(value)` -> `"[object Object]"`, else `String`.
  */
 export function renderBinding(binding: Binding, context: TemplateContext): string {
   const value = resolveBinding(binding, context);
-  if (binding.format) return applyFormat(binding.format, value, context, binding.round);
+  if (binding.format && binding.format !== 'raw') return applyFormat(binding.format, value, context, binding.round);
   if (typeof value === 'number') {
     if (binding.category) return formatDisplayUnits(value, resolveCategoryDisplayUnits(binding, context), binding.round);
+    const displayUnits = binding.format === 'raw' ? undefined : resolveDisplayUnits(binding, context);
+    if (displayUnits) return formatDisplayUnits(value, displayUnits, binding.round);
     if (binding.round !== undefined) return value.toFixed(binding.round);
   }
   if (value === null || value === undefined) return '';
