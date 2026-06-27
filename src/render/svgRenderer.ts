@@ -2,8 +2,7 @@ import { readFile } from 'fs/promises';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { Resvg, initWasm } from '@resvg/resvg-wasm';
 import { Bitmap, Renderer, TemplateContext } from './types';
-import { parseBinding, resolveBinding } from './binding';
-import { applyFormat } from './formatters';
+import { parseBinding, renderBinding } from './binding';
 import { DEFAULT_FONT_PATHS } from './fonts';
 
 let wasmReady: Promise<void> | undefined;
@@ -70,12 +69,7 @@ export class SvgRenderer implements Renderer {
       if (!descElement) continue;
 
       const binding = parseBinding(descElement.textContent ?? '');
-      const value = resolveBinding(binding, context);
-      element.textContent = binding.format
-        ? applyFormat(binding.format, value, context, binding.round)
-        : typeof value === 'number' && binding.round !== undefined
-          ? value.toFixed(binding.round)
-          : String(value ?? '');
+      element.textContent = renderBinding(binding, context);
     }
 
     const svgOutput = new XMLSerializer().serializeToString(doc);

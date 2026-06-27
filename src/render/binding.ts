@@ -1,5 +1,6 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { TemplateContext } from './types';
+import { applyFormat } from './formatters';
 
 const SOURCES = ['signalk', 'resources'] as const;
 type Source = (typeof SOURCES)[number];
@@ -120,4 +121,19 @@ export function resolveBinding(binding: Binding, context: TemplateContext): unkn
     throw new Error(`binding references resource "${binding.resource}" which is not present in the render context`);
   }
   return getAtPath(resource, binding.path);
+}
+
+/**
+ * Resolves a binding and renders it to text exactly as `SvgRenderer` does for a `<desc>` - shared so
+ * the CLI's `field`/`fields` commands show the same thing a real render would. Falls back to
+ * `JSON.stringify` for an unformatted object/array value (e.g. a path that resolved to a whole
+ * sub-tree rather than a leaf) instead of the useless `String(value)` -> `"[object Object]"`.
+ */
+export function renderBinding(binding: Binding, context: TemplateContext): string {
+  const value = resolveBinding(binding, context);
+  if (binding.format) return applyFormat(binding.format, value, context, binding.round);
+  if (typeof value === 'number' && binding.round !== undefined) return value.toFixed(binding.round);
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }

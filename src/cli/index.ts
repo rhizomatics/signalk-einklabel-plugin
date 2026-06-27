@@ -8,9 +8,7 @@ import { createBluetooth, getManufacturerId, getOrDiscoverDevice } from '../devi
 import { Colour, DeviceModelOverride } from '../devices/types';
 import { SvgRenderer } from '../render/svgRenderer';
 import { bitmapToPng } from '../render/png';
-import { Binding, findBindings, parseBinding, resolveBinding } from '../render/binding';
-import { applyFormat } from '../render/formatters';
-import { TemplateContext } from '../render/types';
+import { Binding, findBindings, parseBinding, renderBinding } from '../render/binding';
 import { assembleLiveContext } from './liveContext';
 import { logDebug, setLogLevel } from './log';
 
@@ -18,14 +16,6 @@ registerDriver(new ZhsunycoDriver());
 
 const VENDOR_IDENTIFY_TIMEOUT_MS = 30_000;
 const DEFAULT_SIGNALK_URL = 'http://localhost:3000';
-
-/** Renders a binding's resolved value the same way `SvgRenderer` does for a `<desc>` (see svgRenderer.ts). */
-function renderBindingValue(binding: Binding, context: TemplateContext): string {
-  const value = resolveBinding(binding, context);
-  if (binding.format) return applyFormat(binding.format, value, context, binding.round);
-  if (typeof value === 'number' && binding.round !== undefined) return value.toFixed(binding.round);
-  return String(value ?? '');
-}
 
 const COLOUR_CODES: Record<string, Colour[]> = {
   BW: ['black', 'white'],
@@ -249,7 +239,7 @@ program
         if (row.error || !row.binding) return [row.id, row.desc, row.error ?? ''];
         try {
           const context = await assembleLiveContext(opts.url, [row.binding]);
-          return [row.id, row.desc, renderBindingValue(row.binding, context)];
+          return [row.id, row.desc, renderBinding(row.binding, context)];
         } catch (err) {
           return [row.id, row.desc, `ERROR: ${(err as Error).message}`];
         }
@@ -269,7 +259,7 @@ program
   .action(async (spec, opts) => {
     const binding = parseBinding(spec);
     const context = await assembleLiveContext(opts.url, [binding]);
-    console.log(renderBindingValue(binding, context));
+    console.log(renderBinding(binding, context));
   });
 
 program.parseAsync(process.argv).catch((err) => {
