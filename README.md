@@ -32,6 +32,7 @@ A `format` can be specified to make the value easier to understand. The supporte
 * `local_time` - reduce a time stamp to just the time, omitting the date, and applying daylight savings if appropriate
 * `depth` - Use the SignalK preferred depth unit, make the conversion if needed, and tack on the unit name as a suffix
 * `speed` - Use the SignalK preferred speed unit, make the conversion if needed, and tack on the unit name as a suffix
+* `temperature` - Use the SignalK preferred temperature unit, make the conversion if needed, and tack on the unit name as a suffix
 * `position` - Format a `{ latitude, longitude }` value as decimal degrees with hemisphere letters, e.g. `56.6250°N 6.0700°W`
 * `utc_offset` - Show a timezone in `UTC+01:00` style format
 

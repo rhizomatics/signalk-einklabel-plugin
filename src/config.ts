@@ -11,12 +11,20 @@ export interface ProviderBinding {
   name: string;
 }
 
+/** Dotted SignalK paths read from another vessel - the `context=` key a template's `<desc>` bindings use to address it. */
+export interface VesselBinding {
+  /** e.g. `"mmsi:232345678"` - matches a binding's `context=` value. */
+  context: string;
+  paths: string[];
+}
+
 /** A reusable named bundle of data sources that one or more devices can render their template against. */
 export interface ContextConfig {
   id: string;
   /** Dotted SignalK paths read via `getSelfPath` and merged into the render context preserving their natural nesting. */
   signalkPaths: string[];
   providers: ProviderBinding[];
+  vessels: VesselBinding[];
 }
 
 export interface DeviceConfig {
@@ -190,6 +198,24 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                 properties: {
                   url: { type: 'string', title: 'URL' },
                   name: { type: 'string', title: 'Resource name (the `resource=` key a template binds against)' },
+                },
+              },
+            },
+            vessels: {
+              type: 'array',
+              title: 'Vessels',
+              description: 'Other vessels\' SignalK paths to merge into the template context, for templates with a `context=` binding (e.g. `context=mmsi:232345678`)',
+              items: {
+                type: 'object',
+                required: ['context', 'paths'],
+                properties: {
+                  context: { type: 'string', title: 'Context (the `context=` key a template binds against, e.g. mmsi:232345678)' },
+                  paths: {
+                    type: 'array',
+                    title: 'SignalK Paths',
+                    description: 'Dotted paths to read from this vessel, e.g. navigation.position',
+                    items: { type: 'string' },
+                  },
                 },
               },
             },

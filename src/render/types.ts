@@ -11,7 +11,8 @@ export interface Bitmap {
 
 /**
  * Render context a template's `<desc>` bindings resolve against - see `./binding.ts`. Shaped as
- * `{ signalk: {...}, resources: { [providerName]: ... } }` by `assembleRawContext` in repaintScheduler.ts.
+ * `{ signalk: { self: {...}, [vesselContext]: {...} }, resources: { [providerName]: ... } }` by
+ * `assembleRawContext` in repaintScheduler.ts.
  */
 export type TemplateContext = Record<string, unknown>;
 

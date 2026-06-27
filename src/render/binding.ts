@@ -6,9 +6,11 @@ type Source = (typeof SOURCES)[number];
 /**
  * Parsed form of a `<desc>`'s `key=value,key=value` content - see `parseBinding` for the grammar.
  */
+const CONTEXT_PATTERN = /^(self|mmsi:\d+)$/;
+
 export interface Binding {
   source: Source;
-  /** Only `'self'` is implemented today; reserved for addressing other vessels later. */
+  /** `'self'` or `'mmsi:<digits>'` - must match a `ContextConfig.vessels[].context` when not `'self'`. */
   context: string;
   /** Required when `source === 'resources'` - names a configured provider (`ContextConfig.providers[].name`). */
   resource?: string;
@@ -53,8 +55,8 @@ export function parseBinding(desc: string): Binding {
     throw new Error(`invalid binding "${desc}" - unknown source "${source}"`);
   }
   const context = fields.context ?? 'self';
-  if (context !== 'self') {
-    throw new Error(`invalid binding "${desc}" - context "${context}" is not supported yet (only "self")`);
+  if (!CONTEXT_PATTERN.test(context)) {
+    throw new Error(`invalid binding "${desc}" - context "${context}" is not supported (expected "self" or "mmsi:<digits>")`);
   }
   if (source === 'resources' && !fields.resource) {
     throw new Error(`invalid binding "${desc}" - source=resources requires a "resource" key`);
@@ -90,7 +92,12 @@ function getAtPath(obj: unknown, path: string): unknown {
 /** Resolves a parsed `Binding` against the render context assembled by `assembleRawContext`. */
 export function resolveBinding(binding: Binding, context: TemplateContext): unknown {
   if (binding.source === 'signalk') {
-    return getAtPath(context.signalk, binding.path);
+    const signalk = context.signalk as Record<string, unknown> | undefined;
+    const vessel = signalk?.[binding.context];
+    if (vessel === undefined) {
+      throw new Error(`binding references context "${binding.context}" which is not present in the render context`);
+    }
+    return getAtPath(vessel, binding.path);
   }
 
   const resources = context.resources as Record<string, unknown> | undefined;

@@ -68,10 +68,28 @@ async function fetchProvider(binding: ProviderBinding): Promise<unknown> {
   return response.json();
 }
 
+/** Translates a binding's `context=` value into the full-data-model path prefix `app.getPath` needs. */
+function vesselPathPrefix(context: string): string {
+  const mmsi = /^mmsi:(\d+)$/.exec(context);
+  if (!mmsi) {
+    throw new Error(`unsupported vessel context "${context}" - only "mmsi:<digits>" is supported`);
+  }
+  return `vessels.urn:mrn:imo:mmsi:${mmsi[1]}`;
+}
+
 async function assembleRawContext(app: ServerAPI, context: ContextConfig): Promise<TemplateContext> {
-  const signalk: Record<string, unknown> = {};
+  const self: Record<string, unknown> = {};
   for (const path of context.signalkPaths) {
-    setAtPath(signalk, path, app.getSelfPath(path));
+    setAtPath(self, path, app.getSelfPath(path));
+  }
+  const signalk: Record<string, unknown> = { self };
+  for (const vessel of context.vessels) {
+    const data: Record<string, unknown> = {};
+    const prefix = vesselPathPrefix(vessel.context);
+    for (const path of vessel.paths) {
+      setAtPath(data, path, app.getPath(`${prefix}.${path}`));
+    }
+    signalk[vessel.context] = data;
   }
   const resources: Record<string, unknown> = {};
   for (const provider of context.providers) {

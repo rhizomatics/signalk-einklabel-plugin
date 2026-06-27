@@ -56,7 +56,7 @@ function addTidesContextIfDetected(app: ServerAPI): void {
     if (current.contexts.some((context) => context.id === TIDES_CONTEXT_ID)) {
       return;
     }
-    const contexts = [...current.contexts, { id: TIDES_CONTEXT_ID, signalkPaths: ['environment.time.timezoneRegion'], providers: [] }];
+    const contexts = [...current.contexts, { id: TIDES_CONTEXT_ID, signalkPaths: ['environment.time.timezoneRegion'], providers: [], vessels: [] }];
     app.savePluginOptions({ ...current, contexts }, (err) => {
       if (err) {
         app.debug(`failed to add "${TIDES_CONTEXT_ID}" context: ${err.message}`);

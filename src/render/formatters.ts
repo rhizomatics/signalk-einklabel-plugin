@@ -35,12 +35,14 @@ function formatUnitValue(value: unknown, pref: UnitPreference, round: number | u
 /**
  * Shows the explicit IANA zone name rather than an abbreviation (e.g. "BST") - UK tide tables are
  * officially published in GMT, so the basis for the displayed time must be unambiguous rather than
- * just locally styled.
+ * just locally styled. Always reads the local vessel's timezone (`signalk.self`), regardless of which
+ * vessel's value is being formatted - the display's own clock/locale is what matters.
  */
 function formatLocalTime(value: unknown, context: TemplateContext): string {
   if (typeof value !== 'string') return '';
   const signalk = context.signalk as Record<string, unknown> | undefined;
-  const environment = signalk?.environment as { time?: { timezoneRegion?: string } } | undefined;
+  const self = signalk?.self as Record<string, unknown> | undefined;
+  const environment = self?.environment as { time?: { timezoneRegion?: string } } | undefined;
   const zone = environment?.time?.timezoneRegion || 'utc';
   const dt = DateTime.fromISO(value, { zone: 'utc' }).setZone(zone);
   return dt.isValid ? dt.toFormat('HH:mm') : '';
@@ -74,6 +76,8 @@ export function applyFormat(name: string, value: unknown, context: TemplateConte
       return formatUnitValue(value, unitPreference(context, 'speed'), round);
     case 'depth':
       return formatUnitValue(value, unitPreference(context, 'length'), round);
+    case 'temperature':
+      return formatUnitValue(value, unitPreference(context, 'temperature'), round);
     case 'local_time':
       return formatLocalTime(value, context);
     case 'utc_offset':
