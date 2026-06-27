@@ -2,7 +2,8 @@ import { readFile } from 'fs/promises';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { Resvg, initWasm } from '@resvg/resvg-wasm';
 import { Bitmap, Renderer, TemplateContext } from './types';
-import { Handlebars } from './helpers';
+import { parseBinding, resolveBinding } from './binding';
+import { applyFormat } from './formatters';
 import { DEFAULT_FONT_PATHS } from './fonts';
 
 let wasmReady: Promise<void> | undefined;
@@ -15,12 +16,13 @@ function ensureWasmInitialized(): Promise<void> {
 }
 
 /**
- * Renders an SVG+Handlebars template to a common RGBA bitmap.
+ * Renders an SVG+binding template to a common RGBA bitmap.
  *
  * Binding model: a `<text>` element with a `<desc>` child has that child's
- * content compiled as a Handlebars template against the full context and
- * substituted in as the element's text, e.g.
- * `<desc>{{formatTime extremes.0.time environment.time.timezoneRegion}}</desc>`.
+ * content parsed as a flat `key=value,key=value` binding against the render
+ * context and substituted in as the element's text, e.g.
+ * `<desc>source=resources,resource=tides,path=extremes.[0].time,format=local_time</desc>`
+ * (see `./binding.ts` for the grammar and `./formatters.ts` for the `format=` registry).
  * The `<text>` element's own visible content is left untouched in the source
  * file - it's just a placeholder so the template looks sane while laying it
  * out in an SVG editor - and is only overwritten in the in-memory copy used
@@ -67,8 +69,13 @@ export class SvgRenderer implements Renderer {
       const descElement = element.getElementsByTagName('desc').item(0);
       if (!descElement) continue;
 
-      const expression = descElement.textContent ?? '';
-      element.textContent = Handlebars.compile(expression)(context);
+      const binding = parseBinding(descElement.textContent ?? '');
+      const value = resolveBinding(binding, context);
+      element.textContent = binding.format
+        ? applyFormat(binding.format, value, context, binding.round)
+        : typeof value === 'number' && binding.round !== undefined
+          ? value.toFixed(binding.round)
+          : String(value ?? '');
     }
 
     const svgOutput = new XMLSerializer().serializeToString(doc);

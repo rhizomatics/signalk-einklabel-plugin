@@ -13,13 +13,13 @@ A SignalK plugin, in typescript, that renders selected SignalK data to an eInk E
   * The config schema's vendor enum and the BLE-scan vendor list are both read live from the registry at the point of use (schema build, scan handler) rather than cached, so a newly-registered extension vendor shows up next time the config panel is opened or Scan is pressed - no extra refresh mechanism needed
 * BLE scan: the plugin runs a short scan on start (toggleable) and reports each discovered device via the plugin status line for the user to copy the address from - matches the plain-JSON-Schema-form convention already used by signalk-bluetti-plugin (no custom config-UI widget, no live-populated dropdown)
 * Ability to register 1 or more devices (friendly name + a combined "device model" dropdown encoding vendor+PID, so width/height/colour count are known from config alone and never require a live BLE read to size a render or a rescan after a plugin restart), each assigned a template, a repaint trigger, and 0 or more SignalK paths plus 0 or more API providers as its data context
-* The render context for a device is assembled from:
-  - 0 or more SignalK paths, read via `getSelfPath` and merged into the context preserving their natural dotted nesting (e.g. `environment.time.timezoneRegion`)
-  - 0 or more API providers - any HTTP(S) endpoint returning JSON, whether a built-in SignalK API or a plugin-provided one (e.g. signalk-tides) - merged into the context at the root, or under a configured key to avoid collisions
-    - Template fields are bound to data via Handlebars expressions, not a separate path-mapping layer: each dynamic `<text>` element carries the full expression in a `<desc>` child (e.g. `{{formatTime extremes.[0].time ...}}`), evaluated directly against the assembled context object, with bracket notation for array indices
+* The render context for a device is assembled as `{ signalk: {...}, resources: { [providerName]: ... } }`, from:
+  - 0 or more SignalK paths, read via `getSelfPath` and merged under `signalk`, preserving their natural dotted nesting (e.g. `signalk.environment.time.timezoneRegion`)
+  - 0 or more API providers - any HTTP(S) endpoint returning JSON, whether a built-in SignalK API or a plugin-provided one (e.g. signalk-tides) - each given a required name, merged under `resources.<name>`
+    - Template fields are bound to data via a flat `key=value,key=value` binding, not a templating engine: each dynamic `<text>` element carries the binding in a `<desc>` child (e.g. `source=resources,resource=tides,path=extremes.[0].time,format=local_time`), with `source`/`context` defaulting to `signalk`/`self` and bracket notation for array indices - see `src/render/binding.ts` for the grammar and `src/render/formatters.ts` for the `format=` registry
       - For example, the SVG template should be able to show the next 3 tide extremes, such as the High Water and Low Water times
 * Ability to create layout design templates
-    * Templates will be SVG files, using Handlebars to populate and then rendered to bitmaps
+    * Templates will be SVG files with `<desc>` bindings, rendered to bitmaps
     * No upload UI in v1: the plugin config takes a templates directory path, and the plugin scans it for template files. Revisit upload UI later if multiple/custom templates become common
     * Each template can be assigned to 1 or more devices
   * Initial layout should be for tides

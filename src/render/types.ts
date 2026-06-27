@@ -9,7 +9,10 @@ export interface Bitmap {
   data: Uint8Array;
 }
 
-/** Arbitrary data made available to a template's Handlebars expressions. */
+/**
+ * Render context a template's `<desc>` bindings resolve against - see `./binding.ts`. Shaped as
+ * `{ signalk: {...}, resources: { [providerName]: ... } }` by `assembleRawContext` in repaintScheduler.ts.
+ */
 export type TemplateContext = Record<string, unknown>;
 
 export interface Renderer {

@@ -7,8 +7,8 @@ import { DiscoveredDevice } from './devices/types';
 /** Binds an HTTP(S) JSON endpoint (a built-in SignalK API or a plugin-provided one, e.g. signalk-tides) into the render context. */
 export interface ProviderBinding {
   url: string;
-  /** Namespace to merge the response under; omit to merge at the context root (matches how the bundled tide template expects its data). */
-  contextKey?: string;
+  /** Namespace the response is merged under, as `resources.<name>` - the `resource=` key a template's `<desc>` bindings use to address it. */
+  name: string;
 }
 
 /** A reusable named bundle of data sources that one or more devices can render their template against. */
@@ -149,7 +149,7 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
       templatesDir: {
         type: 'string',
         title: 'Templates directory',
-        description: 'Directory to search for local SVG/Handlebars template files - a template here with the same name as a bundled one takes priority.',
+        description: 'Directory to search for local SVG template files - a template here with the same name as a bundled one takes priority.',
         default: defaults.templatesDir,
       },
       scanOnStart: {
@@ -186,10 +186,10 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               description: 'HTTP(S) JSON endpoints to merge into the template context - a built-in SignalK API or a plugin-provided one (e.g. signalk-tides)',
               items: {
                 type: 'object',
-                required: ['url'],
+                required: ['url', 'name'],
                 properties: {
                   url: { type: 'string', title: 'URL' },
-                  contextKey: { type: 'string', title: 'Context key (optional - merges at the root if left blank)' },
+                  name: { type: 'string', title: 'Resource name (the `resource=` key a template binds against)' },
                 },
               },
             },

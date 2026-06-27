@@ -69,19 +69,15 @@ async function fetchProvider(binding: ProviderBinding): Promise<unknown> {
 }
 
 async function assembleRawContext(app: ServerAPI, context: ContextConfig): Promise<TemplateContext> {
-  const result: Record<string, unknown> = {};
+  const signalk: Record<string, unknown> = {};
   for (const path of context.signalkPaths) {
-    setAtPath(result, path, app.getSelfPath(path));
+    setAtPath(signalk, path, app.getSelfPath(path));
   }
+  const resources: Record<string, unknown> = {};
   for (const provider of context.providers) {
-    const data = await fetchProvider(provider);
-    if (provider.contextKey) {
-      result[provider.contextKey] = data;
-    } else if (data !== null && typeof data === 'object') {
-      Object.assign(result, data);
-    }
+    resources[provider.name] = await fetchProvider(provider);
   }
-  return result;
+  return { signalk, resources };
 }
 
 function clearForceRepaint(app: ServerAPI, friendlyName: string): void {

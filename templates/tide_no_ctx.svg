@@ -74,7 +74,8 @@
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">High Water</text>
+     style="-inkscape-font-specification:'monospace, Normal';font-family:monospace;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">High Water<desc
+   id="desc2">source=resources,resource=tides,path=extremes.[0].label</desc></text>
   <text
      id="extremes.1"
      x="5.9322038"
@@ -82,7 +83,8 @@
      font-size="14"
      font-family="monospace"
      fill="black"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">Low Water</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">Low Water<desc
+   id="desc7">source=resources,resource=tides,path=extremes[1].label</desc></text>
   <text
      id="extremes.2"
      x="5.9322028"
@@ -90,7 +92,8 @@
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">High Water</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000">High Water<desc
+   id="desc9">source=resources,resource=tides,path=extremes[2].label</desc></text>
   <text
      id="environment.time.timezoneRegion"
      x="348.6441"
@@ -115,7 +118,7 @@
        x="173.64978"
        y="201.8409"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.44101">3.3m</tspan><desc
-       id="desc6">source=resources,resource=tides,path=extremes.[2].level,format=depth</desc></text>
+       id="desc6">source=resources,resource=tides,path=extremes[2].level,format=depth,round=2</desc></text>
   <text
      id="extremes.2.time"
      x="31.471279"
@@ -125,7 +128,7 @@
      fill="red"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.31448"
      transform="scale(0.77910527,1.2835236)">15:53<desc
-   id="desc10">source=resources,resource=tides,path=extremes.[2].time,format=local_time</desc></text>
+   id="desc10">source=resources,resource=tides,path=extremes[2].time,format=local_time</desc></text>
   <text
      id="extremes.1.level"
      x="182.71886"
@@ -142,7 +145,7 @@
        x="182.71886"
        y="136.2934"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.40832">1.6m</tspan><desc
-       id="desc5">source=resources,resource=tides,path=extremes.[1].level,format=depth</desc></text>
+       id="desc5">source=resources,resource=tides,path=extremes[1].level,format=depth,round=2</desc></text>
   <text
      id="extremes.1.time"
      x="33.328102"
@@ -152,7 +155,7 @@
      fill="red"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.31609"
      transform="scale(0.77081546,1.2973274)">09:36<desc
-   id="desc8">source=resources,resource=tides,path=extremes.[1].time,format=local_time</desc></text>
+   id="desc8">source=resources,resource=tides,path=extremes[1].time,format=local_time</desc></text>
   <text
      id="extremes.0.time"
      x="29.798925"
@@ -162,7 +165,7 @@
      fill="red"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32.0000003px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.32646"
      transform="scale(0.82428215,1.2131768)">03:27<desc
-   id="desc3">source=resources,resource=tides,path=extremes.[0].time,format=local_time</desc></text>
+   id="desc3">source=resources,resource=tides,path=extremes[0].time,format=local_time</desc></text>
   <text
      id="extremes.0.level"
      x="173.7571"
@@ -176,6 +179,7 @@
        id="tspan2"
        x="173.7571"
        y="88.424065"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.38653">3.4m</tspan><desc
-       id="desc4">source=resources,resource=tides,path=extremes.[0].level,format=depth</desc></text>
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.38653">3.4m</tspan>
+       <desc id="desc4">source=resources,resource=tides,path=extremes[0].level,format=depth,round=2</desc>
+   </text>
 </svg>
