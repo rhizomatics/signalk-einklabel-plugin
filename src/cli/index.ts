@@ -216,6 +216,55 @@ program
     console.log(`wrote ${opts.output} (${bitmap.width}x${bitmap.height})`);
   });
 
+program
+  .command('fields')
+  .description('List every <desc> binding in a template by element id, with its source spec and resolved value')
+  .requiredOption('-t, --template <path>', 'path to SVG template')
+  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings', DEFAULT_SIGNALK_URL)
+  .action(async (opts) => {
+    const doc = new DOMParser().parseFromString(await readFile(opts.template, 'utf-8'), 'image/svg+xml');
+    const elements = doc.getElementsByTagName('text');
+    const rows: { id: string; desc: string; binding?: Binding; error?: string }[] = [];
+    for (let i = 0; i < elements.length; i++) {
+      const element = elements.item(i);
+      const desc = element?.getElementsByTagName('desc').item(0);
+      if (!element || !desc?.textContent) continue;
+      const id = element.getAttribute('id') ?? `#${i}`;
+      try {
+        rows.push({ id, desc: desc.textContent, binding: parseBinding(desc.textContent) });
+      } catch (err) {
+        rows.push({ id, desc: desc.textContent, error: (err as Error).message });
+      }
+    }
+    const header = ['id', 'spec', 'value'];
+    const table = await Promise.all(
+      rows.map(async (row) => {
+        if (row.error || !row.binding) return [row.id, row.desc, row.error ?? ''];
+        try {
+          const context = await assembleLiveContext(opts.url, [row.binding]);
+          return [row.id, row.desc, renderBindingValue(row.binding, context)];
+        } catch (err) {
+          return [row.id, row.desc, `ERROR: ${(err as Error).message}`];
+        }
+      }),
+    );
+    const widths = header.map((title, col) => Math.max(title.length, ...table.map((cells) => cells[col].length)));
+    const printRow = (cells: string[]) => console.log(cells.map((cell, col) => cell.padEnd(widths[col])).join('  '));
+    printRow(header);
+    table.forEach(printRow);
+  });
+
+program
+  .command('field')
+  .description('Resolve a single binding spec directly against a live SignalK server, with no template')
+  .argument('<spec>', 'binding spec, e.g. "source=resources,resource=tides,path=station.name" or a bare SignalK path')
+  .option('-u, --url <url>', 'SignalK server base URL - resolves the spec\'s source=signalk/resources binding', DEFAULT_SIGNALK_URL)
+  .action(async (spec, opts) => {
+    const binding = parseBinding(spec);
+    const context = await assembleLiveContext(opts.url, [binding]);
+    console.log(renderBindingValue(binding, context));
+  });
+
 program.parseAsync(process.argv).catch((err) => {
   console.error(err.message);
   process.exitCode = 1;
