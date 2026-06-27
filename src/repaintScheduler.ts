@@ -2,13 +2,16 @@ import { createHash } from 'crypto';
 import { join } from 'path';
 import { readFileSync, writeFileSync } from 'fs';
 import { ServerAPI, Path } from '@signalk/server-api';
-import { ContextConfig, DeviceConfig, PluginConfig, ProviderBinding, parseDevice, resolveTemplatePath } from './config';
+import { DeviceConfig, PluginConfig, parseDevice, resolveTemplatePath } from './config';
 import { getDriver } from './devices/registry';
 import { SvgRenderer } from './render/svgRenderer';
+import { Binding, findBindings } from './render/binding';
 import { TemplateContext } from './render/types';
 
 const INTERVAL_POLL_MS = 60_000;
 const SUBSCRIPTION_DEBOUNCE_MS = 2_000;
+const RESOURCES_API_PATH = '/signalk/v2/api/resources';
+const UNIT_PREFERENCES_PATH = '/signalk/v1/unitpreferences/active';
 
 export interface RepaintScheduler {
   stop(): void;

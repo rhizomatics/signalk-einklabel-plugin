@@ -1,3 +1,4 @@
+import { DOMParser } from '@xmldom/xmldom';
 import { TemplateContext } from './types';
 
 const SOURCES = ['signalk', 'resources'] as const;
@@ -6,13 +7,11 @@ type Source = (typeof SOURCES)[number];
 /**
  * Parsed form of a `<desc>`'s `key=value,key=value` content - see `parseBinding` for the grammar.
  */
-const CONTEXT_PATTERN = /^(self|mmsi:\d+)$/;
-
 export interface Binding {
   source: Source;
-  /** `'self'` or `'mmsi:<digits>'` - must match a `ContextConfig.vessels[].context` when not `'self'`. */
+  /** `'self'` (default) or any other literal SignalK context as shown in the Data Browser, e.g. `vessels.urn:mrn:imo:mmsi:232345678`. */
   context: string;
-  /** Required when `source === 'resources'` - names a configured provider (`ContextConfig.providers[].name`). */
+  /** Required when `source === 'resources'` - the Resources API resource type, e.g. `tides`, `waypoints`. */
   resource?: string;
   path: string;
   format?: string;
@@ -55,9 +54,6 @@ export function parseBinding(desc: string): Binding {
     throw new Error(`invalid binding "${desc}" - unknown source "${source}"`);
   }
   const context = fields.context ?? 'self';
-  if (!CONTEXT_PATTERN.test(context)) {
-    throw new Error(`invalid binding "${desc}" - context "${context}" is not supported (expected "self" or "mmsi:<digits>")`);
-  }
   if (source === 'resources' && !fields.resource) {
     throw new Error(`invalid binding "${desc}" - source=resources requires a "resource" key`);
   }
@@ -73,6 +69,24 @@ export function parseBinding(desc: string): Binding {
     format: fields.format,
     round: fields.round !== undefined ? Number(fields.round) : undefined,
   };
+}
+
+/**
+ * Parses every `<text>` element's `<desc>` binding out of raw SVG source - lets a caller discover what
+ * data a template needs before fetching anything, with no separate config declaring it (see
+ * `assembleRawContext` in repaintScheduler.ts).
+ */
+export function findBindings(svgSource: string): Binding[] {
+  const doc = new DOMParser().parseFromString(svgSource, 'image/svg+xml');
+  const elements = doc.getElementsByTagName('text');
+  const bindings: Binding[] = [];
+  for (let i = 0; i < elements.length; i++) {
+    const desc = elements.item(i)?.getElementsByTagName('desc').item(0);
+    if (desc?.textContent) {
+      bindings.push(parseBinding(desc.textContent));
+    }
+  }
+  return bindings;
 }
 
 /** Supports both `a.[0].b` and `a[0].b` array index notation, matching `setAtPath` in repaintScheduler.ts. */

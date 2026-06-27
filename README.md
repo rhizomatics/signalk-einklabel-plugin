@@ -23,7 +23,7 @@ Templates are simply SVG files, to which expressions can be added to use SignalK
 In the `description` of the SVG text box, use a comma separated
 set of key value pairs to define the data source and formatting.
 
-For example, `path=environment.forecast.description` uses the default data source (the `self` vessel context) and the named SignalK path. A bare path with no key/value pairs at all, e.g. just `environment.forecast.description`, is shorthand for the same thing. Overriding the default context can be done with `path=environment.forecast.description,context=mmsi:232345678`
+For example, `path=environment.forecast.description` uses the default data source (the `self` vessel context) and the named SignalK path. A bare path with no key/value pairs at all, e.g. just `environment.forecast.description`, is shorthand for the same thing. Overriding the default context can be done with `path=environment.forecast.description,context=mmsi:232345678` - the `context` value must match a "Vessels" bundle declared on the device's Context in the plugin config (its own list of paths to read from that vessel), the same way `resource=` must reference a configured API provider.
 
 The source can be overridden for a different context, or to use a built-in or plugin API. For example, `source=resources,resource=tides,path=station.name` chooses the Resources API as the source, picks the `tides` resource and pulls the `station.name` path out of the JSON response. Where an API is specified, it will be called once for that render, and subsequent API sourced fields will use that cached response.
 
@@ -75,12 +75,23 @@ The primary things managed and provided by the plugin are:
 
 ### Extending
 
+#### Hardware
+
 Additional vendors and devices can be added by a separate npm package that implements the `VendorDriver` interface and registers itself - there's no scanning of installed packages, registration is always an explicit call by the extension's own code.
 
 - `import esl from '@rhizomatics/signalk-esl-plugin'; esl.registerVendorDriver(myDriver)`
 - In the SignalK runtime, call this from the extension's own plugin `start()`. In the CLI, load the extension with `esl-cli --require <module> <command>`.
 - Declare this package as a `peerDependency` (not a regular dependency) in the extension package, so npm resolves a single shared copy of the registry.
 
+#### Templates
+
 Templates can be added to the configurable directory. [Inkscape](https://inkscape.org) free, open source, and recommended for editing templates, or your own favourite editor, or by hand in a text editor for hard core (or just tidying up the template side).
 
 Inkscape adds its own metadata to images, which can be stripped off by exporting a simple SVG, although can be left in place with no harm; main reason to simplify the SVG is manual changes in a text editor.
+
+The `esl-cli` can be used to debug and validate templates quickly:
+
+* `render` - Render templates with SignalK data and write to a local PNG file
+* `paint` - Render templates with SignalK data and send to selected ESL device
+* `fields` - List the fields in the template, with the source specification and the rendered data value
+* `field` - Accept a source specification (outside of any template context) and return the rendered value if available

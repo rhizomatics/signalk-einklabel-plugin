@@ -5,12 +5,6 @@ import { ZhsunycoDriver } from './devices/zhsunyco';
 import { DiscoveredDevice } from './devices/types';
 import { startRepaintScheduler, RepaintScheduler } from './repaintScheduler';
 
-const TIDES_CONTEXT_ID = 'tides';
-/** signalk-tides publishes this once it has a forecast - its presence means the plugin is loaded and running. */
-const TIDES_PROBE_PATH = 'environment.tide.stationName';
-/** Long enough for signalk-tides' own startup delay (it waits ~4s for a GNSS fix before its first update) to have passed. */
-const TIDES_DETECT_DELAY_MS = 5_000;
-
 /** Mirrors signalk-bluetti-plugin's convention: scan briefly, report finds via plugin status for the user to copy-paste. */
 async function runStartupScan(app: ServerAPI, discovered: DiscoveredDevice[], durationSeconds: number): Promise<void> {
   app.setPluginStatus(`Scanning for ESL devices for ${durationSeconds}s...`);
@@ -38,33 +32,6 @@ async function runStartupScan(app: ServerAPI, discovered: DiscoveredDevice[], du
   }
   const summary = discovered.map((device) => `${device.name ?? device.vendor} [${device.address}]`).join(', ');
   app.setPluginStatus(`Scan complete - found ${discovered.length} device(s) in ${elapsedSeconds}s: ${summary} - pick one from a device's "Device" field below`);
-}
-
-/**
- * Adds a "tides" context (once) if signalk-tides looks like it's running, so its data is
- * one click away in a device's Context picker instead of the user having to hand-build it.
- * Only the SignalK paths are filled in - the provider URL for its HTTP API is left for the
- * user to add, since this plugin has no way to know the server's own externally-reachable
- * address (e.g. behind a reverse proxy).
- */
-function addTidesContextIfDetected(app: ServerAPI): void {
-  setTimeout(() => {
-    if (app.getSelfPath(TIDES_PROBE_PATH) === undefined) {
-      return;
-    }
-    const current = { ...defaultConfig(app), ...(app.readPluginOptions() as Partial<PluginConfig>) };
-    if (current.contexts.some((context) => context.id === TIDES_CONTEXT_ID)) {
-      return;
-    }
-    const contexts = [...current.contexts, { id: TIDES_CONTEXT_ID, signalkPaths: ['environment.time.timezoneRegion'], providers: [], vessels: [] }];
-    app.savePluginOptions({ ...current, contexts }, (err) => {
-      if (err) {
-        app.debug(`failed to add "${TIDES_CONTEXT_ID}" context: ${err.message}`);
-        return;
-      }
-      app.debug(`signalk-tides detected - added a "${TIDES_CONTEXT_ID}" context (add its API provider URL by hand)`);
-    });
-  }, TIDES_DETECT_DELAY_MS);
 }
 
 export function createPlugin(app: ServerAPI): Plugin {
@@ -102,8 +69,6 @@ export function createPlugin(app: ServerAPI): Plugin {
           });
         }
       }
-
-      addTidesContextIfDetected(app);
 
       scheduler = startRepaintScheduler(app, pluginConfig);
     },

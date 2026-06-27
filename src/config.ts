@@ -4,29 +4,6 @@ import { ServerAPI } from '@signalk/server-api';
 import { allDrivers } from './devices/registry';
 import { DiscoveredDevice } from './devices/types';
 
-/** Binds an HTTP(S) JSON endpoint (a built-in SignalK API or a plugin-provided one, e.g. signalk-tides) into the render context. */
-export interface ProviderBinding {
-  url: string;
-  /** Namespace the response is merged under, as `resources.<name>` - the `resource=` key a template's `<desc>` bindings use to address it. */
-  name: string;
-}
-
-/** Dotted SignalK paths read from another vessel - the `context=` key a template's `<desc>` bindings use to address it. */
-export interface VesselBinding {
-  /** e.g. `"mmsi:232345678"` - matches a binding's `context=` value. */
-  context: string;
-  paths: string[];
-}
-
-/** A reusable named bundle of data sources that one or more devices can render their template against. */
-export interface ContextConfig {
-  id: string;
-  /** Dotted SignalK paths read via `getSelfPath` and merged into the render context preserving their natural nesting. */
-  signalkPaths: string[];
-  providers: ProviderBinding[];
-  vessels: VesselBinding[];
-}
-
 export interface DeviceConfig {
   friendlyName: string;
   /**
@@ -38,8 +15,6 @@ export interface DeviceConfig {
   /** Per-device override; if omitted, the vendor driver may fall back to a stock/manufacturer-default key. */
   aesKey?: string;
   templateName: string;
-  /** References a `ContextConfig.id` - the data this device's template is rendered against. */
-  contextId: string;
   repaintTrigger: 'subscription' | 'interval';
   /** SignalK path to subscribe to when `repaintTrigger` is `subscription` - a repaint is considered on every delta. */
   triggerPath?: string;
@@ -58,7 +33,13 @@ export interface PluginConfig {
   scanOnStart: boolean;
   /** How long the startup scan runs, in seconds. */
   scanDurationSeconds: number;
-  contexts: ContextConfig[];
+  /**
+   * Base URL of this SignalK server (e.g. `http://10.36.10.20:3000`), reachable from wherever the
+   * plugin runs - the plugin can't know its own externally-reachable address (may be behind a reverse
+   * proxy). Used to build `{signalkApiUrl}/signalk/v2/api/resources/{resource}` for any `source=resources`
+   * binding, and `{signalkApiUrl}/signalk/v1/unitpreferences/active` for `format=speed/depth/temperature`.
+   */
+  signalkApiUrl?: string;
   devices: DeviceConfig[];
 }
 
@@ -71,7 +52,6 @@ export function defaultConfig(app: ServerAPI): PluginConfig {
     templatesDir: join(app.getDataDirPath(), 'templates'),
     scanOnStart: true,
     scanDurationSeconds: 20,
-    contexts: [],
     devices: [],
   };
 }
@@ -149,7 +129,6 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
   const defaults = defaultConfig(app);
   const current = { ...defaults, ...(app.readPluginOptions() as Partial<PluginConfig>) };
   const { values: deviceValues, labels: deviceLabels } = deviceOptions(discovered, current);
-  const contextIds = current.contexts.map((context) => context.id);
 
   return {
     type: 'object',
@@ -173,61 +152,18 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         minimum: 1,
         default: defaults.scanDurationSeconds,
       },
-      contexts: {
-        type: 'array',
-        title: 'Contexts',
-        description: 'Reusable named bundles of data (SignalK paths + API providers) that one or more devices render their template against.',
-        items: {
-          type: 'object',
-          required: ['id'],
-          properties: {
-            id: { type: 'string', title: 'Context ID' },
-            signalkPaths: {
-              type: 'array',
-              title: 'SignalK Paths',
-              description: 'Dotted paths to read and merge into the template context, e.g. environment.time.timezoneRegion',
-              items: { type: 'string' },
-            },
-            providers: {
-              type: 'array',
-              title: 'API providers',
-              description: 'HTTP(S) JSON endpoints to merge into the template context - a built-in SignalK API or a plugin-provided one (e.g. signalk-tides)',
-              items: {
-                type: 'object',
-                required: ['url', 'name'],
-                properties: {
-                  url: { type: 'string', title: 'URL' },
-                  name: { type: 'string', title: 'Resource name (the `resource=` key a template binds against)' },
-                },
-              },
-            },
-            vessels: {
-              type: 'array',
-              title: 'Vessels',
-              description: 'Other vessels\' SignalK paths to merge into the template context, for templates with a `context=` binding (e.g. `context=mmsi:232345678`)',
-              items: {
-                type: 'object',
-                required: ['context', 'paths'],
-                properties: {
-                  context: { type: 'string', title: 'Context (the `context=` key a template binds against, e.g. mmsi:232345678)' },
-                  paths: {
-                    type: 'array',
-                    title: 'SignalK Paths',
-                    description: 'Dotted paths to read from this vessel, e.g. navigation.position',
-                    items: { type: 'string' },
-                  },
-                },
-              },
-            },
-          },
-        },
+      signalkApiUrl: {
+        type: 'string',
+        title: 'SignalK API base URL',
+        description:
+          'Base URL of this SignalK server (e.g. http://10.36.10.20:3000), reachable from wherever this plugin runs - required for any template binding using `source=resources` (reads the Resources API, e.g. tides, waypoints) or a unit-converting `format=` (speed/depth/temperature). The plugin can\'t auto-detect its own externally-reachable address (e.g. behind a reverse proxy).',
       },
       devices: {
         type: 'array',
         title: 'Devices',
         items: {
           type: 'object',
-          required: ['friendlyName', 'device', 'templateName', 'contextId', 'repaintTrigger'],
+          required: ['friendlyName', 'device', 'templateName', 'repaintTrigger'],
           properties: {
             friendlyName: { type: 'string', title: 'Friendly name' },
             device: withEnum(
@@ -239,9 +175,8 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               deviceValues,
               deviceLabels,
             ),
-          
+
             templateName: withEnum({ type: 'string', title: 'Template' }, templateNameOptions(current.templatesDir)),
-            contextId: withEnum({ type: 'string', title: 'Context' }, contextIds),
             repaintTrigger: { type: 'string', title: 'Repaint trigger', enum: ['subscription', 'interval'] },
             triggerPath: { type: 'string', title: 'Trigger SignalK path (if repaint trigger is subscription)' },
             intervalHours: { type: 'number', title: 'Repaint every N hours (if repaint trigger is interval)', minimum: 1 },
