@@ -1,6 +1,7 @@
 import { Binding } from '../render/binding';
 import { TemplateContext } from '../render/types';
 import { fetchJson } from '../httpJson';
+import { logDebug } from './log';
 
 const RESOURCES_API_PATH = '/signalk/v2/api/resources';
 const UNIT_PREFERENCES_PATH = '/signalk/v1/unitpreferences/active';
@@ -25,16 +26,22 @@ export async function assembleLiveContext(signalkUrl: string, bindings: Binding[
   const signalk: Record<string, unknown> = {};
   const contexts = new Set(bindings.filter((binding) => binding.source === 'signalk').map((binding) => binding.context));
   for (const context of contexts) {
-    signalk[context] = await fetchJson(`${signalkUrl}/signalk/v1/api/${contextPath(context)}`);
+    const url = `${signalkUrl}/signalk/v1/api/${contextPath(context)}`;
+    logDebug(`GET ${url}`);
+    signalk[context] = await fetchJson(url);
   }
 
   const resources: Record<string, unknown> = {};
   const resourceNames = new Set(bindings.filter((binding) => binding.source === 'resources').map((binding) => binding.resource as string));
   for (const name of resourceNames) {
-    resources[name] = await fetchJson(`${signalkUrl}${RESOURCES_API_PATH}/${name}`);
+    const url = `${signalkUrl}${RESOURCES_API_PATH}/${name}`;
+    logDebug(`GET ${url}`);
+    resources[name] = await fetchJson(url);
   }
+  const unitPreferencesUrl = `${signalkUrl}${UNIT_PREFERENCES_PATH}`;
   try {
-    resources.unitPreferences = await fetchJson(`${signalkUrl}${UNIT_PREFERENCES_PATH}`);
+    logDebug(`GET ${unitPreferencesUrl}`);
+    resources.unitPreferences = await fetchJson(unitPreferencesUrl);
   } catch (err) {
     console.error(`warning: could not fetch unit preferences (${(err as Error).message}) - unit-converting formats will show raw values`);
   }

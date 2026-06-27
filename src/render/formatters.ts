@@ -23,12 +23,24 @@ function unitPreference(context: TemplateContext, category: string): UnitPrefere
   return unitPreferences?.[category] ?? {};
 }
 
+/**
+ * `/signalk/v1/unitpreferences/active` only includes `symbol`/`targetUnit`/`formula` for a category
+ * when its target unit differs from the SI base unit - the common case of "no conversion configured"
+ * (display in the base unit) otherwise has nothing to take a suffix from at all. This is each
+ * category's own base-unit symbol, used as the fallback.
+ */
+const BASE_UNIT_SYMBOLS: Record<string, string> = {
+  length: 'm',
+  speed: 'm/s',
+  temperature: 'K',
+};
+
 /** Converts a base-SI value (always what SignalK paths/APIs deliver) to the preferred display unit and formats it with the unit's symbol, e.g. 3.42 -> "11.2ft". */
-function formatUnitValue(value: unknown, pref: UnitPreference, round: number | undefined): string {
+function formatUnitValue(value: unknown, pref: UnitPreference, round: number | undefined, category: string): string {
   if (typeof value !== 'number') return '';
   const converted = pref.formula ? Number(evaluate(pref.formula, { value })) : value;
   const decimals = round ?? (pref.displayFormat?.includes('.') ? pref.displayFormat.split('.')[1].length : 0);
-  const symbol = pref.symbol ?? pref.targetUnit ?? '';
+  const symbol = pref.symbol ?? pref.targetUnit ?? BASE_UNIT_SYMBOLS[category] ?? '';
   return `${converted.toFixed(decimals)}${symbol}`;
 }
 
@@ -73,11 +85,11 @@ function formatPosition(value: unknown, round: number | undefined): string {
 export function applyFormat(name: string, value: unknown, context: TemplateContext, round: number | undefined): string {
   switch (name) {
     case 'speed':
-      return formatUnitValue(value, unitPreference(context, 'speed'), round);
+      return formatUnitValue(value, unitPreference(context, 'speed'), round, 'speed');
     case 'depth':
-      return formatUnitValue(value, unitPreference(context, 'length'), round);
+      return formatUnitValue(value, unitPreference(context, 'length'), round, 'length');
     case 'temperature':
-      return formatUnitValue(value, unitPreference(context, 'temperature'), round);
+      return formatUnitValue(value, unitPreference(context, 'temperature'), round, 'temperature');
     case 'local_time':
       return formatLocalTime(value, context);
     case 'utc_offset':
