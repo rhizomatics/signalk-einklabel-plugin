@@ -6,7 +6,7 @@ import { defaultConfig, parseDevice, resolveTemplatesDir } from './config';
 
 test('resolveTemplatesDir', async (t) => {
   await t.test('defaults to ~/.signalk/esl/templates when empty/undefined', () => {
-    const expected = join(homedir(), '.signalk', 'esl', 'templates');
+    const expected = join(homedir(), '.signalk', 'einklabel', 'templates');
     assert.equal(resolveTemplatesDir(undefined), expected);
     assert.equal(resolveTemplatesDir(''), expected);
     assert.equal(resolveTemplatesDir('   '), expected);

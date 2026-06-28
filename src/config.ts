@@ -66,7 +66,7 @@ export interface PluginConfig {
 const BUNDLED_TEMPLATES_DIR = join(__dirname, '..', 'templates');
 
 const SIGNALK_HOME_DIR = join(homedir(), '.signalk');
-const DEFAULT_TEMPLATES_DIR = join(SIGNALK_HOME_DIR, 'esl', 'templates');
+const DEFAULT_TEMPLATES_DIR = join(SIGNALK_HOME_DIR, 'einklabel', 'templates');
 
 export function defaultConfig(): PluginConfig {
   return {

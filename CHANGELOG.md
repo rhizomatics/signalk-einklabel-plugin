@@ -1,6 +1,7 @@
 # 0.4.2
 - Fix High/Low display for tide clock template
 - Fix last repaint time for display being hour out
+- Change default name of template directory to 'einklabel/templates'
 # 0.4.1
 - Packaging fixes
 # 0.4.0

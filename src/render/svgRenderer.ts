@@ -68,10 +68,13 @@ export class SvgRenderer implements Renderer {
       const descElement = element.getElementsByTagName('desc').item(0);
       if (!descElement) continue;
 
+      // Scoped to this one element - a single bad/unavailable binding (e.g. a resource that hasn't
+      // loaded yet) must not blank out every other field on the label, nor abort the whole repaint.
       try {
         const binding = parseBinding(descElement.textContent ?? '');
         element.textContent = renderBinding(binding, context);
       } catch (err) {
+        console.error(`field "${descElement.textContent}" failed to render: ${(err as Error).message}`);
         element.textContent = 'ERROR';
       }
     }
