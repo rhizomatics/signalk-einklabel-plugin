@@ -1,10 +1,10 @@
 # ESL for SignalK
 
-** ALPHA - not yet fully functioning and very limited vendor/product support **
+** BETA - basic functionality, limited vendor/product support **
 
 A SignalK plugin to display data from SignalK paths, APIs and plugins on Electronic Shelf Labels over a Bluetooth Low Energy (BLE) connection.  
 
-Electronic Shelf Labels (ESLs) are [eInk](https://en.wikipedia.org/wiki/E_Ink) devices that consume very little battery energy, presuming they are not constantly updated - the battery is used only when the display changes, and a periodic BLE check for incoming changes. 
+Electronic Shelf Labels (ESLs) are [eInk](https://en.wikipedia.org/wiki/E_Ink) devices that consume very little battery energy, presuming they are not constantly updated - the battery is used only when the display changes, and a periodic BLE check for incoming changes. Perfect for info that changes only once or twice a day, like tidal information.
 
 Since they are designed to be used in large quantity in small shops, they are cheap and simple devices. Earlier models required dedicated controllers, or updates over Wifi or NFC, whereas many modern ones are standalone BLE devices that can be updated from a phone or server.
 
@@ -13,6 +13,8 @@ Unlike some eInk projects, this plugin doesn't require any physical modification
 ## Examples
 
 ![Tidal Clock](docs/assets/screenshots/example_tidal_clock.png)
+
+The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. It can however be customized to run with other APIs or take data only from SignalK data paths.
 
 ## Templating
 
