@@ -1,6 +1,6 @@
 {
   "name": "@rhizomatics/signalk-esl-plugin",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "SignalK plugin that renders selected SignalK data to eInk Electronic Shelf Labels",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,7 @@
     "cli": "ts-node src/cli/index.ts"
   },
   "signalk":{
-    "displayName":"ESL eInk Instruments",
+    "displayName":"eInk ESL Instruments",
     "appIcon": "/docs/assets/icons/icon_tmp.png",
     "screenshots": [
       "docs/assets/screenshots/example_tidal_clock.png"
