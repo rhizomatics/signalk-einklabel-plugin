@@ -2,7 +2,7 @@ import { DOMParser } from '@xmldom/xmldom';
 import { TemplateContext } from './types';
 import { applyFormat, DisplayUnits, formatDisplayUnits } from './formatters';
 
-const SOURCES = ['signalk', 'resources'] as const;
+const SOURCES = ['signalk', 'resources', 'einklabel'] as const;
 type Source = (typeof SOURCES)[number];
 
 /**
@@ -14,6 +14,7 @@ export interface Binding {
   context: string;
   /** Required when `source === 'resources'` - the Resources API resource type, e.g. `tides`, `waypoints`. */
   resource?: string;
+  /** For `source === 'einklabel'`, a dotted path into the plugin's own injected `meta` (e.g. `last_repaint`), rather than into vessel/resource data. */
   path: string;
   /** A named formatter (see `./formatters.ts`), or `'raw'` to suppress automatic unit conversion (see `renderBinding`). */
   format?: string;
@@ -118,6 +119,14 @@ export function resolveBinding(binding: Binding, context: TemplateContext): unkn
       throw new Error(`binding references context "${binding.context}" which is not present in the render context`);
     }
     return getAtPath(vessel, binding.path);
+  }
+
+  if (binding.source === 'einklabel') {
+    const meta = context.meta as Record<string, unknown> | undefined;
+    if (meta === undefined) {
+      throw new Error('binding references source "einklabel" but no "meta" is present in the render context');
+    }
+    return getAtPath(meta, binding.path);
   }
 
   const resources = context.resources as Record<string, unknown> | undefined;

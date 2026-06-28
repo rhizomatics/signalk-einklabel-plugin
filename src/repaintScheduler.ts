@@ -159,7 +159,7 @@ async function considerRepaint(
     return;
   }
 
-  const renderContext: TemplateContext = { ...rawContext, meta: { repaintedAt: new Date().toISOString() } };
+  const renderContext: TemplateContext = { ...rawContext, meta: { last_repaint: new Date().toISOString() } };
   const renderer = new SvgRenderer();
   const bitmap = await renderer.render(templatePath, renderContext, metadata.width, metadata.height - metadata.voffset);
   const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;

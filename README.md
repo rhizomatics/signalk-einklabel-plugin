@@ -56,6 +56,14 @@ Additionally, `round=n` can be used to round to limited decimal places.
 
 These can all be combined as in `source=resources,resource=tides,path=extremes[2].level,category=depth,round=2`
 
+### Fonts
+
+Three font types are loaded by default, use the font name or simply 'sans-serif' in the SVG editor and choose size and weight (bold, semi-bold etc). Some labels will make a decent attempt to gray scale. Use the simple pure red, yellow, white, black to match the label's limited colour choice (some labels only offer black and white, or black/white/red).
+
+* `serif` - Playfair Display
+* `sans-serif` - Roboto
+* `monospace` - JetBrains Mono
+
 ## Command Line Interface
 
 To get fast feedback on templates and shelf devices without updating and configuring SignalK, a CLI is provided that has these commands.

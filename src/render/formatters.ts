@@ -54,6 +54,13 @@ function formatDayMonth(value: unknown, context: TemplateContext): string {
   return dt.isValid ? dt.toFormat('d MMM') : '';
 }
 
+/** e.g. "21 Jun 26 18:05" - day of month (no leading zero), abbreviated month, 2-digit year, and 24h time, in the local vessel's timezone. */
+function formatDateDmyHm(value: unknown, context: TemplateContext): string {
+  if (typeof value !== 'string') return '';
+  const dt = DateTime.fromISO(value, { zone: 'utc' }).setZone(selfTimezone(context));
+  return dt.isValid ? dt.toFormat('d MMM yy HH:mm') : '';
+}
+
 /**
  * IANA region names are ambiguous about DST (e.g. "Europe/London" is UTC+00:00 in winter, UTC+01:00
  * in summer); show the numeric offset actually in effect.
@@ -82,6 +89,8 @@ export function applyFormat(name: string, value: unknown, context: TemplateConte
       return formatLocalTime(value, context);
     case 'day_mon':
       return formatDayMonth(value, context);
+    case 'date_dmy_hm':
+      return formatDateDmyHm(value, context);
     case 'utc_offset':
       return formatUtcOffset(value);
     case 'position':
