@@ -14,7 +14,7 @@ export interface Binding {
   context: string;
   /** Required when `source === 'resources'` - the Resources API resource type, e.g. `tides`, `waypoints`. */
   resource?: string;
-  /** For `source === 'einklabel'`, a dotted path into the plugin's own injected `meta` (e.g. `last_repaint`), rather than into vessel/resource data. */
+  /** For `source === 'einklabel'`, a dotted path into the plugin's own injected `meta` (e.g. `repainted`), rather than into vessel/resource data. */
   path: string;
   /** A named formatter (see `./formatters.ts`), or `'raw'` to suppress automatic unit conversion (see `renderBinding`). */
   format?: string;

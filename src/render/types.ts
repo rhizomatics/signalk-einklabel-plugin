@@ -18,8 +18,8 @@ export interface Bitmap {
  * (dotted-path keyed, matching `GET .../vessels/<context>/meta`'s own shape), unlike `signalk`'s nested
  * tree - it backs automatic unit conversion for a `signalk`-sourced numeric value (`format=raw` opts
  * out). `categories` backs an explicit `category=` binding, for a value with no path metadata of its
- * own (see `../unitCategories.ts`). `meta` (unrelated, plugin-injected) holds the repaint timestamp -
- * see `considerRepaint`.
+ * own (see `../unitCategories.ts`). `meta` (unrelated, plugin-injected) holds `repainted`, the ISO
+ * timestamp of this repaint - resolved by a `source=einklabel` binding (see `considerRepaint`).
  */
 export type TemplateContext = Record<string, unknown>;
 

@@ -35,12 +35,13 @@ function unwrapSignalkTree(node: unknown): unknown {
 }
 
 /**
- * CLI counterpart to `assembleRawContext` in repaintScheduler.ts - same `{ signalk, resources,
- * pathMeta, categories }` shape, but fetched entirely over plain HTTP (the CLI has no live `ServerAPI`
- * to call `getSelfPath`/`getPath`/`resourcesApi` on, and per-path metadata/`category=` resolution has
- * no in-process equivalent at all - see `repaintScheduler.ts`) against a real or test SignalK server's
- * REST API. Fetches each referenced context's/resource's *whole* subtree once and lets the existing
- * binding resolver navigate `path` within it.
+ * CLI counterpart to `assembleRawContext` + `considerRepaint`'s `meta` injection in
+ * repaintScheduler.ts - same `{ signalk, resources, pathMeta, categories, meta }` shape, but fetched
+ * entirely over plain HTTP (the CLI has no live `ServerAPI` to call `getSelfPath`/`getPath`/
+ * `resourcesApi` on, and per-path metadata/`category=` resolution has no in-process equivalent at all
+ * - see `repaintScheduler.ts`) against a real or test SignalK server's REST API. Fetches each
+ * referenced context's/resource's *whole* subtree once and lets the existing binding resolver
+ * navigate `path` within it.
  */
 export async function assembleLiveContext(signalkUrl: string, bindings: Binding[]): Promise<TemplateContext> {
   const signalk: Record<string, unknown> = {};
@@ -72,5 +73,9 @@ export async function assembleLiveContext(signalkUrl: string, bindings: Binding[
   const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));
   const categories = await fetchCategoryDisplayUnits(signalkUrl, categoryNames);
 
-  return { signalk, resources, pathMeta, categories };
+  // Matches `considerRepaint` in repaintScheduler.ts - the CLI has no real device repaint to time, so
+  // a `source=einklabel,path=repainted` binding just resolves to "now", same as a live render would.
+  const meta = { repainted: new Date().toISOString() };
+
+  return { signalk, resources, pathMeta, categories, meta };
 }

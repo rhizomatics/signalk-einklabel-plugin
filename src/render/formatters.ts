@@ -89,7 +89,7 @@ export function applyFormat(name: string, value: unknown, context: TemplateConte
       return formatLocalTime(value, context);
     case 'day_mon':
       return formatDayMonth(value, context);
-    case 'date_dmy_hm':
+    case 'datetime_short':
       return formatDateDmyHm(value, context);
     case 'utc_offset':
       return formatUtcOffset(value);
