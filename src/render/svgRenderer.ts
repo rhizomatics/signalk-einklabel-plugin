@@ -68,8 +68,12 @@ export class SvgRenderer implements Renderer {
       const descElement = element.getElementsByTagName('desc').item(0);
       if (!descElement) continue;
 
-      const binding = parseBinding(descElement.textContent ?? '');
-      element.textContent = renderBinding(binding, context);
+      try {
+        const binding = parseBinding(descElement.textContent ?? '');
+        element.textContent = renderBinding(binding, context);
+      } catch (err) {
+        element.textContent = 'ERROR';
+      }
     }
 
     const svgOutput = new XMLSerializer().serializeToString(doc);

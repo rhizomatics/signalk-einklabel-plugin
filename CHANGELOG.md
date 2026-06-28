@@ -1,5 +1,6 @@
 # 0.4.2
 - Fix High/Low display for tide clock template
+- Fix last repaint time for display being hour out
 # 0.4.1
 - Packaging fixes
 # 0.4.0
