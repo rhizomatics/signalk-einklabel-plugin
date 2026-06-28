@@ -1,4 +1,4 @@
-import { Adapter } from 'node-ble';
+import { Device } from 'node-ble';
 import { Bitmap } from '../render/types';
 
 export type Colour = 'black' | 'white' | 'red' | 'yellow';
@@ -67,12 +67,18 @@ export interface VendorDriver {
   supportedDevices(): DeviceMetadata[];
 
   /**
-   * Enumerates and identifies this vendor's devices from an already-discovering (or
-   * already-stopped, using BlueZ's cache) `adapter` - the discovery window itself is owned by the
-   * shared caller (see `bleDiscovery.ts`'s `withDiscovery`), not this method, so scanning across
-   * multiple registered drivers costs one discovery window total, not one per driver.
+   * Identifies one device the shared caller (see `bleDiscovery.ts`'s `forEachAdvertisedDevice`)
+   * has already matched to this vendor via `matchesAdvertisement` - only called for matches, so a
+   * device gets at most one vendor-specific connect/read regardless of how many drivers are
+   * registered, not one attempt per driver.
    */
-  scan(adapter: Adapter): Promise<DiscoveredDevice[]>;
+  identifyDevice(
+    device: Device,
+    address: string,
+    name: string | undefined,
+    manufacturerId: number | undefined,
+    manufacturerData: Buffer | undefined,
+  ): Promise<DiscoveredDevice>;
 
   /** Quantise the common bitmap to this device's palette/encoding and send it over BLE. */
   paint(bitmap: Bitmap, config: VendorDeviceConfig): Promise<void>;

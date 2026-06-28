@@ -31,12 +31,35 @@ export async function getManufacturerId(device: Device): Promise<number | undefi
   return key === undefined ? undefined : Number(key);
 }
 
+export interface AdvertisedDevice {
+  address: string;
+  device: Device;
+  name?: string;
+  manufacturerId?: number;
+  manufacturerData?: Buffer;
+}
+
+/**
+ * Reads each nearby device's advertisement exactly once and hands it to `fn` - shared by
+ * `plugin.ts`'s startup scan and the CLI's `scan` command so that identifying which vendor (if
+ * any) a device belongs to costs one `getName`/`getManufacturerData` read per device total, not
+ * one per device per registered driver.
+ */
+export async function forEachAdvertisedDevice(adapter: Adapter, fn: (advertised: AdvertisedDevice) => Promise<void>): Promise<void> {
+  for (const address of await adapter.devices()) {
+    const device = await adapter.getDevice(address);
+    const name = await device.getName().catch(() => undefined);
+    const manufacturerData = await device.getManufacturerData().catch(() => undefined);
+    const [key] = Object.keys(manufacturerData ?? {});
+    const manufacturerId = key === undefined ? undefined : Number(key);
+    await fn({ address, device, name, manufacturerId, manufacturerData: key === undefined ? undefined : manufacturerData![key] });
+  }
+}
+
 /**
  * Opens exactly one BLE discovery window and one D-Bus/BlueZ session, then hands the adapter to
  * `fn` - shared by `plugin.ts`'s startup scan and the CLI's `scan` command so scanning across
- * multiple registered vendor drivers costs one discovery window total (each driver just enumerates
- * `adapter.devices()` and identifies its own matches against the same discovered set), not one
- * window per driver.
+ * multiple registered vendor drivers costs one discovery window total, not one window per driver.
  */
 export async function withDiscovery<T>(durationMs: number, fn: (adapter: Adapter) => Promise<T>): Promise<T> {
   const { bluetooth, destroy } = createBluetooth();

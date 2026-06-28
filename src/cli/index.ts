@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import { DOMParser } from '@xmldom/xmldom';
 import { allDrivers, getDriver, registerDriver } from '../devices/registry';
 import { ZhsunycoDriver } from '../devices/zhsunyco';
-import { createBluetooth, getManufacturerId, getOrDiscoverDevice, withDiscovery } from '../devices/bleDiscovery';
+import { createBluetooth, forEachAdvertisedDevice, getManufacturerId, getOrDiscoverDevice, withDiscovery } from '../devices/bleDiscovery';
 import { Colour, DeviceModelOverride } from '../devices/types';
 import { SvgRenderer } from '../render/svgRenderer';
 import { bitmapToPng } from '../render/png';
@@ -108,39 +108,33 @@ program
     const durationMs = Number(opts.duration) * 1000;
     const header = ['vendor', 'address', 'name', 'pid', 'label', 'mfr', 'battery', 'rssi'];
     const rows: string[][] = [];
-    const matchedAddresses = new Set<string>();
+    let matchedCount = 0;
+    const drivers = allDrivers();
     logDebug(`scanning for ${durationMs}ms`);
     await withDiscovery(durationMs, async (adapter) => {
-      for (const driver of allDrivers()) {
-        const found = await driver.scan(adapter);
-        logDebug(`${driver.vendor}: found ${found.length} device(s)`);
-        for (const device of found) {
-          matchedAddresses.add(device.address);
-          const pid = device.pid !== undefined ? `0x${device.pid.toString(16).padStart(4, '0')}` : '';
-          const label = device.metadata?.label ?? '';
-          const manufacturerId = device.manufacturerId !== undefined ? `0x${device.manufacturerId.toString(16).padStart(4, '0')}` : '';
-          const battery = device.batteryMv !== undefined ? `${device.batteryMv}mV` : '';
-          rows.push([driver.vendor, device.address, device.name ?? '', pid, label, manufacturerId, battery, String(device.rssi ?? '')]);
-        }
-      }
-      if (opts.allDevices) {
-        for (const address of await adapter.devices()) {
-          if (matchedAddresses.has(address)) {
-            continue;
+      await forEachAdvertisedDevice(adapter, async ({ device, address, name, manufacturerId, manufacturerData }) => {
+        const driver = drivers.find((candidate) => candidate.matchesAdvertisement(name, manufacturerId));
+        const mfr = manufacturerId !== undefined ? `0x${manufacturerId.toString(16).padStart(4, '0')}` : '';
+        if (!driver) {
+          if (opts.allDevices) {
+            const rssi = await device
+              .getRSSI()
+              .then((value) => (value === undefined ? undefined : Number(value)))
+              .catch(() => undefined);
+            rows.push(['(unmatched)', address, name ?? '', '', '', mfr, '', String(rssi ?? '')]);
           }
-          const device = await adapter.getDevice(address);
-          const name = await device.getName().catch(() => undefined);
-          const manufacturerId = await getManufacturerId(device);
-          const mfr = manufacturerId !== undefined ? `0x${manufacturerId.toString(16).padStart(4, '0')}` : '';
-          const rssi = await device
-            .getRSSI()
-            .then((value) => (value === undefined ? undefined : Number(value)))
-            .catch(() => undefined);
-          rows.push(['(unmatched)', address, name ?? '', '', '', mfr, '', String(rssi ?? '')]);
+          return;
         }
-      }
+        matchedCount++;
+        const found = await driver.identifyDevice(device, address, name, manufacturerId, manufacturerData);
+        logDebug(`${driver.vendor}: identified ${found.name ?? found.address}`);
+        const pid = found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, '0')}` : '';
+        const label = found.metadata?.label ?? '';
+        const battery = found.batteryMv !== undefined ? `${found.batteryMv}mV` : '';
+        rows.push([driver.vendor, found.address, found.name ?? '', pid, label, mfr, battery, String(found.rssi ?? '')]);
+      });
     });
-    if (matchedAddresses.size === 0) {
+    if (matchedCount === 0) {
       console.log(`no devices found in ${opts.duration}s - try a longer scan with -d, e.g. "-d 30"`);
     }
     if (rows.length === 0) {

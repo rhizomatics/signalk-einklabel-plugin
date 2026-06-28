@@ -1,4 +1,4 @@
-import { Adapter, Device } from 'node-ble';
+import { Device } from 'node-ble';
 import { Bitmap } from '../../render/types';
 import { DeviceMetadata, DiscoveredDevice, VendorDeviceConfig, VendorDriver } from '../types';
 import { createBluetooth, getOrDiscoverDevice, sleep } from '../bleDiscovery';
@@ -41,35 +41,29 @@ export class ZhsunycoDriver implements VendorDriver {
     return ZHSUNYCO_PID_METADATA;
   }
 
-  async scan(adapter: Adapter): Promise<DiscoveredDevice[]> {
-    const found: DiscoveredDevice[] = [];
-    for (const address of await adapter.devices()) {
-      const device = await adapter.getDevice(address);
-      const name = await device.getName().catch(() => undefined);
-      const manufacturerData = await device.getManufacturerData().catch(() => undefined);
-      const manufacturerId = manufacturerData ? Number(Object.keys(manufacturerData)[0]) : undefined;
-      if (!this.matchesAdvertisement(name, manufacturerId)) {
-        continue;
-      }
-
-      const advertisedInfo = manufacturerData ? decodeAdvertisedInfo(Object.values(manufacturerData)[0]) : undefined;
-      const { info, batteryMv } = await readDeviceDetails(device, advertisedInfo);
-      found.push({
-        address,
-        name,
-        vendor: this.vendor,
-        pid: info?.pid,
-        hwVersion: info?.hwVersion,
-        metadata: info ? this.metadataForPid(info.pid, info.hwVersion) : undefined,
-        manufacturerId,
-        batteryMv,
-        rssi: await device
-          .getRSSI()
-          .then((value) => (value === undefined ? undefined : Number(value)))
-          .catch(() => undefined),
-      });
-    }
-    return found;
+  async identifyDevice(
+    device: Device,
+    address: string,
+    name: string | undefined,
+    manufacturerId: number | undefined,
+    manufacturerData: Buffer | undefined,
+  ): Promise<DiscoveredDevice> {
+    const advertisedInfo = manufacturerData ? decodeAdvertisedInfo(manufacturerData) : undefined;
+    const { info, batteryMv } = await readDeviceDetails(device, advertisedInfo);
+    return {
+      address,
+      name,
+      vendor: this.vendor,
+      pid: info?.pid,
+      hwVersion: info?.hwVersion,
+      metadata: info ? this.metadataForPid(info.pid, info.hwVersion) : undefined,
+      manufacturerId,
+      batteryMv,
+      rssi: await device
+        .getRSSI()
+        .then((value) => (value === undefined ? undefined : Number(value)))
+        .catch(() => undefined),
+    };
   }
 
   async paint(bitmap: Bitmap, config: VendorDeviceConfig): Promise<void> {

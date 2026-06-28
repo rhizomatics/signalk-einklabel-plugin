@@ -2,7 +2,7 @@ import { Plugin, ServerAPI } from '@signalk/server-api';
 import { configSchema, configUiSchema, defaultConfig, PluginConfig } from './config';
 import { registerDriver, allDrivers } from './devices/registry';
 import { ZhsunycoDriver } from './devices/zhsunyco';
-import { withDiscovery } from './devices/bleDiscovery';
+import { forEachAdvertisedDevice, withDiscovery } from './devices/bleDiscovery';
 import { DiscoveredDevice } from './devices/types';
 import { startRepaintScheduler, RepaintScheduler } from './repaintScheduler';
 
@@ -11,19 +11,25 @@ async function runStartupScan(app: ServerAPI, discovered: DiscoveredDevice[], du
   app.setPluginStatus(`Scanning for ESL devices for ${durationSeconds}s...`);
   const startedAt = Date.now();
   let scanError: string | undefined;
+  const drivers = allDrivers();
   await withDiscovery(durationSeconds * 1000, async (adapter) => {
-    for (const driver of allDrivers()) {
-      const devices = await driver.scan(adapter).catch((err) => {
+    await forEachAdvertisedDevice(adapter, async ({ device, address, name, manufacturerId, manufacturerData }) => {
+      const driver = drivers.find((candidate) => candidate.matchesAdvertisement(name, manufacturerId));
+      if (!driver) {
+        return;
+      }
+      const found = await driver.identifyDevice(device, address, name, manufacturerId, manufacturerData).catch((err) => {
         scanError = `${driver.vendor} scan failed: ${err.message}`;
         app.debug(`${scanError}\n${err.stack ?? ''}`);
-        return [];
+        return undefined;
       });
-      for (const device of devices) {
-        discovered.push(device);
-        const pid = device.pid !== undefined ? `0x${device.pid.toString(16).padStart(4, '0')}` : 'unknown';
-        app.debug(`discovered ${driver.vendor} device "${device.name ?? ''}" [${device.address}] pid=${pid}`);
+      if (!found) {
+        return;
       }
-    }
+      discovered.push(found);
+      const pid = found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, '0')}` : 'unknown';
+      app.debug(`discovered ${driver.vendor} device "${found.name ?? ''}" [${found.address}] pid=${pid}`);
+    });
   });
   // Surfaces the real cause in the admin UI (instead of only the debug log) - a scan that
   // ends in well under its configured duration is almost always this, not "no devices nearby".
