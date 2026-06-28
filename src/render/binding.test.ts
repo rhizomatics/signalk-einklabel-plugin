@@ -29,7 +29,7 @@ test('parseBinding', async (t) => {
   });
 
   await t.test('rejects a pair with no "="', () => {
-    assert.throws(() => parseBinding('path'), /expected "key=value" pairs/);
+    assert.throws(() => parseBinding('source=signalk,bogus'), /expected "key=value" pairs/);
   });
 
   await t.test('rejects an unknown source', () => {
