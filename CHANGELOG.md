@@ -1,3 +1,5 @@
+# 0.4.1
+- Packaging fixes
 # 0.4.0
 - Added `einklabel` as a `source` for template fields, and `repainted` as path
 - Added `local_datetime_short` as a datetime format option, for `27 Jun 26 18:05` style output

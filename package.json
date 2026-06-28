@@ -1,6 +1,6 @@
 {
   "name": "@rhizomatics/signalk-einklabel-plugin",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "SignalK plugin that renders selected SignalK data to eInk Electronic Shelf Labels",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,7 +18,8 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "cli": "ts-node src/cli/index.ts",
-    "test": "node --require ts-node/register --test \"src/**/*.test.ts\""
+    "test": "node --require ts-node/register --test \"src/**/*.test.ts\"",
+    "prepublishOnly": "npm run build"
   },
   "signalk":{
     "displayName":"eInk Label Instruments",
