@@ -79,6 +79,23 @@ export async function withDiscovery<T>(durationMs: number, fn: (adapter: Adapter
   }
 }
 
+/**
+ * `device.connect()` has no timeout of its own - BlueZ's underlying D-Bus `Connect` call can hang
+ * indefinitely for a device that's out of range or stuck mid-handshake, which would otherwise
+ * block a scan (or `paint()`) on that one device forever. Throws once `timeoutMs` elapses; if the
+ * connect does eventually resolve afterwards, disconnects in the background so a stray successful
+ * connection doesn't itself block the next attempt.
+ */
+export async function connectWithTimeout(device: Device, timeoutMs: number): Promise<void> {
+  const connecting = device.connect();
+  let timedOut = false;
+  await Promise.race([connecting, sleep(timeoutMs).then(() => void (timedOut = true))]);
+  if (timedOut) {
+    connecting.then(() => device.disconnect()).catch(() => {});
+    throw new Error(`connecting to device timed out after ${timeoutMs}ms`);
+  }
+}
+
 /** Uses an already-known device if BlueZ has one cached, otherwise scans until it appears. */
 export async function getOrDiscoverDevice(adapter: Adapter, address: string, timeoutMs: number): Promise<Device> {
   try {

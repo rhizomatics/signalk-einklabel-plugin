@@ -53,6 +53,7 @@ export function createPlugin(app: ServerAPI): Plugin {
   // disable/re-enable from opening a second concurrent D-Bus/BlueZ session, which was
   // making the new scan fail (and report "no devices found") almost immediately.
   let scanInProgress: Promise<unknown> | undefined;
+  let scanStartedAt: number | undefined;
 
   const plugin: Plugin = {
     id: 'signalk-esl-plugin',
@@ -66,15 +67,21 @@ export function createPlugin(app: ServerAPI): Plugin {
 
       if (pluginConfig.scanOnStart) {
         if (scanInProgress) {
-          app.debug('a scan from before this restart is still running - skipping a new one to avoid a second concurrent BLE session');
+          const elapsedSeconds = ((Date.now() - (scanStartedAt ?? Date.now())) / 1000).toFixed(0);
+          app.debug(`a scan from before this restart is still running (${elapsedSeconds}s) - skipping a new one to avoid a second concurrent BLE session`);
+          app.setPluginStatus(
+            `Skipped startup scan - a scan from before this restart is still finishing (running ${elapsedSeconds}s) and will update the "Device" picker below once it does.`,
+          );
         } else {
           lastDiscovered.length = 0;
+          scanStartedAt = Date.now();
           const scan = runStartupScan(app, lastDiscovered, pluginConfig.scanDurationSeconds).catch((err) =>
             app.debug(`startup scan failed: ${err.message}`),
           );
           scanInProgress = scan;
           scan.finally(() => {
             scanInProgress = undefined;
+            scanStartedAt = undefined;
           });
         }
       }

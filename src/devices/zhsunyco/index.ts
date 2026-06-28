@@ -1,7 +1,7 @@
 import { Device } from 'node-ble';
 import { Bitmap } from '../../render/types';
 import { DeviceMetadata, DiscoveredDevice, VendorDeviceConfig, VendorDriver } from '../types';
-import { createBluetooth, getOrDiscoverDevice, sleep } from '../bleDiscovery';
+import { connectWithTimeout, createBluetooth, getOrDiscoverDevice, sleep } from '../bleDiscovery';
 import { ZHSUNYCO_PID_METADATA } from './metadata';
 import { encodeBitmap } from './encode';
 import {
@@ -24,6 +24,7 @@ const CHUNK_WRITE_DELAY_MS = 20;
 const AUTH_SETTLE_DELAY_MS = 500;
 const STATUS_WAIT_TIMEOUT_MS = 60_000;
 const DEVICE_DISCOVERY_TIMEOUT_MS = 30_000;
+const DEVICE_CONNECT_TIMEOUT_MS = 10_000;
 
 export class ZhsunycoDriver implements VendorDriver {
   readonly vendor = 'zhsunyco';
@@ -74,7 +75,7 @@ export class ZhsunycoDriver implements VendorDriver {
       const adapter = await bluetooth.defaultAdapter();
       const device = await getOrDiscoverDevice(adapter, config.address, DEVICE_DISCOVERY_TIMEOUT_MS);
 
-      await device.connect();
+      await connectWithTimeout(device, DEVICE_CONNECT_TIMEOUT_MS);
       try {
         const gatt = await device.gatt();
         const service = await gatt.getPrimaryService(WOLINK_SERVICE_UUID);
@@ -144,23 +145,31 @@ async function readDeviceDetails(
   device: Device,
   advertisedInfo: AdvertisedDeviceInfo | undefined,
 ): Promise<{ info: AdvertisedDeviceInfo | undefined; batteryMv: number | undefined }> {
-  try {
-    await device.connect();
+  const fallback = { info: advertisedInfo, batteryMv: undefined };
+  const read = async () => {
     try {
-      const gatt = await device.gatt();
-      const service = await gatt.getPrimaryService(WOLINK_SERVICE_UUID);
-      const batteryChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.battery);
-      const batteryMv = decodeBatteryMv(await batteryChar.readValue());
-      let info = advertisedInfo;
-      if (!info) {
-        const configChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.config);
-        info = decodeAdvertisedInfo(await configChar.readValue());
+      await connectWithTimeout(device, DEVICE_CONNECT_TIMEOUT_MS);
+      try {
+        const gatt = await device.gatt();
+        const service = await gatt.getPrimaryService(WOLINK_SERVICE_UUID);
+        const batteryChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.battery);
+        const batteryMv = decodeBatteryMv(await batteryChar.readValue());
+        let info = advertisedInfo;
+        if (!info) {
+          const configChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.config);
+          info = decodeAdvertisedInfo(await configChar.readValue());
+        }
+        return { info, batteryMv };
+      } finally {
+        await device.disconnect();
       }
-      return { info, batteryMv };
-    } finally {
-      await device.disconnect();
+    } catch {
+      return fallback;
     }
-  } catch {
-    return { info: advertisedInfo, batteryMv: undefined };
-  }
+  };
+  // `connectWithTimeout` bounds the connect step itself, but a GATT call past that point (e.g.
+  // `getPrimaryService`/`readValue`) has no timeout of its own either - race the whole read so
+  // one unresponsive device can't stall the rest of the scan (see `plugin.ts`'s `scanInProgress`,
+  // which otherwise stays set forever and silently skips every later scan).
+  return Promise.race([read(), sleep(DEVICE_CONNECT_TIMEOUT_MS * 2).then(() => fallback)]);
 }
