@@ -1,5 +1,6 @@
 # 0.3.2
 - Renamed to signalk-einklabel-plugin
+- Added core test suite
 # 0.3.1
 - Correct name, and include changelog
 # 0.3.0

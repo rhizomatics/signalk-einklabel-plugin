@@ -12,22 +12,29 @@ Unlike some eInk projects, this plugin doesn't require any physical modification
 
 ## Examples
 
-![Tidal Clock](docs/assets/screenshots/example_tidal_clock.png)
+### Tide Clock
+
+![Tide Clock](docs/assets/screenshots/example_tidal_clock.png)
 
 The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. It can however be customized to run with other APIs or take data only from SignalK data paths.
 
 ## Templating
 
-Templates are simply SVG files, to which expressions can be added to use SignalK data, and optionally use helper functions to make it easier to read. The template can have sample data in the placeholder, so is easy to layout and visualize.
+Templates are simply SVG files, to which expressions can be added to use SignalK data, with options to make it easier to read, like rounding or simplifying dates and times. The template can have sample data in the placeholder, so is easy to layout and visualize.
 
 ### Template Source Specification
 
-In the `description` of the SVG text box, use a comma separated
-set of key value pairs to define the data source and formatting.
+In the `description` of the SVG text box, use a comma separated set of key value pairs to define the data source and formatting.
 
-For example, `path=environment.forecast.description` uses the default data source (the `self` vessel context) and the named SignalK path. A bare path with no key/value pairs at all, e.g. just `environment.forecast.description`, is shorthand for the same thing. Overriding the default context can be done with `path=environment.forecast.description,context=vessels.urn:mrn:imo:mmsi:232345678` - the `context` value must match a real SignalK context exactly as it appears in the Data Browser; there's nothing to configure for this in the plugin itself.
+#### SignalK Paths
 
-The source can be overridden to use the SignalK server's Resources API instead. For example, `source=resources,resource=tides,path=station.name` picks the `tides` resource and pulls the `station.name` path out of the JSON response - this works for any resource type (`tides`, `waypoints`, `routes`, ...), and needs nothing configured: the plugin reaches the Resources API directly (`app.resourcesApi`), not over HTTP. Where a resource is specified, it will be fetched once for that render, and subsequent fields sourced from the same resource use that cached response.
+For example, `path=environment.forecast.description` uses the default data source (the `self` vessel context) and the named SignalK path. A bare path with no key/value pairs at all, e.g. just `environment.forecast.description`, is shorthand for the same thing. Overriding the default context can be done with `path=environment.forecast.description,context=vessels.urn:mrn:imo:mmsi:232345678` - the `context` value must match a real SignalK context exactly as it appears in the Data Browser.
+
+#### SignalK REST APIs
+
+The source can be overridden to use the SignalK server's Resources API instead. For example, `source=resources,resource=tides,path=station.name` picks the `tides` resource and pulls the `station.name` path out of the JSON response - this works for any resource type (`tides`, `waypoints`, `routes`, ...), and needs nothing configured: the plugin reaches the Resources API directly. Where a resource is specified, it will be fetched once for that render, and subsequent fields sourced from the same resource use that cached response.
+
+#### Customizing Output
 
 A `format` can be specified to make the value easier to understand. The supported formats are:
 
@@ -49,7 +56,7 @@ Additionally, `round=n` can be used to round to limited decimal places.
 
 These can all be combined as in `source=resources,resource=tides,path=extremes[2].level,category=depth,round=2`
 
-## CLI
+## Command Line Interface
 
 To get fast feedback on templates and shelf devices without updating and configuring SignalK, a CLI is provided that has these commands.
 
@@ -82,7 +89,7 @@ The primary things managed and provided by the plugin are:
 * SVG Template
 * SignalK API base URL
   - Used for automatic unit conversion on `signalk`-sourced numeric values and for resolving an explicit `category=` binding - neither has an in-process equivalent, both go via this server's own REST API
-  - Optional: left blank, the plugin probes the only realistic values in likelihood order at startup - `http://localhost:3000` (bare npm install), `http://localhost`, `https://localhost` (container/systemd installs) - and uses whichever responds, since it always runs on the same host as the server. Set it explicitly to skip probing
+  - Optional: left blank, the plugin probes the probable values in likelihood order at startup - `http://localhost:3000`, `http://localhost`, `https://localhost`. Set it explicitly to skip probing
   - Either way, errors clearly if nothing responds (wrong port) or the probe is rejected (anonymous read access not enabled) - these endpoints must allow anonymous read access, since the plugin has no login flow
 
 ### Extending
