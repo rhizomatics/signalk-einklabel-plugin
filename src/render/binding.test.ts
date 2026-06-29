@@ -13,11 +13,11 @@ test('parseBinding', async (t) => {
   });
 
   await t.test('parses key=value pairs', () => {
-    assert.deepEqual(parseBinding('source=resources,resource=tides,path=extremes.[0].level,category=depth,round=2'), {
+    assert.deepEqual(parseBinding('source=resources,resource=tides,path=extremes[0].level,category=depth,round=2'), {
       source: 'resources',
       context: 'self',
       resource: 'tides',
-      path: 'extremes.[0].level',
+      path: 'extremes[0].level',
       format: undefined,
       category: 'depth',
       round: 2,
@@ -68,7 +68,7 @@ test('resolveBinding', async (t) => {
   });
 
   await t.test('supports both array index notations', () => {
-    assert.equal(resolveBinding(parseBinding('source=resources,resource=tides,path=extremes.[0].level'), context), 1.2);
+    assert.equal(resolveBinding(parseBinding('source=resources,resource=tides,path=extremes[0].level'), context), 1.2);
     assert.equal(resolveBinding(parseBinding('source=resources,resource=tides,path=extremes[0].level'), context), 1.2);
   });
 

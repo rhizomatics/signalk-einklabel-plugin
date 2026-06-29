@@ -20,7 +20,7 @@ function ensureWasmInitialized(): Promise<void> {
  * Binding model: a `<text>` element with a `<desc>` child has that child's
  * content parsed as a flat `key=value,key=value` binding against the render
  * context and substituted in as the element's text, e.g.
- * `<desc>source=resources,resource=tides,path=extremes.[0].time,format=local_time</desc>`
+ * `<desc>source=resources,resource=tides,path=extremes[0].time,format=local_time</desc>`
  * (see `./binding.ts` for the grammar and `./formatters.ts` for the `format=` registry).
  * The `<text>` element's own visible content is left untouched in the source
  * file - it's just a placeholder so the template looks sane while laying it

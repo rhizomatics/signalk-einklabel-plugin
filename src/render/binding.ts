@@ -27,7 +27,7 @@ const KNOWN_KEYS = new Set(['source', 'context', 'resource', 'path', 'format', '
 
 /**
  * Parses a `<desc>` element's text content into a `Binding`, e.g.
- * `source=resources,resource=tides,path=extremes.[0].level,category=depth,round=2` or, using the
+ * `source=resources,resource=tides,path=extremes[0].level,category=depth,round=2` or, using the
  * defaults (`source=signalk,context=self`), plain `path=navigation.speedOverGround` (auto-converts via
  * that path's own metadata - see `renderBinding`). A bare path with no `key=value` pairs at all, e.g.
  * `environment.forecast.description`, is shorthand for `path=environment.forecast.description`

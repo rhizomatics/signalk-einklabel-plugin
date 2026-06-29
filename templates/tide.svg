@@ -22,15 +22,33 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="0.98333333"
-     inkscape:cx="250.16949"
-     inkscape:cy="246.61017"
+     inkscape:zoom="1.3906433"
+     inkscape:cx="202.78384"
+     inkscape:cy="151.36879"
      inkscape:window-width="1488"
      inkscape:window-height="674"
      inkscape:window-x="0"
      inkscape:window-y="33"
      inkscape:window-maximized="0"
-     inkscape:current-layer="svg1" />
+     inkscape:current-layer="svg1"
+     showgrid="true">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="1"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="5"
+       dotted="false"
+       gridanglex="30"
+       gridanglez="30"
+       visible="true" />
+  </sodipodi:namedview>
   <rect
      x="1.0169492"
      y="2.0798673e-08"
@@ -63,13 +81,13 @@
      font-size="18"
      font-family="serif"
      fill="black"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;stroke-width:2.39571"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000;stroke-width:2.39571"
      transform="scale(0.83037506,1.2042751)"><tspan
        sodipodi:role="line"
        id="tspan1"
        x="325.49939"
        y="195.87753"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.99999995px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:2.39571;fill:#ffffff">signalk-einklabel-plugin</tspan></text>
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.99999995px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:2.39571;fill:#ff0000">signalk-einklabel-plugin</tspan></text>
   <text
      id="last_repaint"
      x="4.3477793"
@@ -90,7 +108,7 @@
      font-family="monospace"
      fill="black"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000"><desc
-   id="desc13">source=resources,resource=tides,path=extremes.[0].label</desc>High Water</text>
+   id="desc13">source=resources,resource=tides,path=extremes[0].label</desc>High</text>
   <text
      id="extremes.1"
      x="13.35283"
@@ -99,7 +117,7 @@
      font-family="monospace"
      fill="black"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000"><desc
-   id="desc14">source=resources,resource=tides,path=extremes.[1].label</desc>Low Water</text>
+   id="desc14">source=resources,resource=tides,path=extremes[1].label</desc>Low</text>
   <text
      id="extremes.2"
      x="7.9661016"
@@ -108,7 +126,7 @@
      font-family="monospace"
      fill="red"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:monospace;-inkscape-font-specification:'monospace, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000"><desc
-   id="desc15">source=resources,resource=tides,path=extremes.[2].label</desc>High Water</text>
+   id="desc15">source=resources,resource=tides,path=extremes[2].label</desc>High</text>
   <text
      id="environment.time.timezoneRegion"
      x="338.47461"
@@ -120,111 +138,111 @@
    id="desc11">path=environment.time.timezoneRegion,format=utc_offset</desc></text>
   <text
      id="extremes.2.level"
-     x="173.64978"
-     y="199.27094"
+     x="335.54352"
+     y="168.08856"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.44101"
-     transform="scale(0.95993086,1.0417417)"
-     inkscape:transform-center-x="11.578901"
-     inkscape:transform-center-y="-62.5909"><tspan
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.78893"
+     transform="scale(0.7732368,1.2932649)"
+     inkscape:transform-center-x="11.578953"
+     inkscape:transform-center-y="-96.464172"><tspan
        sodipodi:role="line"
        id="tspan2-0"
-       x="173.64978"
-       y="199.27094"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.44101">3.3m</tspan><desc
-       id="desc6">source=resources,resource=tides,path=extremes.[2].level,category=depth</desc></text>
+       x="335.54352"
+       y="168.08856"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.78893">3.3m</tspan><desc
+       id="desc6">source=resources,resource=tides,path=extremes[2].level,category=depth</desc></text>
   <text
      id="extremes.2.time"
-     x="31.471279"
-     y="166.20743"
+     x="164.78383"
+     y="154.23825"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.31448"
-     transform="scale(0.77910527,1.2835236)">15:53<desc
-   id="desc10">source=resources,resource=tides,path=extremes.[2].time,format=local_time</desc></text>
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333281px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.51352"
+     transform="scale(0.7022624,1.4239692)">15:53<desc
+   id="desc10">source=resources,resource=tides,path=extremes[2].time,format=local_time</desc></text>
   <text
      id="extremes.1.level"
-     x="182.71886"
-     y="135.3521"
+     x="345.0629"
+     y="118.90553"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.40832"
-     transform="scale(0.90784041,1.1015152)"
-     inkscape:transform-center-y="-96.23206"
-     inkscape:transform-center-x="-0.00043342573"><tspan
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.701"
+     transform="scale(0.75163533,1.3304324)"
+     inkscape:transform-center-y="-140.38618"
+     inkscape:transform-center-x="-0.00038058817"><tspan
        sodipodi:role="line"
        id="tspan2-1"
-       x="182.71886"
-       y="135.3521"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.40832">1.6m</tspan><desc
-       id="desc5">source=resources,resource=tides,path=extremes.[1].level,category=depth</desc></text>
+       x="345.0629"
+       y="118.90553"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.701">1.6m</tspan><desc
+       id="desc5">source=resources,resource=tides,path=extremes[1].level,category=depth</desc></text>
   <text
      id="extremes.1.time"
-     x="33.328102"
-     y="118.54723"
+     x="161.1239"
+     y="115.52532"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.31609"
-     transform="scale(0.77081545,1.2973274)">09:36<desc
-   id="desc8">source=resources,resource=tides,path=extremes.[1].time,format=local_time</desc></text>
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333356px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.48364"
+     transform="scale(0.7345432,1.3613903)">09:36<desc
+   id="desc8">source=resources,resource=tides,path=extremes[1].time,format=local_time</desc></text>
   <text
      id="extremes.0.time"
-     x="29.798925"
-     y="79.890121"
+     x="156.47511"
+     y="73.368919"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.32646"
-     transform="scale(0.82428216,1.2131768)">03:27<desc
-   id="desc3">source=resources,resource=tides,path=extremes.[0].time,format=local_time</desc></text>
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333325px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.55397"
+     transform="scale(0.74654856,1.3394976)">03:27<desc
+   id="desc3">source=resources,resource=tides,path=extremes[0].time,format=local_time</desc></text>
   <text
      id="extremes.0.time-8"
-     x="378.11157"
-     y="79.890121"
+     x="10.326324"
+     y="77.594147"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#666666;stroke-width:1.32646"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#666666;stroke-width:1.32646"
      transform="scale(0.82428216,1.2131768)"><desc
-   id="desc2">source=resources,resource=tides,path=extremes.[0].time,format=day_mon</desc>27 Jun</text>
+   id="desc2">source=resources,resource=tides,path=extremes[0].time,format=day_mon</desc>27 Jun</text>
   <text
      id="extremes.0.time-8-5"
-     x="378.11157"
-     y="125.12273"
+     x="10.83737"
+     y="126.90092"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#666666;stroke-width:1.32646"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#666666;stroke-width:1.32646"
      transform="scale(0.82428216,1.2131768)"><desc
-   id="desc7">source=resources,resource=tides,path=extremes.[1].time,format=day_mon</desc>27 Jun</text>
+   id="desc7">source=resources,resource=tides,path=extremes[1].time,format=day_mon</desc>27 Jun</text>
   <text
      id="extremes.0.time-8-9"
-     x="378.11157"
-     y="174.46791"
+     x="12.934491"
+     y="161.07082"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#666666;stroke-width:1.32646"
-     transform="scale(0.82428216,1.2131768)"><desc
-   id="desc9">source=resources,resource=tides,path=extremes.[2].time,format=day_mon</desc>27 Jun</text>
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#666666;stroke-width:1.4652"
+     transform="scale(0.74623156,1.3400666)"><desc
+   id="desc9">source=resources,resource=tides,path=extremes[2].time,format=day_mon</desc>27 Jun</text>
   <text
      id="extremes.0.level"
-     x="173.7571"
-     y="88.829666"
+     x="336.3447"
+     y="76.456078"
      font-size="14"
      font-family="monospace"
      fill="red"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.38653"
-     transform="scale(0.95553786,1.046531)"><tspan
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke-width:1.71992"
+     transform="scale(0.7703174,1.2981662)"><tspan
        sodipodi:role="line"
        id="tspan2"
-       x="173.7571"
-       y="88.829666"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:32px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.38653">3.4m</tspan><desc
-       id="desc4">source=resources,resource=tides,path=extremes.[0].level,category=depth</desc></text>
+       x="336.3447"
+       y="76.456078"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.71992">3.4m</tspan><desc
+       id="desc4">source=resources,resource=tides,path=extremes[0].level,category=depth</desc></text>
 </svg>
