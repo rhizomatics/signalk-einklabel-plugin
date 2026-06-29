@@ -76,7 +76,7 @@ Three font types are loaded by default, use the font name or simply 'sans-serif'
 
 ## Command Line Interface
 
-To get fast feedback on templates and shelf devices without updating and configuring SignalK, a CLI is provided that has these commands.
+To get fast feedback on templates and shelf devices without updating and configuring SignalK, a CLI call `esl-cli` is provided that has these commands.
 
 - `vendors` - list supported vendors
 - `scan` - report supported devices found from a BLE scan
@@ -84,6 +84,8 @@ To get fast feedback on templates and shelf devices without updating and configu
 See also the commands useful for debugging under [Developing Templates]
 - `render` - transform an SVG template and data into a PNG
 - `paint` - render an SVG template and data to a selected ESL
+
+( The CLI can also be run from a checked out module as `npm run cli -- command --args` )
 
 ## Vendors
 
@@ -103,7 +105,9 @@ Python code for a variety of their labels at https://github.com/roxburghm/zhsuny
 The primary things managed and provided by the plugin are:
 
 * ESL Vendor
+  - Sub-package per vendor
 * ESL Device
+  - Metadata in the vendor package, using a `pid` or sometimes `pid` combined with `hwid` in the BLE results to pinpoint a model
 * SVG Template
 * SignalK API base URL
   - Used for automatic unit conversion on `signalk`-sourced numeric values and for resolving an explicit `category=` binding - neither has an in-process equivalent, both go via this server's own REST API
@@ -124,7 +128,15 @@ Additional vendors and devices can be added by a separate npm package that imple
 
 Templates can be added to the configurable directory. [Inkscape](https://inkscape.org) free, open source, and recommended for editing templates, or your own favourite editor, or by hand in a text editor for hard core (or just tidying up the template side).
 
+![Example Field Definition](docs/assets/inkscape_desc.png)
+
+The object ID and label aren't used by the plugin, only the description is used to define fields. You can also add in ordinary text fields without field definitions, as labels, logos, help text etc.
+
+Placeholder text isn't necessary, and is ignored by the plugin, but makes it much easier to visualize the result.
+
 Inkscape adds its own metadata to images, which can be stripped off by exporting a simple SVG, although can be left in place with no harm; main reason to simplify the SVG is manual changes in a text editor.
+
+#### Debugging Templates
 
 The `esl-cli` can be used to debug and validate templates quickly:
 
@@ -132,3 +144,31 @@ The `esl-cli` can be used to debug and validate templates quickly:
 * `paint` - Render templates with SignalK data and send to selected ESL device
 * `fields` - List the fields in the template, with the source specification and the rendered data value
 * `field` - Accept a source specification (outside of any template context) and return the rendered value if available
+
+##### Example
+
+```bash
+npm run cli -- fields -t templates/tide.svg -u http://localhost
+```
+
+```
+id                       spec                                                                     value
+station.name             source=resources,resource=tides,path=station.name                        Tobermory
+source.name.             source=resources,resource=tides,path=station.source.name                 TICON-4
+last_repaint             source=einklabel,path=repainted,format=local_datetime_short              30 Jun 26 00:08
+extremes.0               source=resources,resource=tides,path=extremes[0].label                   Low
+extremes.1               source=resources,resource=tides,path=extremes[1].label                   High
+extremes.2               source=resources,resource=tides,path=extremes[2].label                   Low
+timezoneRegion           source=einklabel,path=local_zone                                         BST
+lat                      source=resources,resource=tides,path=station.datums.LAT,category=depth   0.2m
+hat                      source=resources,resource=tides,path=station.datums.HAT,category=depth   5.2m
+extremes.2.level         source=resources,resource=tides,path=extremes[2].level,category=depth    1.1m
+extremes.2.time          source=resources,resource=tides,path=extremes[2].time,format=local_time  13:15
+extremes.1.level         source=resources,resource=tides,path=extremes[1].level,category=depth    3.8m
+extremes.1.time          source=resources,resource=tides,path=extremes[1].time,format=local_time  07:05
+extremes.0.time          source=resources,resource=tides,path=extremes[0].time,format=local_time  01:21
+extremes.0.time-8        source=resources,resource=tides,path=extremes[0].time,format=day_mon     30 Jun
+extremes.0.time-8-5      source=resources,resource=tides,path=extremes[1].time,format=day_mon     30 Jun
+extremes.0.time-8-9      source=resources,resource=tides,path=extremes[2].time,format=day_mon     30 Jun
+extremes.0.level         source=resources,resource=tides,path=extremes[0].level,category=depth    1.3m
+```
