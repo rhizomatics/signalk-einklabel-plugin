@@ -23,7 +23,7 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="1.3906433"
-     inkscape:cx="202.78384"
+     inkscape:cx="202.4243"
      inkscape:cy="151.36879"
      inkscape:window-width="1488"
      inkscape:window-height="674"
@@ -76,18 +76,15 @@
    id="desc1">source=resources,resource=tides,path=station.name</desc></text>
   <text
      id="station.name-8"
-     x="325.49939"
-     y="195.87753"
+     x="440.67529"
+     y="196.47466"
      font-size="18"
      font-family="serif"
      fill="black"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000;stroke-width:2.39571"
      transform="scale(0.83037506,1.2042751)"><tspan
        sodipodi:role="line"
-       id="tspan1"
-       x="325.49939"
-       y="195.87753"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.99999995px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:2.39571;fill:#ff0000">signalk-einklabel-plugin</tspan></text>
+       id="tspan20">SOURCE</tspan></text>
   <text
      id="last_repaint"
      x="4.3477793"
@@ -136,6 +133,30 @@
      fill="#ffff00"
      style="fill:#000000">UTC+01:00<desc
    id="desc11">path=environment.time.timezoneRegion,format=utc_offset</desc></text>
+  <text
+     id="lat"
+     x="175.5096"
+     y="30.720407"
+     font-size="12px"
+     font-family="sans-serif"
+     fill="#ffff00"
+     style="fill:#ffff00;-inkscape-font-specification:'Sans, Normal';font-family:Sans;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:18.6667px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke:#a6a6a6;stroke-opacity:1"><desc
+       id="desc18">source=resources,resource=tides,path=station.datums.LAT,category=depth</desc><tspan
+       sodipodi:role="line"
+       id="tspan17">0.1m</tspan></text>
+  <text
+     id="hat"
+     x="264.41321"
+     y="30.800503"
+     font-size="12px"
+     font-family="sans-serif"
+     fill="#ffff00"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffff00;stroke:#acacaa;stroke-opacity:1"><desc
+       id="desc19">source=resources,resource=tides,path=station.datums.HAT,category=depth</desc><tspan
+       sodipodi:role="line"
+       id="tspan18"
+       x="264.41321"
+       y="30.800503">6.0m</tspan></text>
   <text
      id="extremes.2.level"
      x="335.54352"
@@ -245,4 +266,14 @@
        y="76.456078"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:37.33333333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.71992">3.4m</tspan><desc
        id="desc4">source=resources,resource=tides,path=extremes[0].level,category=depth</desc></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffff00;stroke:#acacaa;stroke-width:0.612283;stroke-opacity:1"
+     x="232.26662"
+     y="30.201849"
+     id="text19"><tspan
+       sodipodi:role="line"
+       id="tspan19"
+       x="232.26662"
+       y="30.201849">-&gt;</tspan></text>
 </svg>

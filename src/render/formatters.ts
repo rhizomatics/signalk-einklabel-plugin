@@ -41,28 +41,54 @@ function selfTimezone(context: TemplateContext): string {
 }
 
 /**
+ * Short zone name (e.g. "BST", or "GMT+1" where the host's own `Intl` locale has no real abbreviation
+ * for the zone) for the same zone `selfTimezone` resolves - an alternative for
+ * `environment.time.timezoneRegion,format=utc_offset` on installs that never publish that path (see
+ * `selfTimezone`'s own comment). Uses the host's default locale rather than pinning one, so it shows
+ * whatever `Intl` would show the host's own user - "GMT+1" is an acceptable fallback where that locale
+ * doesn't have a 3-letter abbreviation to offer. Resolved as a `source=einklabel,path=local_zone`
+ * binding (see `considerRepaint`).
+ */
+export function resolveLocalZoneAbbreviation(context: TemplateContext): string {
+  const part = new Intl.DateTimeFormat(undefined, { timeZone: selfTimezone(context), timeZoneName: 'short' })
+    .formatToParts(new Date())
+    .find((p) => p.type === 'timeZoneName');
+  return part?.value ?? '';
+}
+
+/**
+ * A `resources`-sourced timestamp can arrive as either an ISO string (always true over HTTP, since
+ * `JSON.stringify` converts a `Date` to its ISO string automatically) or a live `Date` instance (an
+ * in-process `app.resourcesApi` call skips that serialisation step entirely, so a provider that hasn't
+ * itself called `.toISOString()` yet hands back the raw object) - accept both so the live plugin and
+ * the CLI render identically regardless of which path a binding's data took.
+ */
+function parseTimestamp(value: unknown): DateTime | undefined {
+  if (value instanceof Date) return DateTime.fromJSDate(value, { zone: 'utc' });
+  if (typeof value === 'string') return DateTime.fromISO(value, { zone: 'utc' });
+  return undefined;
+}
+
+/**
  * Shows the explicit IANA zone name rather than an abbreviation (e.g. "BST") - UK tide tables are
  * officially published in GMT, so the basis for the displayed time must be unambiguous rather than
  * just locally styled.
  */
 function formatLocalTime(value: unknown, context: TemplateContext): string {
-  if (typeof value !== 'string') return '';
-  const dt = DateTime.fromISO(value, { zone: 'utc' }).setZone(selfTimezone(context));
-  return dt.isValid ? dt.toFormat('HH:mm') : '';
+  const dt = parseTimestamp(value)?.setZone(selfTimezone(context));
+  return dt?.isValid ? dt.toFormat('HH:mm') : '';
 }
 
 /** e.g. "27 Jun" - day of month (no leading zero) and abbreviated month name, in the local vessel's timezone. */
 function formatDayMonth(value: unknown, context: TemplateContext): string {
-  if (typeof value !== 'string') return '';
-  const dt = DateTime.fromISO(value, { zone: 'utc' }).setZone(selfTimezone(context));
-  return dt.isValid ? dt.toFormat('d MMM') : '';
+  const dt = parseTimestamp(value)?.setZone(selfTimezone(context));
+  return dt?.isValid ? dt.toFormat('d MMM') : '';
 }
 
 /** e.g. "21 Jun 26 18:05" - day of month (no leading zero), abbreviated month, 2-digit year, and 24h time, in the local vessel's timezone. */
 function formatLocalDatetimeShort(value: unknown, context: TemplateContext): string {
-  if (typeof value !== 'string') return '';
-  const dt = DateTime.fromISO(value, { zone: 'utc' }).setZone(selfTimezone(context));
-  return dt.isValid ? dt.toFormat('d MMM yy HH:mm') : '';
+  const dt = parseTimestamp(value)?.setZone(selfTimezone(context));
+  return dt?.isValid ? dt.toFormat('d MMM yy HH:mm') : '';
 }
 
 /**

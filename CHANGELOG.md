@@ -1,3 +1,7 @@
+# 0.4.3
+- Fixed datetime values when running from plugin were blank while CLI was fine
+- Added an example Resources API output from signalk-tides plugin
+- Relaid out the example tide clock
 # 0.4.2
 - Fix High/Low display for tide clock template
 - Fix last repaint time for display being hour out

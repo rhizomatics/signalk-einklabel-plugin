@@ -7,6 +7,7 @@ import { withRetries } from './devices/bleDiscovery';
 import { getDriver } from './devices/registry';
 import { SvgRenderer } from './render/svgRenderer';
 import { Binding, findBindings } from './render/binding';
+import { resolveLocalZoneAbbreviation } from './render/formatters';
 import { TemplateContext } from './render/types';
 import { fetchCategoryDisplayUnits } from './unitCategories';
 import { fetchPathMeta } from './pathMeta';
@@ -159,7 +160,10 @@ async function considerRepaint(
     return;
   }
 
-  const renderContext: TemplateContext = { ...rawContext, meta: { repainted: new Date().toISOString() } };
+  const renderContext: TemplateContext = {
+    ...rawContext,
+    meta: { repainted: new Date().toISOString(), local_zone: resolveLocalZoneAbbreviation(rawContext) },
+  };
   const renderer = new SvgRenderer();
   const bitmap = await renderer.render(templatePath, renderContext, metadata.width, metadata.height - metadata.voffset);
   const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;

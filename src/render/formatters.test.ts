@@ -35,12 +35,20 @@ test('applyFormat', async (t) => {
     assert.equal(applyFormat('local_time', '2026-06-28T12:00:00Z', {}, undefined), expected);
   });
 
-  await t.test('local_time returns empty string for a non-string value', () => {
+  await t.test('local_time returns empty string for a non-string, non-Date value', () => {
     assert.equal(applyFormat('local_time', 42, context, undefined), '');
+  });
+
+  await t.test('local_time accepts a Date instance - an in-process resourcesApi call hands one back unserialised, unlike the HTTP/CLI path which always JSON-serialises it to a string first', () => {
+    assert.equal(applyFormat('local_time', new Date('2026-06-28T12:00:00Z'), context, undefined), '13:00');
   });
 
   await t.test('day_mon formats day and abbreviated month', () => {
     assert.equal(applyFormat('day_mon', '2026-06-28T12:00:00Z', context, undefined), '28 Jun');
+  });
+
+  await t.test('day_mon accepts a Date instance', () => {
+    assert.equal(applyFormat('day_mon', new Date('2026-06-28T12:00:00Z'), context, undefined), '28 Jun');
   });
 
   await t.test('local_datetime_short formats day, abbreviated month, 2-digit year and 24h time', () => {

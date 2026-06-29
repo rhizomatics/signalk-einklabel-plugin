@@ -1,4 +1,5 @@
 import { Binding } from '../render/binding';
+import { resolveLocalZoneAbbreviation } from '../render/formatters';
 import { TemplateContext } from '../render/types';
 import { fetchJson } from '../httpJson';
 import { fetchCategoryDisplayUnits } from '../unitCategories';
@@ -75,7 +76,7 @@ export async function assembleLiveContext(signalkUrl: string, bindings: Binding[
 
   // Matches `considerRepaint` in repaintScheduler.ts - the CLI has no real device repaint to time, so
   // a `source=einklabel,path=repainted` binding just resolves to "now", same as a live render would.
-  const meta = { repainted: new Date().toISOString() };
+  const meta = { repainted: new Date().toISOString(), local_zone: resolveLocalZoneAbbreviation({ signalk }) };
 
   return { signalk, resources, pathMeta, categories, meta };
 }

@@ -36,7 +36,10 @@ The source can be overridden to use the SignalK server's Resources API instead. 
 
 #### Plugin Data
 
-`source=einklabel` reads data injected by the plugin itself, rather than from SignalK. Currently the only such value is `path=repainted`, the timestamp of the current repaint - for example `source=einklabel,path=repainted,format=local_datetime_short` to show when the label was last updated.
+`source=einklabel` reads data injected by the plugin itself, rather than from SignalK. Available paths:
+
+* `path=repainted` - the timestamp of the current repaint - for example `source=einklabel,path=repainted,format=local_datetime_short` to show when the label was last updated.
+* `path=local_zone` - a short zone name (e.g. `BST`) for the same timezone used for `local_time`/`day_mon`/`local_datetime_short` (see above) - a fallback for `environment.time.timezoneRegion,format=utc_offset` on installs that never publish that path, since it needs no SignalK metadata of its own. Falls back to a plain UTC offset like `GMT+1` where the host's locale has no real abbreviation for the zone.
 
 #### Customizing Output
 
