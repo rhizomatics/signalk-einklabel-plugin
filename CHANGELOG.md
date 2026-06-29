@@ -1,3 +1,5 @@
+# 0.4.4
+- Update `node-ble` to new packaging
 # 0.4.3
 - Fixed datetime values when running from plugin were blank while CLI was fine
 - Added an example Resources API output from signalk-tides plugin
