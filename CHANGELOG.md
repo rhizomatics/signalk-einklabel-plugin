@@ -1,7 +1,8 @@
 # 0.4.3
 - Fixed datetime values when running from plugin were blank while CLI was fine
 - Added an example Resources API output from signalk-tides plugin
-- Relaid out the example tide clock
+- Relaid out the example tide clock, adding the tidal range (LAT to HAT) and the source of tide data
+- Alternative source of time zone info, `source=einklabel,path=local_zone`
 # 0.4.2
 - Fix High/Low display for tide clock template
 - Fix last repaint time for display being hour out

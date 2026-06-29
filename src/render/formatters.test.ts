@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DateTime } from 'luxon';
-import { applyFormat, formatDisplayUnits } from './formatters';
+import { applyFormat, formatDisplayUnits, resolveLocalZoneAbbreviation } from './formatters';
 import { TemplateContext } from './types';
 
 test('formatDisplayUnits', async (t) => {
@@ -74,5 +74,23 @@ test('applyFormat', async (t) => {
 
   await t.test('throws for an unknown format name', () => {
     assert.throws(() => applyFormat('nope', 1, context, undefined), /unknown format "nope"/);
+  });
+});
+
+test('resolveLocalZoneAbbreviation', async (t) => {
+  await t.test('resolves a short zone name for an explicit timezoneRegion', () => {
+    const context: TemplateContext = { signalk: { self: { environment: { time: { timezoneRegion: 'Europe/London' } } } } };
+    const expected = new Intl.DateTimeFormat(undefined, { timeZone: 'Europe/London', timeZoneName: 'short' })
+      .formatToParts(new Date())
+      .find((p) => p.type === 'timeZoneName')?.value;
+    assert.equal(resolveLocalZoneAbbreviation(context), expected);
+  });
+
+  await t.test('falls back to the host machine\'s own timezone when there is no timezoneRegion', () => {
+    const hostZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const expected = new Intl.DateTimeFormat(undefined, { timeZone: hostZone, timeZoneName: 'short' })
+      .formatToParts(new Date())
+      .find((p) => p.type === 'timeZoneName')?.value;
+    assert.equal(resolveLocalZoneAbbreviation({}), expected);
   });
 });

@@ -82,7 +82,8 @@
      font-family="serif"
      fill="black"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000;stroke-width:2.39571"
-     transform="scale(0.83037506,1.2042751)"><tspan
+     transform="scale(0.83037506,1.2042751)"><desc
+       id="desc21">source=resources,resource=tides,path=station.source.name</desc><tspan
        sodipodi:role="line"
        id="tspan20">SOURCE</tspan></text>
   <text
@@ -126,13 +127,14 @@
    id="desc15">source=resources,resource=tides,path=extremes[2].label</desc>High</text>
   <text
      id="environment.time.timezoneRegion"
-     x="338.47461"
-     y="17.457626"
-     font-size="12px"
+     x="440.41293"
+     y="11.361118"
+     font-size="10.373px"
      font-family="sans-serif"
      fill="#ffff00"
-     style="fill:#000000">UTC+01:00<desc
-   id="desc11">path=environment.time.timezoneRegion,format=utc_offset</desc></text>
+     style="direction:rtl;fill:#000000;stroke-width:0.864419"
+     transform="scale(0.86441854,1.156847)">UTC+01:00<desc
+   id="desc11">source=einklabel,path=local_zone</desc></text>
   <text
      id="lat"
      x="175.5096"
