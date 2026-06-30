@@ -3,7 +3,8 @@
 ## Release
 
 ```bash
-git tag -f latest v0.5.0
+git tag -f latest
+git tag -f v0.5.0
 npm publish --tag latest --access public
 ```
 
