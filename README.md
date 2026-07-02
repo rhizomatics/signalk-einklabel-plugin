@@ -10,6 +10,25 @@ Since they are designed to be used in large quantity in small shops, they are ch
 
 Unlike some eInk projects, this plugin doesn't require any physical modification to the labels, or loading any new firmware. It can send an image to a supported shelf label fresh out of the box.
 
+## Pre-requisites
+
+Most of this is about making SignalK work with Bluetooth Low Energy, which is good thing to have anyway, since vendors like Victron, Switchbot, Ruuvi and others have BLE enabled hardware that's useful to have on a boat. [Direct BLE support](https://github.com/SignalK/signalk-server/issues/2411) in SignalK is being planned in 2026.
+
+1. A SignalK server, preferably running Linux (MacOS does weird things with bluetooth)
+2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy), which is Bluetooth v4.0 or higher
+  - Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
+  - Some Raspberry Pi models come with it built-in
+  - Don't worry about the very latest Bluetooth versions, 4.0 is basic, 5.0 is nice
+  - Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
+3. `bluez` package installed in Linux
+  - No need to do this if you have a Raspberry Pi with recent Raspian version, since bluez comes built in.
+  - If you're not running a Raspberry Pi, then ensure that the `dbus` package is installed
+4. One or more supported Electronic Shelf Labels
+  - The label used for testing this is the [ZhunyCo 3.7 BRWY](https://www.aliexpress.com/item/1005010050104435.html)
+
+Once you have all of that, it may be worth also installing [signalk-victron-ble](https://github.com/stefanor/signalk-victron-ble) or [bt-sensors-plugin](https://github.com/naugehyde/bt-sensors-plugin-sk) to pull in data from other sensors and equipment.
+
+
 ## Installation
 
 Look for **eInk Label Instrument** in the [SignalK AppStore]() on your
