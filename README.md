@@ -1,6 +1,6 @@
 # eInk Labels for SignalK
 
-** BETA - basic functionality, limited vendor/product support **
+** Fully working but limited vendor/product support **
 
 A SignalK plugin to display data from SignalK paths, APIs and plugins on Electronic Shelf Labels over a Bluetooth Low Energy (BLE) connection using simple SVG templates.
 
