@@ -1,3 +1,7 @@
+# 0.6.0
+- Added ability to select images for inclusion in SVG templated based on SignalK value
+- New image selection used to add lunar phase to tide clock example
+  -  Requires a source for `environment.moonPhase.name`, for example the `dervived-data` plugin
 # 0.5.1
 - Work around `resvg-wasm` font limitations by overriding generic font family with matching font name prior to rendering
 # 0.5.0

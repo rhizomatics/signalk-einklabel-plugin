@@ -1,8 +1,9 @@
 import { readFile } from 'fs/promises';
-import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import { DOMParser, Element as XmlElement, XMLSerializer } from '@xmldom/xmldom';
 import { Resvg, initWasm } from '@resvg/resvg-wasm';
 import { Bitmap, Renderer, TemplateContext } from './types';
-import { parseBinding, renderBinding } from './binding';
+import { parseBinding, renderBinding, resolveBinding } from './binding';
+import { normalizeAssetKey, resolveAssetPath } from './assets';
 import { DEFAULT_FONT_PATHS, GENERIC_FONT_FAMILY_MAP } from './fonts';
 
 let wasmReady: Promise<void> | undefined;
@@ -54,6 +55,14 @@ function expandGenericFontFamilies(svgSource: string): string {
  * `getElementsByTagName` is a live NodeList, so that previously truncated the
  * whole tree and rendered blank.
  *
+ * Non-textual inclusion: an `<image>` element with a `<desc>` child works the same way, except the
+ * resolved value picks one of a directory of `.svg` files (an `assets=` key, required, names that
+ * directory - see `./assets.ts`) rather than substituting text, and the element is dropped entirely
+ * (rather than showing an error placeholder) whenever the value is unavailable or doesn't map to a
+ * file - e.g. a device without the `derived-data` plugin installed simply shows no moon-phase icon.
+ * The matched file's contents are inlined as a `data:image/svg+xml;base64,...` URI so no filesystem
+ * access happens at resvg-wasm's render step.
+ *
  * resvg-wasm cannot see the host's installed fonts (`loadSystemFonts`/`fontFiles`
  * are silently no-ops under plain Node) - it only renders text if given font
  * bytes directly via `fontBuffers`, read from disk by us. Without at least one
@@ -99,6 +108,44 @@ export class SvgRenderer implements Renderer {
       } catch (err) {
         console.error(`field "${descElement.textContent}" failed to render: ${(err as Error).message}`);
         element.textContent = 'ERROR';
+      }
+    }
+
+    // Collected up front, rather than iterated live like the `<text>` loop above - some of these get
+    // removed outright (see below), and removing from a live NodeList while iterating it by index would
+    // skip whatever shifts into the removed slot.
+    const imageElements: XmlElement[] = [];
+    const rawImageElements = doc.getElementsByTagName('image');
+    for (let i = 0; i < rawImageElements.length; i++) {
+      const element = rawImageElements.item(i);
+      if (element) imageElements.push(element);
+    }
+
+    for (const element of imageElements) {
+      const descElement = element.getElementsByTagName('desc').item(0);
+      if (!descElement) continue;
+
+      // Same one-field-at-a-time isolation as the `<text>` loop - and the same "no value" outcome
+      // (here, dropping the element rather than blanking to 'ERROR' text) for a value that isn't
+      // available at all as for one that doesn't map to any asset file, per the binding's contract.
+      try {
+        const binding = parseBinding(descElement.textContent ?? '');
+        if (!binding.assets) {
+          throw new Error('an <image> binding requires an "assets" key naming the directory to pick a file from');
+        }
+        const key = normalizeAssetKey(resolveBinding(binding, context));
+        const assetPath = key && resolveAssetPath(svgTemplatePath, binding.assets, key);
+        if (!assetPath) {
+          element.parentNode?.removeChild(element);
+          continue;
+        }
+        const assetSource = await readFile(assetPath, 'utf-8');
+        const dataUri = `data:image/svg+xml;base64,${Buffer.from(assetSource).toString('base64')}`;
+        const hrefAttr = element.getAttribute('href') !== null ? 'href' : 'xlink:href';
+        element.setAttribute(hrefAttr, dataUri);
+      } catch (err) {
+        console.error(`image "${descElement.textContent}" failed to render: ${(err as Error).message}`);
+        element.parentNode?.removeChild(element);
       }
     }
 

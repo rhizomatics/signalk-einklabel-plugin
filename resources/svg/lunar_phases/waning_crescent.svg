@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.0"
+   width="400"
+   height="400"
+   id="svg2"
+   sodipodi:docname="waning_crescent.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.59"
+     inkscape:cx="200.84746"
+     inkscape:cy="200"
+     inkscape:window-width="1312"
+     inkscape:window-height="449"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg2" />
+  <defs
+     id="defs4" />
+  <g
+     id="layer2">
+    <path
+       d="M 749.07161,200.5305 C 749.07161,293.70109 673.54193,369.23077 580.37134,369.23077 C 487.20075,369.23077 411.67107,293.70109 411.67107,200.5305 C 411.67107,107.35991 487.20075,31.83023 580.37134,31.83023 C 673.54193,31.83023 749.07161,107.35991 749.07161,200.5305 z "
+       transform="translate(-380.37134,-0.5305023)"
+       style="fill:#00000f;fill-opacity:0.94117647;stroke:none;stroke-width:3.54330707;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path6166" />
+  </g>
+  <g
+     id="layer3"
+     style="fill:#ffff00">
+    <path
+       d="M 199.97697,368.70045 C 106.80628,368.70045 31.27656,293.17073 31.27656,200 C 31.27656,106.8293 106.80628,31.299555 199.97697,31.299555 C 153.39106,31.299555 115.62676,106.8293 115.62676,200 C 115.62676,293.17073 153.39106,368.70045 199.97697,368.70045 z "
+       style="fill:#ffff00;fill-opacity:1;stroke:none"
+       id="path7307" />
+  </g>
+</svg>

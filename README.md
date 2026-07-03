@@ -98,6 +98,18 @@ Additionally, `round=n` can be used to round to limited decimal places.
 
 These can all be combined as in `source=resources,resource=tides,path=extremes[2].level,category=depth,round=2`
 
+### Non-Textual Fields (Images)
+
+The same `<desc>` mechanism works on an `<image>` element instead of a `<text>` element, for a value that's better shown as a picture than as text - a moon phase icon, a wind direction arrow, a weather condition glyph, and so on. Rather than substituting text, the resolved value picks one of a directory of `.svg` files to embed, by an extra required `assets=` key naming that directory (resolved relative to the template file itself, so a bundled template and a user override both work the same way). For example, the tide clock's moon phase icon uses:
+
+```
+path=environment.moonPhase.name,assets=../resources/svg/lunar_phases
+```
+
+The resolved value (e.g. `"Waning Gibbous"`, as published by the [derived-data](https://www.npmjs.com/package/signalk-derived-data) plugin) is normalized to match a filename - lower-cased, punctuation and spaces collapsed to underscores - so `"Waning Gibbous"` picks `waning_gibbous.svg` out of that directory. If the underlying path has no value at all (e.g. the `derived-data` plugin isn't installed), or the value doesn't normalize to any file in the directory, the `<image>` element is simply omitted from that render - no broken image, no placeholder, nothing shown.
+
+This is a general mechanism, not specific to moon phases - any `source`/`context`/`path`/`format` combination valid for a `<text>` binding works here too (a `source=resources` value, an explicit `category=`, etc.), the only difference is the required `assets=` directory and the "no match -> no image" behaviour instead of substituted text. To add your own, put a directory of `<value>.svg` files somewhere relative to your template, add an `<image>` element in your SVG editor at the size/position you want, and give it a `<desc>` the same way you would a text field.
+
 ### Fonts
 
 Three font types are loaded by default, use the generic font family, or exact font name, in the SVG editor and choose size and weight (bold, semi-bold etc). Some labels will make a decent attempt to gray scale. Use the simple pure red, yellow, white, black to match the label's limited colour choice (some labels only offer black and white, or black/white/red). If a font can't be matched it will default to (sans-serif) Roboto.

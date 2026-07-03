@@ -50,6 +50,14 @@
             "timestamp": "2026-06-30T14:45:00.000Z"
           }
         }
+      },
+      "environment": {
+        "moonPhase":{
+          "name":{
+            "value":"Waxing Gibbous",
+            "timestamp": "2026-06-30T14:45:00.000Z"
+          }
+        }
       }
     }
   }

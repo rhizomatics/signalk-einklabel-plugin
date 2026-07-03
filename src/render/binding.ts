@@ -21,9 +21,11 @@ export interface Binding {
   /** Explicit unit-preferences category (e.g. `depth`, `speed`, `temperature`) for a numeric value with no path metadata of its own, e.g. a `source=resources` value - see `../unitCategories.ts`. */
   category?: string;
   round?: number;
+  /** Only meaningful on an `<image>` element's binding (see `SvgRenderer`) - a directory, resolved relative to the template file, of `<value>.svg` files to pick from by the resolved value (see `../assets.ts`'s `normalizeAssetKey`). */
+  assets?: string;
 }
 
-const KNOWN_KEYS = new Set(['source', 'context', 'resource', 'path', 'format', 'category', 'round']);
+const KNOWN_KEYS = new Set(['source', 'context', 'resource', 'path', 'format', 'category', 'round', 'assets']);
 
 /**
  * Parses a `<desc>` element's text content into a `Binding`, e.g.
@@ -75,22 +77,27 @@ export function parseBinding(desc: string): Binding {
     format: fields.format,
     category: fields.category,
     round: fields.round !== undefined ? Number(fields.round) : undefined,
+    assets: fields.assets,
   };
 }
 
 /**
- * Parses every `<text>` element's `<desc>` binding out of raw SVG source - lets a caller discover what
- * data a template needs before fetching anything, with no separate config declaring it (see
- * `assembleRawContext` in repaintScheduler.ts).
+ * Parses every `<text>` and `<image>` element's `<desc>` binding out of raw SVG source - lets a caller
+ * discover what data a template needs before fetching anything, with no separate config declaring it
+ * (see `assembleRawContext` in repaintScheduler.ts). `<image>` bindings (see `SvgRenderer`) resolve to a
+ * picked asset file rather than substituted text, but still need their underlying value fetched the same
+ * way as a `<text>` binding.
  */
 export function findBindings(svgSource: string): Binding[] {
   const doc = new DOMParser().parseFromString(svgSource, 'image/svg+xml');
-  const elements = doc.getElementsByTagName('text');
   const bindings: Binding[] = [];
-  for (let i = 0; i < elements.length; i++) {
-    const desc = elements.item(i)?.getElementsByTagName('desc').item(0);
-    if (desc?.textContent) {
-      bindings.push(parseBinding(desc.textContent));
+  for (const tagName of ['text', 'image']) {
+    const elements = doc.getElementsByTagName(tagName);
+    for (let i = 0; i < elements.length; i++) {
+      const desc = elements.item(i)?.getElementsByTagName('desc').item(0);
+      if (desc?.textContent) {
+        bindings.push(parseBinding(desc.textContent));
+      }
     }
   }
   return bindings;

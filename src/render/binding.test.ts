@@ -21,6 +21,7 @@ test('parseBinding', async (t) => {
       format: undefined,
       category: 'depth',
       round: 2,
+      assets: undefined,
     });
   });
 
@@ -45,15 +46,17 @@ test('parseBinding', async (t) => {
   });
 });
 
-test('findBindings extracts every <text><desc> binding from SVG source', () => {
+test('findBindings extracts every <text><desc> and <image><desc> binding from SVG source', () => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg">
     <text>one<desc>path=a.b</desc></text>
     <text>two<desc>path=c.d</desc></text>
     <text>no binding here</text>
+    <image><desc>path=e.f,assets=icons</desc></image>
+    <image />
   </svg>`;
   assert.deepEqual(
     findBindings(svg).map((b) => b.path),
-    ['a.b', 'c.d'],
+    ['a.b', 'c.d', 'e.f'],
   );
 });
 
