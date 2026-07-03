@@ -17,7 +17,7 @@ Most of this is about making SignalK work with Bluetooth Low Energy, which is go
 1. A SignalK server, preferably running Linux (MacOS does weird things with bluetooth)
 2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy), which is Bluetooth v4.0 or higher
   - Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
-  - Some Raspberry Pi models come with it built-in
+  - Some Raspberry Pi models come with suitable Bluetooth it built-in
   - Don't worry about the very latest Bluetooth versions, 4.0 is basic, 5.0 is nice
   - Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
 3. `bluez` package installed in Linux
@@ -25,6 +25,9 @@ Most of this is about making SignalK work with Bluetooth Low Energy, which is go
   - If you're not running a Raspberry Pi, then ensure that the `dbus` package is installed
 4. One or more supported Electronic Shelf Labels
   - The label used for testing this is the [ZhunyCo 3.7 BRWY](https://www.aliexpress.com/item/1005010050104435.html)
+5. Correct time zone set on server if local time is to be shown on display
+  - Use `raspi-config` on a Raspberry Pi, or `timedatectl` on a Linux server
+  - If not set, everything will work, but you may see the wrong zone or not have daylight savings applied
 
 Once you have all of that, it may be worth also installing [signalk-victron-ble](https://github.com/stefanor/signalk-victron-ble) or [bt-sensors-plugin](https://github.com/naugehyde/bt-sensors-plugin-sk) to pull in data from other sensors and equipment.
 
@@ -49,6 +52,9 @@ npm install @rhizomatics/signalk-einklabel-plugin
 ![Tide Clock](docs/assets/screenshots/example_tidal_clock.png)
 
 The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. The [tide.svg](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tide.svg) can be customized to run with other APIs or take data only from SignalK data paths.
+
+To show the lunar phase, the `environment.moonPhase.name` path is required, which can
+be easily achieved by installing and configuring the `derived-data` plugin.
 
 ## Templating
 
