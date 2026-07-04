@@ -18,6 +18,7 @@ import { SvgRenderer } from '../render/svgRenderer';
 import { bitmapToPng } from '../render/png';
 import { Binding, findBindings, parseBinding, renderBinding, resolveBinding } from '../render/binding';
 import { normalizeAssetKey, resolveAssetPath } from '../render/assets';
+import { BUNDLED_TEMPLATES_DIR } from '../config';
 import { assembleExampleContext, assembleLiveContext } from './liveContext';
 import { fetchJson } from '../httpJson';
 import { logDebug, setLogLevel } from './log';
@@ -234,7 +235,7 @@ program
     const bindings = findBindings(await readFile(opts.template, 'utf-8'));
     const context = await assembleContext(opts, bindings);
     const renderer = new SvgRenderer();
-    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height));
+    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height), BUNDLED_TEMPLATES_DIR);
     const connectTimeoutMs = Number(opts.connectTimeout) * 1000;
     await withRetries(Number(opts.retries), async (attempt) => {
       if (attempt > 1) {
@@ -271,7 +272,7 @@ program
     const bindings = findBindings(await readFile(opts.template, 'utf-8'));
     const context = await assembleContext(opts, bindings);
     const renderer = opts.font ? new SvgRenderer(opts.font) : new SvgRenderer();
-    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height));
+    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height), BUNDLED_TEMPLATES_DIR);
     await writeFile(opts.output, bitmapToPng(bitmap));
     console.log(`wrote ${opts.output} (${bitmap.width}x${bitmap.height})`);
   });
@@ -324,7 +325,7 @@ program
           }
           const key = normalizeAssetKey(resolveBinding(row.binding, context));
           if (!key) return [row.id, row.desc, '(no usable value - image would be omitted)'];
-          const assetPath = resolveAssetPath(opts.template, row.binding.assets, key);
+          const assetPath = resolveAssetPath(opts.template, row.binding.assets, key, BUNDLED_TEMPLATES_DIR);
           return [row.id, row.desc, assetPath ? `"${key}" -> ${basename(assetPath)}` : `"${key}" -> no matching asset file (image would be omitted)`];
         } catch (err) {
           return [row.id, row.desc, `ERROR: ${(err as Error).message}`];
