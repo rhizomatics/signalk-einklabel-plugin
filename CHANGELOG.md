@@ -1,6 +1,6 @@
 # 0.7.1
 
-- Fix path value retrieved for Image Fields when running in live plugin
+
 
 # 0.7.0
 
