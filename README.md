@@ -145,7 +145,7 @@ These can all be combined as in `source=resources,resource=tides,path=extremes[2
 
 ### Non-Textual Fields (Images)
 
-The same `<desc>` mechanism works on an `<image>` element instead of a `<text>` element, for a value that's better shown as a picture than as text - a moon phase icon, a wind direction arrow, a weather condition glyph, and so on. Rather than substituting text, the resolved value picks one of a directory of `.svg` files to embed, by an extra required `assets=` key naming that directory (resolved relative to the template file itself, so a bundled template and a user override both work the same way). For example, the tide clock's moon phase icon uses:
+The same `<desc>` mechanism works on an `<image>` element instead of a `<text>` element, for a value that's better shown as a picture than as text - a moon phase icon, a wind direction arrow, a weather condition glyph, and so on. Rather than substituting text, the resolved value picks one of a directory of `.svg` files to embed, by an extra required `assets=` key naming that directory. That directory is looked up relative to the template file itself first, then - if not found there - relative to the plugin's own bundled `templates/` directory: overriding a bundled template (e.g. to retouch `tide.svg`'s layout) doesn't require also copying its bundled asset sets (e.g. `resources/svg/lunar_phases`) alongside the override just to keep a binding the override never touched working. For example, the tide clock's moon phase icon uses:
 
 ```
 path=environment.moon.phaseName,assets=../resources/svg/lunar_phases
