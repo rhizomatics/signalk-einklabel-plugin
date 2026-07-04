@@ -1,487 +1,487 @@
 {
-    "datum": "LAT",
-    "units": "meters",
-    "station": {
-        "id": "ticon/tobermory-tob-gbr-bodc",
-        "name": "Tobermory",
-        "region": "Scotland",
-        "country": "United Kingdom",
-        "continent": "Europe",
-        "latitude": 56.623111,
-        "longitude": -6.064222,
-        "timezone": "Europe/London",
-        "source": {
-            "name": "TICON-4",
-            "url": "https://www.seanoe.org/data/00980/109129/",
-            "id": "tobermory-tob-gbr-bodc",
-            "published_harmonics": true
-        },
-        "license": {
-            "type": "cc-by-4.0",
-            "commercial_use": true,
-            "url": "https://creativecommons.org/licenses/by/4.0/"
-        },
-        "disclaimers": "No obvious issues",
-        "datums": {
-            "HAT": 5.243,
-            "MHHW": 4.165,
-            "MHW": 4.071,
-            "MSL": 2.765,
-            "MTL": 2.737,
-            "MLW": 1.402,
-            "MLLW": 1.371,
-            "LAT": 0.196
-        },
-        "datums_source": "observed",
-        "chart_datum": "LAT",
-        "type": "reference",
-        "harmonic_constituents": [
-            {
-                "name": "M2",
-                "amplitude": 1.30103441,
-                "phase": 168.58656300000007
-            },
-            {
-                "name": "N2",
-                "amplitude": 0.26314133,
-                "phase": 148.075539
-            },
-            {
-                "name": "S2",
-                "amplitude": 0.52925583,
-                "phase": 205.065764
-            },
-            {
-                "name": "K2",
-                "amplitude": 0.15066104,
-                "phase": 202.740285
-            },
-            {
-                "name": "2N2",
-                "amplitude": 0.036183019999999996,
-                "phase": 128.52703299999996
-            },
-            {
-                "name": "S1",
-                "amplitude": 0.005734,
-                "phase": 66.93194499999998
-            },
-            {
-                "name": "K1",
-                "amplitude": 0.06415967,
-                "phase": 168.994234
-            },
-            {
-                "name": "P1",
-                "amplitude": 0.01712962,
-                "phase": 165.23354500000005
-            },
-            {
-                "name": "O1",
-                "amplitude": 0.06205407,
-                "phase": 23.90181899999999
-            },
-            {
-                "name": "Q1",
-                "amplitude": 0.027386149999999998,
-                "phase": 322.309536
-            },
-            {
-                "name": "M1",
-                "amplitude": 0.00168151,
-                "phase": 30.007630000000006
-            },
-            {
-                "name": "M4",
-                "amplitude": 0.045296760000000005,
-                "phase": 181.529838
-            },
-            {
-                "name": "MM",
-                "amplitude": 0.01159664,
-                "phase": 191.887898
-            },
-            {
-                "name": "MF",
-                "amplitude": 0.018600989999999998,
-                "phase": 202.502178
-            },
-            {
-                "name": "SA",
-                "amplitude": 0.09895683999999999,
-                "phase": 242.984124
-            },
-            {
-                "name": "SSA",
-                "amplitude": 0.01730832,
-                "phase": 168.22900000000004
-            },
-            {
-                "name": "T2",
-                "amplitude": 0.026345209999999997,
-                "phase": 198.172681
-            },
-            {
-                "name": "J1",
-                "amplitude": 0.0023717,
-                "phase": 174.33071300000006
-            },
-            {
-                "name": "L2",
-                "amplitude": 0.02556638,
-                "phase": 172.802233
-            },
-            {
-                "name": "R2",
-                "amplitude": 0.00409829,
-                "phase": 220.418262
-            },
-            {
-                "name": "2Q1",
-                "amplitude": 0.00596248,
-                "phase": 269.589541
-            },
-            {
-                "name": "MSF",
-                "amplitude": 0.0020491,
-                "phase": 72.60492999999997
-            },
-            {
-                "name": "MSQM",
-                "amplitude": 0.00329876,
-                "phase": 216.694791
-            },
-            {
-                "name": "EP2",
-                "amplitude": 0.01374528,
-                "phase": 111.87891300000001
-            },
-            {
-                "name": "M3",
-                "amplitude": 0.03833191,
-                "phase": 107.53356100000002
-            },
-            {
-                "name": "MU2",
-                "amplitude": 0.05745238,
-                "phase": 133.75771299999997
-            },
-            {
-                "name": "MTM",
-                "amplitude": 0.00149104,
-                "phase": 133.038882
-            },
-            {
-                "name": "NU2",
-                "amplitude": 0.04700054,
-                "phase": 149.81885899999997
-            },
-            {
-                "name": "LAMBDA2",
-                "amplitude": 0.0059035599999999995,
-                "phase": 121.54236600000002
-            },
-            {
-                "name": "MN4",
-                "amplitude": 0.014950920000000001,
-                "phase": 118.47591399999999
-            },
-            {
-                "name": "MS4",
-                "amplitude": 0.03557114,
-                "phase": 289.098858
-            },
-            {
-                "name": "MKS2",
-                "amplitude": 0.00583106,
-                "phase": 171.86445700000002
-            },
-            {
-                "name": "N4",
-                "amplitude": 0.00217475,
-                "phase": 33.18558200000001
-            },
-            {
-                "name": "M6",
-                "amplitude": 0.013356630000000001,
-                "phase": 9.459228999999993
-            },
-            {
-                "name": "M8",
-                "amplitude": 0.00223425,
-                "phase": 171.87805000000003
-            },
-            {
-                "name": "S4",
-                "amplitude": 0.00704438,
-                "phase": 73.18837200000002
-            },
-            {
-                "name": "OO1",
-                "amplitude": 0.0005335,
-                "phase": 265.926168
-            },
-            {
-                "name": "S3",
-                "amplitude": 0.00442967,
-                "phase": 284.153588
-            },
-            {
-                "name": "MA2",
-                "amplitude": 0.00838754,
-                "phase": 65.89138500000001
-            },
-            {
-                "name": "MB2",
-                "amplitude": 0.0021438399999999997,
-                "phase": 123.87711100000001
-            },
-            {
-                "name": "T3",
-                "amplitude": 0.00719191,
-                "phase": 345.61983
-            },
-            {
-                "name": "R3",
-                "amplitude": 0.01332853,
-                "phase": 172.185299
-            },
-            {
-                "name": "RHO1",
-                "amplitude": 0.00462556,
-                "phase": 332.087035
-            },
-            {
-                "name": "SGM",
-                "amplitude": 0.0060078200000000005,
-                "phase": 98.951167
-            },
-            {
-                "name": "3L2",
-                "amplitude": 0.008056520000000001,
-                "phase": 320.62100499999997
-            },
-            {
-                "name": "3N2",
-                "amplitude": 0.00282079,
-                "phase": 311.756687
-            },
-            {
-                "name": "2SM2",
-                "amplitude": 0.0071901199999999995,
-                "phase": 294.03906
-            },
-            {
-                "name": "2MS6",
-                "amplitude": 0.01177457,
-                "phase": 43.593871999999976
-            },
-            {
-                "name": "2MK5",
-                "amplitude": 0.00213892,
-                "phase": 29.64457900000002
-            },
-            {
-                "name": "2MO5",
-                "amplitude": 0.00100367,
-                "phase": 29.10879799999998
-            }
-        ],
-        "epoch": {
-            "start": "2005-10-13",
-            "end": "2024-05-24"
-        }
+  "datum": "LAT",
+  "units": "meters",
+  "station": {
+    "id": "ticon/tobermory-tob-gbr-bodc",
+    "name": "Tobermory",
+    "region": "Scotland",
+    "country": "United Kingdom",
+    "continent": "Europe",
+    "latitude": 56.623111,
+    "longitude": -6.064222,
+    "timezone": "Europe/London",
+    "source": {
+      "name": "TICON-4",
+      "url": "https://www.seanoe.org/data/00980/109129/",
+      "id": "tobermory-tob-gbr-bodc",
+      "published_harmonics": true
     },
-    "distance": 44.88074128388934,
-    "extremes": [
-        {
-            "time": "2026-06-29T11:39:10.820Z",
-            "level": 1.1957828965196973,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-06-29T17:43:06.637Z",
-            "level": 3.8390376024267097,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-06-30T00:21:29.775Z",
-            "level": 1.288470690928128,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-06-30T06:05:02.939Z",
-            "level": 3.8058941627005245,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-06-30T12:15:51.538Z",
-            "level": 1.1005107290122258,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-06-30T18:17:53.414Z",
-            "level": 3.9297842236271174,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-01T00:57:39.108Z",
-            "level": 1.2154202567537808,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-01T06:36:53.687Z",
-            "level": 3.866038344918959,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-01T12:51:46.543Z",
-            "level": 1.0298359995154864,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-01T18:51:23.775Z",
-            "level": 3.9832364855887397,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-02T01:31:45.630Z",
-            "level": 1.1587172241961545,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-02T07:08:26.012Z",
-            "level": 3.8836313690524573,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-02T13:27:42.231Z",
-            "level": 0.9925051239923364,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-02T19:24:43.219Z",
-            "level": 3.9976949548836664,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-03T02:05:05.757Z",
-            "level": 1.127931634417789,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-03T07:40:48.145Z",
-            "level": 3.8526565016489958,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-03T14:04:16.126Z",
-            "level": 0.9949132802688982,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-03T19:58:50.423Z",
-            "level": 3.975438621372333,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-04T02:38:52.492Z",
-            "level": 1.132133038902243,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-04T08:15:04.219Z",
-            "level": 3.7736624290346423,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-04T14:42:07.119Z",
-            "level": 1.0378914580468594,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-04T20:34:44.746Z",
-            "level": 3.9209348242578637,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-05T03:14:16.112Z",
-            "level": 1.1764355123288506,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-05T08:52:38.837Z",
-            "level": 3.654575701632128,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-05T15:22:05.700Z",
-            "level": 1.1150813512927773,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        },
-        {
-            "time": "2026-07-05T21:13:43.968Z",
-            "level": 3.8395172330893956,
-            "high": true,
-            "low": false,
-            "label": "High"
-        },
-        {
-            "time": "2026-07-06T03:52:48.043Z",
-            "level": 1.259098526151933,
-            "high": false,
-            "low": true,
-            "label": "Low"
-        }
-    ]
+    "license": {
+      "type": "cc-by-4.0",
+      "commercial_use": true,
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "disclaimers": "No obvious issues",
+    "datums": {
+      "HAT": 5.243,
+      "MHHW": 4.165,
+      "MHW": 4.071,
+      "MSL": 2.765,
+      "MTL": 2.737,
+      "MLW": 1.402,
+      "MLLW": 1.371,
+      "LAT": 0.196
+    },
+    "datums_source": "observed",
+    "chart_datum": "LAT",
+    "type": "reference",
+    "harmonic_constituents": [
+      {
+        "name": "M2",
+        "amplitude": 1.30103441,
+        "phase": 168.58656300000007
+      },
+      {
+        "name": "N2",
+        "amplitude": 0.26314133,
+        "phase": 148.075539
+      },
+      {
+        "name": "S2",
+        "amplitude": 0.52925583,
+        "phase": 205.065764
+      },
+      {
+        "name": "K2",
+        "amplitude": 0.15066104,
+        "phase": 202.740285
+      },
+      {
+        "name": "2N2",
+        "amplitude": 0.036183019999999996,
+        "phase": 128.52703299999996
+      },
+      {
+        "name": "S1",
+        "amplitude": 0.005734,
+        "phase": 66.93194499999998
+      },
+      {
+        "name": "K1",
+        "amplitude": 0.06415967,
+        "phase": 168.994234
+      },
+      {
+        "name": "P1",
+        "amplitude": 0.01712962,
+        "phase": 165.23354500000005
+      },
+      {
+        "name": "O1",
+        "amplitude": 0.06205407,
+        "phase": 23.90181899999999
+      },
+      {
+        "name": "Q1",
+        "amplitude": 0.027386149999999998,
+        "phase": 322.309536
+      },
+      {
+        "name": "M1",
+        "amplitude": 0.00168151,
+        "phase": 30.007630000000006
+      },
+      {
+        "name": "M4",
+        "amplitude": 0.045296760000000005,
+        "phase": 181.529838
+      },
+      {
+        "name": "MM",
+        "amplitude": 0.01159664,
+        "phase": 191.887898
+      },
+      {
+        "name": "MF",
+        "amplitude": 0.018600989999999998,
+        "phase": 202.502178
+      },
+      {
+        "name": "SA",
+        "amplitude": 0.09895683999999999,
+        "phase": 242.984124
+      },
+      {
+        "name": "SSA",
+        "amplitude": 0.01730832,
+        "phase": 168.22900000000004
+      },
+      {
+        "name": "T2",
+        "amplitude": 0.026345209999999997,
+        "phase": 198.172681
+      },
+      {
+        "name": "J1",
+        "amplitude": 0.0023717,
+        "phase": 174.33071300000006
+      },
+      {
+        "name": "L2",
+        "amplitude": 0.02556638,
+        "phase": 172.802233
+      },
+      {
+        "name": "R2",
+        "amplitude": 0.00409829,
+        "phase": 220.418262
+      },
+      {
+        "name": "2Q1",
+        "amplitude": 0.00596248,
+        "phase": 269.589541
+      },
+      {
+        "name": "MSF",
+        "amplitude": 0.0020491,
+        "phase": 72.60492999999997
+      },
+      {
+        "name": "MSQM",
+        "amplitude": 0.00329876,
+        "phase": 216.694791
+      },
+      {
+        "name": "EP2",
+        "amplitude": 0.01374528,
+        "phase": 111.87891300000001
+      },
+      {
+        "name": "M3",
+        "amplitude": 0.03833191,
+        "phase": 107.53356100000002
+      },
+      {
+        "name": "MU2",
+        "amplitude": 0.05745238,
+        "phase": 133.75771299999997
+      },
+      {
+        "name": "MTM",
+        "amplitude": 0.00149104,
+        "phase": 133.038882
+      },
+      {
+        "name": "NU2",
+        "amplitude": 0.04700054,
+        "phase": 149.81885899999997
+      },
+      {
+        "name": "LAMBDA2",
+        "amplitude": 0.0059035599999999995,
+        "phase": 121.54236600000002
+      },
+      {
+        "name": "MN4",
+        "amplitude": 0.014950920000000001,
+        "phase": 118.47591399999999
+      },
+      {
+        "name": "MS4",
+        "amplitude": 0.03557114,
+        "phase": 289.098858
+      },
+      {
+        "name": "MKS2",
+        "amplitude": 0.00583106,
+        "phase": 171.86445700000002
+      },
+      {
+        "name": "N4",
+        "amplitude": 0.00217475,
+        "phase": 33.18558200000001
+      },
+      {
+        "name": "M6",
+        "amplitude": 0.013356630000000001,
+        "phase": 9.459228999999993
+      },
+      {
+        "name": "M8",
+        "amplitude": 0.00223425,
+        "phase": 171.87805000000003
+      },
+      {
+        "name": "S4",
+        "amplitude": 0.00704438,
+        "phase": 73.18837200000002
+      },
+      {
+        "name": "OO1",
+        "amplitude": 0.0005335,
+        "phase": 265.926168
+      },
+      {
+        "name": "S3",
+        "amplitude": 0.00442967,
+        "phase": 284.153588
+      },
+      {
+        "name": "MA2",
+        "amplitude": 0.00838754,
+        "phase": 65.89138500000001
+      },
+      {
+        "name": "MB2",
+        "amplitude": 0.0021438399999999997,
+        "phase": 123.87711100000001
+      },
+      {
+        "name": "T3",
+        "amplitude": 0.00719191,
+        "phase": 345.61983
+      },
+      {
+        "name": "R3",
+        "amplitude": 0.01332853,
+        "phase": 172.185299
+      },
+      {
+        "name": "RHO1",
+        "amplitude": 0.00462556,
+        "phase": 332.087035
+      },
+      {
+        "name": "SGM",
+        "amplitude": 0.0060078200000000005,
+        "phase": 98.951167
+      },
+      {
+        "name": "3L2",
+        "amplitude": 0.008056520000000001,
+        "phase": 320.62100499999997
+      },
+      {
+        "name": "3N2",
+        "amplitude": 0.00282079,
+        "phase": 311.756687
+      },
+      {
+        "name": "2SM2",
+        "amplitude": 0.0071901199999999995,
+        "phase": 294.03906
+      },
+      {
+        "name": "2MS6",
+        "amplitude": 0.01177457,
+        "phase": 43.593871999999976
+      },
+      {
+        "name": "2MK5",
+        "amplitude": 0.00213892,
+        "phase": 29.64457900000002
+      },
+      {
+        "name": "2MO5",
+        "amplitude": 0.00100367,
+        "phase": 29.10879799999998
+      }
+    ],
+    "epoch": {
+      "start": "2005-10-13",
+      "end": "2024-05-24"
+    }
+  },
+  "distance": 44.88074128388934,
+  "extremes": [
+    {
+      "time": "2026-06-29T11:39:10.820Z",
+      "level": 1.1957828965196973,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-06-29T17:43:06.637Z",
+      "level": 3.8390376024267097,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-06-30T00:21:29.775Z",
+      "level": 1.288470690928128,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-06-30T06:05:02.939Z",
+      "level": 3.8058941627005245,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-06-30T12:15:51.538Z",
+      "level": 1.1005107290122258,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-06-30T18:17:53.414Z",
+      "level": 3.9297842236271174,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-01T00:57:39.108Z",
+      "level": 1.2154202567537808,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-01T06:36:53.687Z",
+      "level": 3.866038344918959,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-01T12:51:46.543Z",
+      "level": 1.0298359995154864,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-01T18:51:23.775Z",
+      "level": 3.9832364855887397,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-02T01:31:45.630Z",
+      "level": 1.1587172241961545,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-02T07:08:26.012Z",
+      "level": 3.8836313690524573,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-02T13:27:42.231Z",
+      "level": 0.9925051239923364,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-02T19:24:43.219Z",
+      "level": 3.9976949548836664,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-03T02:05:05.757Z",
+      "level": 1.127931634417789,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-03T07:40:48.145Z",
+      "level": 3.8526565016489958,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-03T14:04:16.126Z",
+      "level": 0.9949132802688982,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-03T19:58:50.423Z",
+      "level": 3.975438621372333,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-04T02:38:52.492Z",
+      "level": 1.132133038902243,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-04T08:15:04.219Z",
+      "level": 3.7736624290346423,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-04T14:42:07.119Z",
+      "level": 1.0378914580468594,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-04T20:34:44.746Z",
+      "level": 3.9209348242578637,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-05T03:14:16.112Z",
+      "level": 1.1764355123288506,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-05T08:52:38.837Z",
+      "level": 3.654575701632128,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-05T15:22:05.700Z",
+      "level": 1.1150813512927773,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    },
+    {
+      "time": "2026-07-05T21:13:43.968Z",
+      "level": 3.8395172330893956,
+      "high": true,
+      "low": false,
+      "label": "High"
+    },
+    {
+      "time": "2026-07-06T03:52:48.043Z",
+      "level": 1.259098526151933,
+      "high": false,
+      "low": true,
+      "label": "Low"
+    }
+  ]
 }

@@ -9,3 +9,6 @@ on:
 jobs:
   test:
     uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+    with:
+      coverage-command: npm run coverage
+      format-check-command: npm run prettier:check

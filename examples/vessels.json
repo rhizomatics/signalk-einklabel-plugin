@@ -52,9 +52,9 @@
         }
       },
       "environment": {
-        "moon":{
-          "phaseName":{
-            "value":"Waxing Gibbous",
+        "moon": {
+          "phaseName": {
+            "value": "Waxing Gibbous",
             "timestamp": "2026-06-30T14:45:00.000Z"
           }
         }

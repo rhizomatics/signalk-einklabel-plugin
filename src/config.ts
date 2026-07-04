@@ -240,7 +240,13 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
             repaintTrigger: { type: 'string', title: 'Repaint trigger', enum: ['subscription', 'interval'] },
             triggerPath: { type: 'string', title: 'Trigger SignalK path (if repaint trigger is subscription)' },
             intervalHours: { type: 'number', title: 'Repaint every N hours (if repaint trigger is interval)', minimum: 1 },
-            intervalMinute: { type: 'number', title: 'Minutes past the hour (if repaint trigger is interval)', minimum: 0, maximum: 59, default: 0 },
+            intervalMinute: {
+              type: 'number',
+              title: 'Minutes past the hour (if repaint trigger is interval)',
+              minimum: 0,
+              maximum: 59,
+              default: 0,
+            },
             aesKey: { type: 'string', title: 'BLE AES key (vendor-specific; leave blank to use a default key)' },
             forceRepaint: {
               type: 'boolean',

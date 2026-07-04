@@ -61,7 +61,9 @@ export async function assembleLiveContext(signalkUrl: string, bindings: Binding[
       logDebug(`GET ${signalkUrl}/signalk/v1/api/${contextPath(context)}/meta`);
       pathMeta[context] = await fetchPathMeta(signalkUrl, context);
     } catch (err) {
-      console.error(`warning: could not fetch path metadata for context "${context}" (${(err as Error).message}) - automatic unit conversion will show raw values`);
+      console.error(
+        `warning: could not fetch path metadata for context "${context}" (${(err as Error).message}) - automatic unit conversion will show raw values`,
+      );
     }
   }
 

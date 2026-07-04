@@ -20,6 +20,9 @@
     "watch": "tsc --watch",
     "cli": "ts-node src/cli/index.ts",
     "test": "node --require ts-node/register --test \"src/**/*.test.ts\"",
+    "coverage": "node --require ts-node/register --experimental-test-coverage --test \"src/**/*.test.ts\"",
+    "prettier:check": "prettier --check .",
+    "prettier:write": "prettier --write .",
     "prepublishOnly": "npm run build"
   },
   "signalk": {
@@ -62,6 +65,7 @@
     "@types/luxon": "^3.7.1",
     "@types/node": "^20.14.0",
     "@types/pngjs": "^6.0.5",
+    "prettier": "^3.8.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.0"
   },

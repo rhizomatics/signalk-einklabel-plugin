@@ -13,10 +13,9 @@ A SignalK plugin to display data from SignalK paths, APIs and plugins on Electro
 
 Electronic Shelf Labels are [eInk](https://en.wikipedia.org/wiki/E_Ink) devices that consume very little battery energy, presuming they are not constantly updated - the battery is used only when the display changes, and a periodic BLE check for incoming changes. Perfect for info that changes only once or twice a day, like tidal information.
 
-Since they are designed to be used in large quantity in small shops, they are cheap and simple devices. Earlier models required dedicated controllers, or updates over Wifi or NFC, whereas many modern ones are standalone BLE devices that can be updated from a phone or server. 
+Since they are designed to be used in large quantity in small shops, they are cheap and simple devices. Earlier models required dedicated controllers, or updates over Wifi or NFC, whereas many modern ones are standalone BLE devices that can be updated from a phone or server.
 
 Being battery operated, they can be stuck on anywhere without wiring - the only constraints are bluetooth range, visibility (they need ambient light since the display is more like paper than a traditional lit-up electronic display) and out of the weather since the devices are intended for indoor use.
-
 
 ## Pre-requisites
 
@@ -26,26 +25,32 @@ Most of these requirements are about making SignalK work with Bluetooth Low Ener
 
 1. A SignalK server, preferably running Linux (MacOS does weird things with bluetooth)
 2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy), which is Bluetooth v4.0 or higher
-  - Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
-  - Some Raspberry Pi models come with suitable Bluetooth it built-in
-  - Don't worry about the very latest Bluetooth versions, 4.0 is basic, 5.0 is nice
-  - Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
+
+- Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
+- Some Raspberry Pi models come with suitable Bluetooth it built-in
+- Don't worry about the very latest Bluetooth versions, 4.0 is basic, 5.0 is nice
+- Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
+
 3. `bluez` package installed in Linux
-  - No need to do this if you have a Raspberry Pi with recent Raspian version, since bluez comes built in.
-  - If you're not running a Raspberry Pi, then ensure that the `dbus` package is installed
+
+- No need to do this if you have a Raspberry Pi with recent Raspian version, since bluez comes built in.
+- If you're not running a Raspberry Pi, then ensure that the `dbus` package is installed
+
 4. One or more supported Electronic Shelf Labels
-  - The label used for testing this is the [ZhunyCo 3.7 BRWY](https://www.aliexpress.com/item/1005010050104435.html)
+
+- The label used for testing this is the [ZhunyCo 3.7 BRWY](https://www.aliexpress.com/item/1005010050104435.html)
+
 5. Correct time zone set on server if local time is to be shown on display
-  - Use `raspi-config` on a Raspberry Pi, or `timedatectl` on a Linux server
-  - If not set, everything will work, but you may see the wrong zone or not have daylight savings applied
+
+- Use `raspi-config` on a Raspberry Pi, or `timedatectl` on a Linux server
+- If not set, everything will work, but you may see the wrong zone or not have daylight savings applied
 
 Once you have all of that, it may be worth also installing [signalk-victron-ble](https://github.com/stefanor/signalk-victron-ble) or [bt-sensors-plugin](https://github.com/naugehyde/bt-sensors-plugin-sk) to pull in data from other sensors and equipment.
-
 
 ## Installation
 
 Look for **eInk Label Instrument** in the [SignalK AppStore]() on your
-server ( under *Apps & Plugins* on the latest version).
+server ( under _Apps & Plugins_ on the latest version).
 
 ### Using Outside of SignalK
 
@@ -86,19 +91,19 @@ The source can be overridden to use the SignalK server's Resources API instead. 
 
 `source=einklabel` reads data injected by the plugin itself, rather than from SignalK. Available paths:
 
-* `path=repainted` - the timestamp of the current repaint - for example `source=einklabel,path=repainted,format=local_datetime_short` to show when the label was last updated.
-* `path=local_zone` - a short zone name (e.g. `BST`) for the same timezone used for `local_time`/`day_mon`/`local_datetime_short` (see above) - a fallback for `environment.time.timezoneRegion,format=utc_offset` on installs that never publish that path, since it needs no SignalK metadata of its own. Falls back to a plain UTC offset like `GMT+1` where the host's locale has no real abbreviation for the zone.
+- `path=repainted` - the timestamp of the current repaint - for example `source=einklabel,path=repainted,format=local_datetime_short` to show when the label was last updated.
+- `path=local_zone` - a short zone name (e.g. `BST`) for the same timezone used for `local_time`/`day_mon`/`local_datetime_short` (see above) - a fallback for `environment.time.timezoneRegion,format=utc_offset` on installs that never publish that path, since it needs no SignalK metadata of its own. Falls back to a plain UTC offset like `GMT+1` where the host's locale has no real abbreviation for the zone.
 
 #### Customizing Output
 
 A `format` can be specified to make the value easier to understand. The supported formats are:
 
-* `local_time` - reduce a time stamp to just the time (H:M:S), omitting the date, and applying daylight savings if appropriate
-* `day_mon` - reduce a time stamp to day and month, e.g. `27 Jun`, applying daylight savings if appropriate
-* `local_datetime_short` - format a time stamp as day, abbreviated month, 2-digit year and 24h time, e.g. `21 Jun 26 18:05`, applying daylight savings if appropriate
-* `utc_offset` - Show a timezone in `UTC+01:00` style format
-* `position` - Format a `{ latitude, longitude }` value as decimal degrees with hemisphere letters, e.g. `56.6250°N 6.0700°W`
-* `raw` - Don't apply automatic SignalK unit conversion and symbol display (see below)
+- `local_time` - reduce a time stamp to just the time (H:M:S), omitting the date, and applying daylight savings if appropriate
+- `day_mon` - reduce a time stamp to day and month, e.g. `27 Jun`, applying daylight savings if appropriate
+- `local_datetime_short` - format a time stamp as day, abbreviated month, 2-digit year and 24h time, e.g. `21 Jun 26 18:05`, applying daylight savings if appropriate
+- `utc_offset` - Show a timezone in `UTC+01:00` style format
+- `position` - Format a `{ latitude, longitude }` value as decimal degrees with hemisphere letters, e.g. `56.6250°N 6.0700°W`
+- `raw` - Don't apply automatic SignalK unit conversion and symbol display (see below)
 
 SignalK's unit preferences are used to automatically convert a `signalk`-sourced numeric value to its preferred display unit, and append a unit symbol like `kt` or `m`, unless `format=raw` is specified to switch that off. However, when using plugin or API data there may be no path metadata to convert from (for example `signalk-tides` publishes tide data to the Resources API, and `level` is a raw metre value with no SignalK path of its own) - in these cases an explicit `category` can be given instead, and the unit preferences will be applied the same way, for example `category=depth` for the tides level figure.
 
@@ -106,9 +111,9 @@ Note that for dates and times, the server timezone must be set correctly, for ex
 
 Common categories:
 
-* `depth` - Use the SignalK preferred depth unit, make the conversion if needed, and tack on the unit name as a suffix
-* `speed` - Use the SignalK preferred speed unit, make the conversion if needed, and tack on the unit name as a suffix
-* `temperature` - Use the SignalK preferred temperature unit, make the conversion if needed, and tack on the unit name as a suffix
+- `depth` - Use the SignalK preferred depth unit, make the conversion if needed, and tack on the unit name as a suffix
+- `speed` - Use the SignalK preferred speed unit, make the conversion if needed, and tack on the unit name as a suffix
+- `temperature` - Use the SignalK preferred temperature unit, make the conversion if needed, and tack on the unit name as a suffix
 
 Additionally, `round=n` can be used to round to limited decimal places.
 
@@ -130,9 +135,9 @@ This is a general mechanism, not specific to moon phases - any `source`/`context
 
 Three font types are loaded by default, use the generic font family, or exact font name, in the SVG editor and choose size and weight (bold, semi-bold etc). Some labels will make a decent attempt to gray scale. Use the simple pure red, yellow, white, black to match the label's limited colour choice (some labels only offer black and white, or black/white/red). If a font can't be matched it will default to (sans-serif) Roboto.
 
-* `serif` - `Roboto Serif`
-* `sans-serif` - `Roboto`
-* `monospace` - `Roboto Mono`
+- `serif` - `Roboto Serif`
+- `sans-serif` - `Roboto`
+- `monospace` - `Roboto Mono`
 
 ## Command Line Interface
 
@@ -142,6 +147,7 @@ To get fast feedback on templates and shelf devices without updating and configu
 - `scan` - report supported devices found from a BLE scan
 
 See also the commands useful for debugging under [Developing Templates]
+
 - `render` - transform an SVG template and data into a PNG
 - `paint` - render an SVG template and data to a selected ESL
 
@@ -166,12 +172,12 @@ Python code for a variety of their labels at https://github.com/roxburghm/zhsuny
 
 The primary things managed and provided by the plugin are:
 
-* ESL Vendor
+- ESL Vendor
   - Sub-package per vendor
-* ESL Device
+- ESL Device
   - Metadata in the vendor package, using a `pid` or sometimes `pid` combined with `hwid` in the BLE results to pinpoint a model
-* SVG Template
-* SignalK API base URL
+- SVG Template
+- SignalK API base URL
   - Used for automatic unit conversion on `signalk`-sourced numeric values and for resolving an explicit `category=` binding - neither has an in-process equivalent, both go via this server's own REST API
   - Optional: left blank, the plugin probes the probable values in likelihood order at startup - `http://localhost:3000`, `http://localhost`, `https://localhost`. Set it explicitly to skip probing
   - Either way, errors clearly if nothing responds (wrong port) or the probe is rejected (anonymous read access not enabled) - these endpoints must allow anonymous read access, since the plugin has no login flow
@@ -204,10 +210,10 @@ Due to a limitation in the `resvg-wasm` library used to turn SVGs into images, t
 
 The `esl-cli` can be used to debug and validate templates quickly:
 
-* `render` - Render templates with SignalK data and write to a local PNG file
-* `paint` - Render templates with SignalK data and send to selected ESL device
-* `fields` - List the fields in the template, with the source specification and the rendered data value
-* `field` - Accept a source specification (outside of any template context) and return the rendered value if available
+- `render` - Render templates with SignalK data and write to a local PNG file
+- `paint` - Render templates with SignalK data and send to selected ESL device
+- `fields` - List the fields in the template, with the source specification and the rendered data value
+- `field` - Accept a source specification (outside of any template context) and return the rendered value if available
 
 ### Examples
 

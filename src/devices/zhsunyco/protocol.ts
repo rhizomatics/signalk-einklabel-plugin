@@ -64,10 +64,7 @@ const AES_CHALLENGE_LENGTH = 16;
  * reference driver's `BLE_SECRET_KEY`). Used as a fallback when a device hasn't been
  * given its own key via the plugin config.
  */
-export const DEFAULT_BLE_AUTH = [
-  155, 96, 159, 40, 188, 73, 226, 87,
-  41, 189, 123, 141, 242, 43, 68, 32,
-];
+export const DEFAULT_BLE_AUTH = [155, 96, 159, 40, 188, 73, 226, 87, 41, 189, 123, 141, 242, 43, 68, 32];
 
 /** Resolves the configured per-device hex key, falling back to `DEFAULT_BLE_AUTH`. */
 export function resolveAesKey(aesKeyHex?: string): Buffer {

@@ -4,7 +4,14 @@ import { Command } from 'commander';
 import { DOMParser } from '@xmldom/xmldom';
 import { allDrivers, getDriver, registerDriver } from '../devices/registry';
 import { ZhsunycoDriver } from '../devices/zhsunyco';
-import { createBluetooth, forEachAdvertisedDevice, getManufacturerId, getOrDiscoverDevice, withDiscovery, withRetries } from '../devices/bleDiscovery';
+import {
+  createBluetooth,
+  forEachAdvertisedDevice,
+  getManufacturerId,
+  getOrDiscoverDevice,
+  withDiscovery,
+  withRetries,
+} from '../devices/bleDiscovery';
 import { Colour, DeviceModelOverride } from '../devices/types';
 import { SvgRenderer } from '../render/svgRenderer';
 import { bitmapToPng } from '../render/png';
@@ -46,7 +53,9 @@ async function resolveDefaultUrl(): Promise<string> {
       logDebug(`${candidate} did not answer: ${(err as Error).message}`);
     }
   }
-  throw new Error(`no -u/--url given and none of ${DEFAULT_SIGNALK_URLS.join(', ')} answered - specify the server explicitly with -u/--url`);
+  throw new Error(
+    `no -u/--url given and none of ${DEFAULT_SIGNALK_URLS.join(', ')} answered - specify the server explicitly with -u/--url`,
+  );
 }
 
 /** Shared by every command that takes -u/--url and -e/--example-data - -e wins when both are present; when neither is given, probes DEFAULT_SIGNALK_URLS for a default. */
@@ -127,7 +136,7 @@ program
   .option('-d, --duration <seconds>', 'scan duration in seconds', '10')
   .option(
     '-a, --all-devices',
-    'list every nearby BLE device, not just ones a registered driver recognised - unmatched devices show address/name/mfr/rssi only, since there\'s no driver to do a vendor-specific read like battery',
+    "list every nearby BLE device, not just ones a registered driver recognised - unmatched devices show address/name/mfr/rssi only, since there's no driver to do a vendor-specific read like battery",
   )
   .action(async (opts) => {
     const durationMs = Number(opts.duration) * 1000;
@@ -174,16 +183,34 @@ program
 program
   .command('paint')
   .description('Render a template against a live SignalK server and send it to a device')
-  .option('-v, --vendor <vendor>', 'vendor driver to use - if omitted, inferred from the device\'s advertised name')
+  .option('-v, --vendor <vendor>', "vendor driver to use - if omitted, inferred from the device's advertised name")
   .requiredOption('-a, --address <address>', 'BLE address of the device')
   .requiredOption('-t, --template <path>', 'path to SVG template')
-  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings - if omitted, tries each of ' + DEFAULT_SIGNALK_URLS.join(', ') + ' in turn')
-  .option('-e, --example-data <dir>', 'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u')
-  .option('-k, --aes-key <hex>', 'AES-128 key for device authentication, as 32 hex characters - defaults to the vendor\'s stock key if omitted')
+  .option(
+    '-u, --url <url>',
+    "SignalK server base URL - resolves the template's source=signalk/resources bindings - if omitted, tries each of " +
+      DEFAULT_SIGNALK_URLS.join(', ') +
+      ' in turn',
+  )
+  .option(
+    '-e, --example-data <dir>',
+    'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u',
+  )
+  .option(
+    '-k, --aes-key <hex>',
+    "AES-128 key for device authentication, as 32 hex characters - defaults to the vendor's stock key if omitted",
+  )
   .option('-w, --width <px>', 'render width', '416')
   .option('--height <px>', 'render height', '240')
-  .option('--voffset <px>', 'vertical pixel offset of the panel - overrides the looked-up model for unsupported hardware (requires --colours)', '0')
-  .option('--colours <code>', 'device colour palette for unsupported hardware: BW, BWR, or BWRY - overrides the looked-up model (uses --width/--height/--voffset)')
+  .option(
+    '--voffset <px>',
+    'vertical pixel offset of the panel - overrides the looked-up model for unsupported hardware (requires --colours)',
+    '0',
+  )
+  .option(
+    '--colours <code>',
+    'device colour palette for unsupported hardware: BW, BWR, or BWRY - overrides the looked-up model (uses --width/--height/--voffset)',
+  )
   .option('--connect-timeout <seconds>', 'BLE connect timeout before giving up on an attempt', '30')
   .option('--retries <n>', 'number of paint attempts (including the first) before giving up', '3')
   .action(async (opts) => {
@@ -220,8 +247,16 @@ program
   .description('Render a template against a live SignalK server and write a PNG, without needing a device')
   .requiredOption('-t, --template <path>', 'path to SVG template')
   .requiredOption('-o, --output <path>', 'output PNG path')
-  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings - if omitted, tries each of ' + DEFAULT_SIGNALK_URLS.join(', ') + ' in turn')
-  .option('-e, --example-data <dir>', 'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u')
+  .option(
+    '-u, --url <url>',
+    "SignalK server base URL - resolves the template's source=signalk/resources bindings - if omitted, tries each of " +
+      DEFAULT_SIGNALK_URLS.join(', ') +
+      ' in turn',
+  )
+  .option(
+    '-e, --example-data <dir>',
+    'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u',
+  )
   .option('-w, --width <px>', 'render width', '416')
   .option('--height <px>', 'render height', '240')
   .option(
@@ -242,8 +277,16 @@ program
   .command('fields')
   .description('List every <desc> binding in a template by element id, with its source spec and resolved value')
   .requiredOption('-t, --template <path>', 'path to SVG template')
-  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings - if omitted, tries each of ' + DEFAULT_SIGNALK_URLS.join(', ') + ' in turn')
-  .option('-e, --example-data <dir>', 'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u')
+  .option(
+    '-u, --url <url>',
+    "SignalK server base URL - resolves the template's source=signalk/resources bindings - if omitted, tries each of " +
+      DEFAULT_SIGNALK_URLS.join(', ') +
+      ' in turn',
+  )
+  .option(
+    '-e, --example-data <dir>',
+    'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u',
+  )
   .action(async (opts) => {
     const doc = new DOMParser().parseFromString(await readFile(opts.template, 'utf-8'), 'image/svg+xml');
     const elements = doc.getElementsByTagName('text');
@@ -281,8 +324,16 @@ program
   .command('field')
   .description('Resolve a single binding spec directly against a live SignalK server, with no template')
   .argument('<spec>', 'binding spec, e.g. "source=resources,resource=tides,path=station.name" or a bare SignalK path')
-  .option('-u, --url <url>', 'SignalK server base URL - resolves the spec\'s source=signalk/resources binding - if omitted, tries each of ' + DEFAULT_SIGNALK_URLS.join(', ') + ' in turn')
-  .option('-e, --example-data <dir>', 'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u')
+  .option(
+    '-u, --url <url>',
+    "SignalK server base URL - resolves the spec's source=signalk/resources binding - if omitted, tries each of " +
+      DEFAULT_SIGNALK_URLS.join(', ') +
+      ' in turn',
+  )
+  .option(
+    '-e, --example-data <dir>',
+    'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u',
+  )
   .action(async (spec, opts) => {
     const binding = parseBinding(spec);
     const context = await assembleContext(opts, [binding]);

@@ -91,9 +91,7 @@ export class ZhsunycoDriver implements VendorDriver {
         if (!info) {
           throw new Error('zhsunyco device did not return valid config data');
         }
-        const metadata = config.modelOverride
-          ? { pid: info.pid, ...config.modelOverride }
-          : this.metadataForPid(info.pid, info.hwVersion);
+        const metadata = config.modelOverride ? { pid: info.pid, ...config.modelOverride } : this.metadataForPid(info.pid, info.hwVersion);
         if (!metadata) {
           throw new Error(
             `zhsunyco device reports unrecognised PID 0x${info.pid.toString(16).padStart(4, '0')} - ` +

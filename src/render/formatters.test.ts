@@ -26,12 +26,14 @@ test('formatDisplayUnits', async (t) => {
 test('applyFormat', async (t) => {
   const context: TemplateContext = { signalk: { self: { environment: { time: { timezoneRegion: 'Europe/London' } } } } };
 
-  await t.test('local_time converts a UTC ISO string to the vessel\'s timezone', () => {
+  await t.test("local_time converts a UTC ISO string to the vessel's timezone", () => {
     assert.equal(applyFormat('local_time', '2026-06-28T12:00:00Z', context, undefined), '13:00');
   });
 
-  await t.test('local_time falls back to the host machine\'s own timezone when there is no timezoneRegion', () => {
-    const expected = DateTime.fromISO('2026-06-28T12:00:00Z', { zone: 'utc' }).setZone(Intl.DateTimeFormat().resolvedOptions().timeZone).toFormat('HH:mm');
+  await t.test("local_time falls back to the host machine's own timezone when there is no timezoneRegion", () => {
+    const expected = DateTime.fromISO('2026-06-28T12:00:00Z', { zone: 'utc' })
+      .setZone(Intl.DateTimeFormat().resolvedOptions().timeZone)
+      .toFormat('HH:mm');
     assert.equal(applyFormat('local_time', '2026-06-28T12:00:00Z', {}, undefined), expected);
   });
 
@@ -39,9 +41,12 @@ test('applyFormat', async (t) => {
     assert.equal(applyFormat('local_time', 42, context, undefined), '');
   });
 
-  await t.test('local_time accepts a Date instance - an in-process resourcesApi call hands one back unserialised, unlike the HTTP/CLI path which always JSON-serialises it to a string first', () => {
-    assert.equal(applyFormat('local_time', new Date('2026-06-28T12:00:00Z'), context, undefined), '13:00');
-  });
+  await t.test(
+    'local_time accepts a Date instance - an in-process resourcesApi call hands one back unserialised, unlike the HTTP/CLI path which always JSON-serialises it to a string first',
+    () => {
+      assert.equal(applyFormat('local_time', new Date('2026-06-28T12:00:00Z'), context, undefined), '13:00');
+    },
+  );
 
   await t.test('day_mon formats day and abbreviated month', () => {
     assert.equal(applyFormat('day_mon', '2026-06-28T12:00:00Z', context, undefined), '28 Jun');
@@ -59,7 +64,7 @@ test('applyFormat', async (t) => {
     assert.equal(applyFormat('local_datetime_short', 42, context, undefined), '');
   });
 
-  await t.test('utc_offset shows a fixed-offset zone\'s numeric UTC offset', () => {
+  await t.test("utc_offset shows a fixed-offset zone's numeric UTC offset", () => {
     assert.equal(applyFormat('utc_offset', 'Etc/UTC', context, undefined), 'UTC+00:00');
   });
 
@@ -86,7 +91,7 @@ test('resolveLocalZoneAbbreviation', async (t) => {
     assert.equal(resolveLocalZoneAbbreviation(context), expected);
   });
 
-  await t.test('falls back to the host machine\'s own timezone when there is no timezoneRegion', () => {
+  await t.test("falls back to the host machine's own timezone when there is no timezoneRegion", () => {
     const hostZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const expected = new Intl.DateTimeFormat(undefined, { timeZone: hostZone, timeZoneName: 'short' })
       .formatToParts(new Date())

@@ -98,7 +98,9 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
       try {
         pathMeta[ctx] = await fetchPathMeta(apiUrl, ctx);
       } catch (err) {
-        app.debug(`could not fetch path metadata for context "${ctx}" (${(err as Error).message}) - automatic unit conversion will show raw values`);
+        app.debug(
+          `could not fetch path metadata for context "${ctx}" (${(err as Error).message}) - automatic unit conversion will show raw values`,
+        );
       }
     }
   }
@@ -115,7 +117,9 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
 
   const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));
   if (categoryNames.size > 0 && !apiUrl) {
-    throw new Error(`binding references categor${categoryNames.size > 1 ? 'ies' : 'y'} "${[...categoryNames].join(', ')}" but no SignalK API base URL is configured`);
+    throw new Error(
+      `binding references categor${categoryNames.size > 1 ? 'ies' : 'y'} "${[...categoryNames].join(', ')}" but no SignalK API base URL is configured`,
+    );
   }
   const categories = apiUrl ? await fetchCategoryDisplayUnits(apiUrl, categoryNames) : {};
 
@@ -188,7 +192,9 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   const getApiUrl = createApiUrlResolver(config.signalkApiUrl);
 
   const repaint = (device: DeviceConfig) =>
-    considerRepaint(app, config, device, state, getApiUrl).catch((err) => app.debug(`"${device.friendlyName}": repaint failed: ${err.message}`));
+    considerRepaint(app, config, device, state, getApiUrl).catch((err) =>
+      app.debug(`"${device.friendlyName}": repaint failed: ${err.message}`),
+    );
 
   const intervalDevices = config.devices.filter((device) => device.repaintTrigger === 'interval');
   if (intervalDevices.length > 0) {

@@ -48,7 +48,9 @@ async function runStartupScan(app: ServerAPI, discovered: DiscoveredDevice[], du
     return;
   }
   const summary = discovered.map((device) => `${device.name ?? device.vendor} [${device.address}]`).join(', ');
-  app.setPluginStatus(`Scan complete - found ${discovered.length} device(s) in ${elapsedSeconds}s: ${summary} - pick one from a device's "Device" field below`);
+  app.setPluginStatus(
+    `Scan complete - found ${discovered.length} device(s) in ${elapsedSeconds}s: ${summary} - pick one from a device's "Device" field below`,
+  );
 }
 
 export function createPlugin(app: ServerAPI): Plugin {
@@ -76,7 +78,9 @@ export function createPlugin(app: ServerAPI): Plugin {
       if (pluginConfig.scanOnStart) {
         if (scanInProgress) {
           const elapsedSeconds = ((Date.now() - (scanStartedAt ?? Date.now())) / 1000).toFixed(0);
-          app.debug(`a scan from before this restart is still running (${elapsedSeconds}s) - skipping a new one to avoid a second concurrent BLE session`);
+          app.debug(
+            `a scan from before this restart is still running (${elapsedSeconds}s) - skipping a new one to avoid a second concurrent BLE session`,
+          );
           app.setPluginStatus(
             `Skipped startup scan - a scan from before this restart is still finishing (running ${elapsedSeconds}s) and will update the "Device" picker below once it does.`,
           );
