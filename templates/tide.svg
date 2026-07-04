@@ -23,8 +23,8 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="1.3906433"
-     inkscape:cx="249.88435"
-     inkscape:cy="101.03238"
+     inkscape:cx="144.89697"
+     inkscape:cy="197.39066"
      inkscape:window-width="1488"
      inkscape:window-height="674"
      inkscape:window-x="24"
@@ -71,19 +71,19 @@
      transform="scale(0.89274878,1.1201359)">Tidal Station Name<desc
    id="desc1">source=resources,resource=tides,path=station.name</desc></text><text
      id="source"
-     x="347.95166"
+     x="367.44577"
      y="226.1548"
      font-size="18"
      font-family="serif"
      fill="black"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'Roboto',sans-serif;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000;stroke-width:3.80045"
-     transform="scale(0.95907863,1.0426674)"><desc
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'\'Roboto\', sans-serif';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000;stroke-width:3.80045"
+     transform="scale(0.95907862,1.0426674)"><desc
        id="desc21">source=resources,resource=tides,path=station.source.name</desc><tspan
        sodipodi:role="line"
        id="tspan20"
-       x="347.95166"
+       x="367.44577"
        y="226.1548"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3332995px;font-family:sans-serif;-inkscape-font-specification:'Roboto',sans-serif;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:3.80045">SOURCE</tspan></text><text
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'\'Roboto\', sans-serif';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:3.80045">SOURCE</tspan></text><text
      id="last_repaint"
      x="4.3477793"
      y="201.9895"
@@ -119,8 +119,8 @@
      fill="red"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.6667px;font-family:sans-serif;-inkscape-font-specification:'Roboto, Normal',sans-serif;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ff0000"><desc
    id="desc15">source=resources,resource=tides,path=extremes[2].label</desc>High or Low</text><text
-     id="environment.time.timezoneRegion"
-     x="239.09819"
+     id="timezone"
+     x="330.60489"
      y="204.67754"
      font-size="10.373px"
      font-family="sans-serif"
@@ -128,7 +128,19 @@
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'Roboto, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;direction:rtl;fill:#000000;stroke-width:0.864419"
      transform="scale(0.86441854,1.156847)">UTC+01:00<desc
    id="desc11">source=einklabel,path=local_zone</desc></text><text
-     id="lat"
+     id="plugin_version"
+     x="194.07487"
+     y="204.51942"
+     font-size="10.373px"
+     font-family="sans-serif"
+     fill="#ffff00"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:Roboto;-inkscape-font-specification:'Roboto, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;direction:rtl;fill:#000000;stroke-width:0.864419"
+     transform="scale(0.86441854,1.156847)"><tspan
+       sodipodi:role="line"
+       id="tspan1"
+       x="194.07487"
+       y="204.51942">v0.0.1</tspan></text><text
+     id="min_tide"
      x="282.65424"
      y="24.967674"
      font-size="12px"
@@ -140,7 +152,7 @@
        id="tspan17"
        x="282.65424"
        y="24.967674">0.0m</tspan></text><text
-     id="hat"
+     id="max_tide"
      x="360.77148"
      y="24.967674"
      font-size="12px"

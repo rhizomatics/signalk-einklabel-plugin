@@ -136,6 +136,11 @@ export class SvgRenderer implements Renderer {
         const key = normalizeAssetKey(resolveBinding(binding, context));
         const assetPath = key && resolveAssetPath(svgTemplatePath, binding.assets, key);
         if (!assetPath) {
+          console.error(
+            key
+              ? `image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
+              : `image "${descElement.textContent}" resolved to no usable value to pick an asset file with`,
+          );
           element.parentNode?.removeChild(element);
           continue;
         }
