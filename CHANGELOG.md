@@ -1,9 +1,11 @@
 # 0.7.0
 
 ## Logging
+
 - Standardize all log output to show a `signalk-einklabel-plugin` prefix
 
 ## Image Fields
+
 - Include image fields on CLI `fields` command output
 - Better logging diagnostics if asset image resolution fails or directory not found
 - Replace separate fixed `resources/svg` directory for images with user overridable `templates/assets`
