@@ -10,7 +10,6 @@
   "files": [
     "dist",
     "templates",
-    "resources",
     "docs",
     "CHANGELOG.md",
     "README.md"
