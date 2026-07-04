@@ -44,7 +44,7 @@ test('getManufacturerId', async (t) => {
 });
 
 test('forEachAdvertisedDevice', async (t) => {
-  await t.test('reads each device\'s advertisement once and hands it to fn', async () => {
+  await t.test("reads each device's advertisement once and hands it to fn", async () => {
     const devices: Record<string, Device> = {
       'AA:AA:AA:AA:AA:AA': {
         getName: async () => 'Label 1',

@@ -57,7 +57,7 @@ test('fetchJson', async (t) => {
     await assert.rejects(fetchJson('http://localhost:3000'), /fetch failed: http:\/\/localhost:3000 - connect ECONNREFUSED/);
   });
 
-  await t.test('falls back to an Error cause\'s code when it has no message', async () => {
+  await t.test("falls back to an Error cause's code when it has no message", async () => {
     t.mock.method(globalThis, 'fetch', async () => {
       const err = new TypeError('fetch failed');
       const cause = new Error('');

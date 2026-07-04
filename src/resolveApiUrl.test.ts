@@ -21,7 +21,10 @@ test('resolveSignalkApiUrl', async (t) => {
     t.mock.method(globalThis, 'fetch', async () => {
       throw new TypeError('fetch failed');
     });
-    await assert.rejects(resolveSignalkApiUrl('http://localhost:9999'), /configured SignalK API base URL "http:\/\/localhost:9999" did not respond/);
+    await assert.rejects(
+      resolveSignalkApiUrl('http://localhost:9999'),
+      /configured SignalK API base URL "http:\/\/localhost:9999" did not respond/,
+    );
   });
 
   await t.test('probes SIGNALK_API_URL_OPTIONS in order and returns the first that responds', async () => {
