@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { join } from 'path';
 import { readFileSync, writeFileSync } from 'fs';
 import { ServerAPI, Path, SignalKResourceType } from '@signalk/server-api';
-import { DeviceConfig, PluginConfig, parseDevice, resolveTemplatePath, resolveTemplatesDir } from './config';
+import { BUNDLED_TEMPLATES_DIR, DeviceConfig, PluginConfig, parseDevice, resolveTemplatePath, resolveTemplatesDir } from './config';
 import { withRetries } from './devices/bleDiscovery';
 import { getDriver } from './devices/registry';
 import { SvgRenderer } from './render/svgRenderer';

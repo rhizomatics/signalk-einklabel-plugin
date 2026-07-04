@@ -58,11 +58,12 @@ function expandGenericFontFamilies(svgSource: string): string {
  *
  * Non-textual inclusion: an `<image>` element with a `<desc>` child works the same way, except the
  * resolved value picks one of a directory of `.svg` files (an `assets=` key, required, names that
- * directory - see `./assets.ts`) rather than substituting text, and the element is dropped entirely
- * (rather than showing an error placeholder) whenever the value is unavailable or doesn't map to a
- * file - e.g. a device without the `derived-data` plugin installed simply shows no moon-phase icon.
- * The matched file's contents are inlined as a `data:image/svg+xml;base64,...` URI so no filesystem
- * access happens at resvg-wasm's render step.
+ * directory, tried first relative to `svgTemplatePath` and then, if given, relative to
+ * `fallbackTemplateDir` - see `resolveAssetPath` in `./assets.ts`) rather than substituting text,
+ * and the element is dropped entirely (rather than showing an error placeholder) whenever the value
+ * is unavailable or doesn't map to a file - e.g. a device without the `derived-data` plugin
+ * installed simply shows no moon-phase icon. The matched file's contents are inlined as a
+ * `data:image/svg+xml;base64,...` URI so no filesystem access happens at resvg-wasm's render step.
  *
  * resvg-wasm cannot see the host's installed fonts (`loadSystemFonts`/`fontFiles`
  * are silently no-ops under plain Node) - it only renders text if given font
@@ -135,9 +136,9 @@ export class SvgRenderer implements Renderer {
           throw new Error('an <image> binding requires an "assets" key naming the directory to pick a file from');
         }
         const key = normalizeAssetKey(resolveBinding(binding, context));
-        const assetPath = key && resolveAssetPath(svgTemplatePath, binding.assets, key);
+        const assetPath = key && resolveAssetPath(svgTemplatePath, binding.assets, key, fallbackTemplateDir);
         if (!assetPath) {
-          const dirProblem = describeAssetsDirProblem(svgTemplatePath, binding.assets);
+          const dirProblem = describeAssetsDirProblem(svgTemplatePath, binding.assets, fallbackTemplateDir);
           console.error(
             key
               ? `${PLUGIN_NAME}: image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
