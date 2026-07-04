@@ -1,5 +1,5 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["dist/**", "node_modules/**","coverage/**","package-lock.json","*.min.js"],
+  "ignorePatterns": ["dist/**", "node_modules/**", "coverage/**", "package-lock.json", "*.min.js"],
   "printWidth": 140
 }
