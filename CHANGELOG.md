@@ -1,3 +1,8 @@
+# 0.6.3
+
+- Improve logging if an image cannot be found in an `assets` directory to match a SignalK path value
+- Expose `plugin_version` as a path for the `einklabel` source
+
 # 0.6.2
 
 - Auto default SignalK URL if `-u` or `-e` not passed as CLI arguments

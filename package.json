@@ -1,6 +1,6 @@
 {
   "name": "@rhizomatics/signalk-einklabel-plugin",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Display SignalK data on eInk Electronic Shelf Labels",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
