@@ -2,6 +2,7 @@ import { Device } from '@naugehyde/node-ble';
 import { Bitmap } from '../../render/types';
 import { DeviceMetadata, DiscoveredDevice, VendorDeviceConfig, VendorDriver } from '../types';
 import { connectWithTimeout, createBluetooth, getOrDiscoverDevice, sleep } from '../bleDiscovery';
+import { PLUGIN_NAME } from '../../pluginVersion';
 import { ZHSUNYCO_PID_METADATA } from './metadata';
 import { encodeBitmap } from './encode';
 import {
@@ -170,7 +171,7 @@ async function readDeviceDetails(
       // out of range) should still show up in the scan with whatever the advertisement itself
       // carried, just without battery/PID-by-read. Logged so a blank battery column has a reason
       // instead of looking like the read was simply never attempted.
-      console.error(`zhsunyco [${address}]: battery/config read failed: ${(err as Error).message}`);
+      console.error(`${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read failed: ${(err as Error).message}`);
       return fallback;
     }
   };
@@ -181,7 +182,7 @@ async function readDeviceDetails(
   return Promise.race([
     read(),
     sleep(SCAN_CONNECT_TIMEOUT_MS * 2).then(() => {
-      console.error(`zhsunyco [${address}]: battery/config read timed out after ${SCAN_CONNECT_TIMEOUT_MS * 2}ms`);
+      console.error(`${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read timed out after ${SCAN_CONNECT_TIMEOUT_MS * 2}ms`);
       return fallback;
     }),
   ]);

@@ -5,6 +5,7 @@ import { Bitmap, Renderer, TemplateContext } from './types';
 import { parseBinding, renderBinding, resolveBinding } from './binding';
 import { normalizeAssetKey, resolveAssetPath } from './assets';
 import { DEFAULT_FONT_PATHS, GENERIC_FONT_FAMILY_MAP } from './fonts';
+import { PLUGIN_NAME } from '../pluginVersion';
 
 let wasmReady: Promise<void> | undefined;
 
@@ -106,7 +107,7 @@ export class SvgRenderer implements Renderer {
         const binding = parseBinding(descElement.textContent ?? '');
         element.textContent = renderBinding(binding, context);
       } catch (err) {
-        console.error(`field "${descElement.textContent}" failed to render: ${(err as Error).message}`);
+        console.error(`${PLUGIN_NAME}: field "${descElement.textContent}" failed to render: ${(err as Error).message}`);
         element.textContent = 'ERROR';
       }
     }
@@ -138,8 +139,8 @@ export class SvgRenderer implements Renderer {
         if (!assetPath) {
           console.error(
             key
-              ? `image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
-              : `image "${descElement.textContent}" resolved to no usable value to pick an asset file with`,
+              ? `${PLUGIN_NAME}: image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
+              : `${PLUGIN_NAME}: image "${descElement.textContent}" resolved to no usable value to pick an asset file with`,
           );
           element.parentNode?.removeChild(element);
           continue;
@@ -149,7 +150,7 @@ export class SvgRenderer implements Renderer {
         const hrefAttr = element.getAttribute('href') !== null ? 'href' : 'xlink:href';
         element.setAttribute(hrefAttr, dataUri);
       } catch (err) {
-        console.error(`image "${descElement.textContent}" failed to render: ${(err as Error).message}`);
+        console.error(`${PLUGIN_NAME}: image "${descElement.textContent}" failed to render: ${(err as Error).message}`);
         element.parentNode?.removeChild(element);
       }
     }
