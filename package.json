@@ -66,6 +66,7 @@
     "@types/pngjs": "^6.0.5",
     "oxfmt": "^0.56.0",
     "oxlint": "^1.71.0",
+    "oxlint-tsgolint": "^0.23.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.0"
   },

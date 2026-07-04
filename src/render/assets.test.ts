@@ -32,43 +32,25 @@ test("resolveAssetPath", async (t) => {
   mkdirSync(bundledAssetsDir, { recursive: true });
   writeFileSync(join(bundledAssetsDir, "full_moon.svg"), "<svg />");
 
-  await t.test(
-    "falls back to the bundled assets directory when the user has none of their own",
-    () => {
-      assert.equal(
-        resolveAssetPath(templatesDir, bundledTemplatesDir, "lunar_phases", "full_moon"),
-        join(bundledAssetsDir, "full_moon.svg"),
-      );
-    },
-  );
-
-  await t.test("is undefined when no matching file exists in either directory", () => {
-    assert.equal(
-      resolveAssetPath(templatesDir, bundledTemplatesDir, "lunar_phases", "no_such_phase"),
-      undefined,
-    );
+  await t.test("falls back to the bundled assets directory when the user has none of their own", () => {
+    assert.equal(resolveAssetPath(templatesDir, bundledTemplatesDir, "lunar_phases", "full_moon"), join(bundledAssetsDir, "full_moon.svg"));
   });
 
-  await t.test(
-    "prefers the user's own assets directory wholesale, without merging in bundled files",
-    () => {
-      const userAssetsDir = join(templatesDir, "assets", "lunar_phases");
-      mkdirSync(userAssetsDir, { recursive: true });
-      writeFileSync(join(userAssetsDir, "new_moon.svg"), "<svg />");
+  await t.test("is undefined when no matching file exists in either directory", () => {
+    assert.equal(resolveAssetPath(templatesDir, bundledTemplatesDir, "lunar_phases", "no_such_phase"), undefined);
+  });
 
-      // Present in the user's directory - resolves there.
-      assert.equal(
-        resolveAssetPath(templatesDir, bundledTemplatesDir, "lunar_phases", "new_moon"),
-        join(userAssetsDir, "new_moon.svg"),
-      );
-      // Only in the bundled directory - since the user's own "lunar_phases" directory exists at all,
-      // it's used exclusively, so this does NOT fall back to the bundled "full_moon.svg".
-      assert.equal(
-        resolveAssetPath(templatesDir, bundledTemplatesDir, "lunar_phases", "full_moon"),
-        undefined,
-      );
-    },
-  );
+  await t.test("prefers the user's own assets directory wholesale, without merging in bundled files", () => {
+    const userAssetsDir = join(templatesDir, "assets", "lunar_phases");
+    mkdirSync(userAssetsDir, { recursive: true });
+    writeFileSync(join(userAssetsDir, "new_moon.svg"), "<svg />");
+
+    // Present in the user's directory - resolves there.
+    assert.equal(resolveAssetPath(templatesDir, bundledTemplatesDir, "lunar_phases", "new_moon"), join(userAssetsDir, "new_moon.svg"));
+    // Only in the bundled directory - since the user's own "lunar_phases" directory exists at all,
+    // it's used exclusively, so this does NOT fall back to the bundled "full_moon.svg".
+    assert.equal(resolveAssetPath(templatesDir, bundledTemplatesDir, "lunar_phases", "full_moon"), undefined);
+  });
 });
 
 test("describeAssetsDirProblem", async (t) => {
@@ -77,10 +59,7 @@ test("describeAssetsDirProblem", async (t) => {
 
   await t.test("undefined when the selected (bundled) directory is fine", () => {
     mkdirSync(join(bundledTemplatesDir, "assets", "lunar_phases"), { recursive: true });
-    assert.equal(
-      describeAssetsDirProblem(templatesDir, bundledTemplatesDir, "lunar_phases"),
-      undefined,
-    );
+    assert.equal(describeAssetsDirProblem(templatesDir, bundledTemplatesDir, "lunar_phases"), undefined);
   });
 
   await t.test("reports when neither the user's nor the bundled directory exists", () => {

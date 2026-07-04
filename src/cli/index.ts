@@ -16,13 +16,7 @@ import {
 import { Colour, DeviceModelOverride } from "../devices/types";
 import { SvgRenderer } from "../render/svgRenderer";
 import { bitmapToPng } from "../render/png";
-import {
-  Binding,
-  findBindings,
-  parseBinding,
-  renderBinding,
-  resolveBinding,
-} from "../render/binding";
+import { Binding, findBindings, parseBinding, renderBinding, resolveBinding } from "../render/binding";
 import { normalizeAssetKey, resolveAssetPath } from "../render/assets";
 import { BUNDLED_TEMPLATES_DIR } from "../config";
 import { assembleExampleContext, assembleLiveContext } from "./liveContext";
@@ -46,9 +40,7 @@ const COLOUR_CODES: Record<string, Colour[]> = {
 function parseColours(code: string): Colour[] {
   const colours = COLOUR_CODES[code.toUpperCase()];
   if (!colours) {
-    throw new Error(
-      `unknown --colours value "${code}" - expected one of ${Object.keys(COLOUR_CODES).join(", ")}`,
-    );
+    throw new Error(`unknown --colours value "${code}" - expected one of ${Object.keys(COLOUR_CODES).join(", ")}`);
   }
   return colours;
 }
@@ -70,10 +62,7 @@ async function resolveDefaultUrl(): Promise<string> {
 }
 
 /** Shared by every command that takes -u/--url and -e/--example-data - -e wins when both are present; when neither is given, probes DEFAULT_SIGNALK_URLS for a default. */
-async function assembleContext(
-  opts: { url?: string; exampleData?: string },
-  bindings: Binding[],
-): Promise<TemplateContext> {
+async function assembleContext(opts: { url?: string; exampleData?: string }, bindings: Binding[]): Promise<TemplateContext> {
   if (opts.exampleData) return assembleExampleContext(opts.exampleData, bindings);
   const url = opts.url ?? (await resolveDefaultUrl());
   return assembleLiveContext(url, bindings);
@@ -83,23 +72,15 @@ async function assembleContext(
 async function identifyVendor(address: string): Promise<string> {
   const { bluetooth, destroy } = createBluetooth();
   try {
-    logDebug(
-      `connecting to ${address} to identify its vendor (timeout ${VENDOR_IDENTIFY_TIMEOUT_MS}ms)`,
-    );
+    logDebug(`connecting to ${address} to identify its vendor (timeout ${VENDOR_IDENTIFY_TIMEOUT_MS}ms)`);
     const adapter = await bluetooth.defaultAdapter();
     const device = await getOrDiscoverDevice(adapter, address, VENDOR_IDENTIFY_TIMEOUT_MS);
     const name = await device.getName().catch(() => undefined);
     const manufacturerId = await getManufacturerId(device);
-    logDebug(
-      `${address}: advertised name="${name ?? ""}" manufacturerId=${manufacturerId ?? "unknown"}`,
-    );
-    const driver = allDrivers().find((candidate) =>
-      candidate.matchesAdvertisement(name, manufacturerId),
-    );
+    logDebug(`${address}: advertised name="${name ?? ""}" manufacturerId=${manufacturerId ?? "unknown"}`);
+    const driver = allDrivers().find((candidate) => candidate.matchesAdvertisement(name, manufacturerId));
     if (!driver) {
-      throw new Error(
-        `no registered vendor driver recognises device "${name ?? address}" - specify --vendor explicitly`,
-      );
+      throw new Error(`no registered vendor driver recognises device "${name ?? address}" - specify --vendor explicitly`);
     }
     return driver.vendor;
   } finally {
@@ -108,20 +89,14 @@ async function identifyVendor(address: string): Promise<string> {
 }
 
 const program = new Command();
-program
-  .name("esl-cli")
-  .description("Local CLI for testing ESL device scan and paint without a SignalK server");
+program.name("esl-cli").description("Local CLI for testing ESL device scan and paint without a SignalK server");
 
 program.option(
   "-r, --require <module>",
   "require a module before running, e.g. an npm package that registers a vendor driver (repeatable)",
   (value, previous: string[] = []) => [...previous, value],
 );
-program.option(
-  "-l, --log-level <level>",
-  "log verbosity: info or debug (e.g. trace which URLs are fetched)",
-  "info",
-);
+program.option("-l, --log-level <level>", "log verbosity: info or debug (e.g. trace which URLs are fetched)", "info");
 
 program.hook("preAction", () => {
   setLogLevel(program.opts().logLevel);
@@ -152,11 +127,8 @@ program
       console.log("(no confirmed devices yet)");
       return;
     }
-    const widths = header.map((title, col) =>
-      Math.max(title.length, ...rows.map((row) => row[col].length)),
-    );
-    const printRow = (row: string[]) =>
-      console.log(row.map((cell, col) => cell.padEnd(widths[col])).join("  "));
+    const widths = header.map((title, col) => Math.max(title.length, ...rows.map((row) => row[col].length)));
+    const printRow = (row: string[]) => console.log(row.map((cell, col) => cell.padEnd(widths[col])).join("  "));
     printRow(header);
     rows.forEach(printRow);
   });
@@ -177,74 +149,37 @@ program
     const drivers = allDrivers();
     logDebug(`scanning for ${durationMs}ms`);
     await withDiscovery(durationMs, async (adapter) => {
-      await forEachAdvertisedDevice(
-        adapter,
-        async ({ device, address, name, manufacturerId, manufacturerData }) => {
-          const driver = drivers.find((candidate) =>
-            candidate.matchesAdvertisement(name, manufacturerId),
-          );
-          const mfr =
-            manufacturerId !== undefined ? `0x${manufacturerId.toString(16).padStart(4, "0")}` : "";
-          if (!driver) {
-            if (opts.allDevices) {
-              const rssi = await device
-                .getRSSI()
-                .then((value) => (value === undefined ? undefined : Number(value)))
-                .catch(() => undefined);
-              rows.push([
-                "(unmatched)",
-                address,
-                name ?? "",
-                "",
-                "",
-                "",
-                mfr,
-                "",
-                String(rssi ?? ""),
-              ]);
-            }
-            return;
+      await forEachAdvertisedDevice(adapter, async ({ device, address, name, manufacturerId, manufacturerData }) => {
+        const driver = drivers.find((candidate) => candidate.matchesAdvertisement(name, manufacturerId));
+        const mfr = manufacturerId !== undefined ? `0x${manufacturerId.toString(16).padStart(4, "0")}` : "";
+        if (!driver) {
+          if (opts.allDevices) {
+            const rssi = await device
+              .getRSSI()
+              .then((value) => (value === undefined ? undefined : Number(value)))
+              .catch(() => undefined);
+            rows.push(["(unmatched)", address, name ?? "", "", "", "", mfr, "", String(rssi ?? "")]);
           }
-          matchedCount++;
-          const found = await driver.identifyDevice(
-            device,
-            address,
-            name,
-            manufacturerId,
-            manufacturerData,
-          );
-          logDebug(`${driver.vendor}: identified ${found.name ?? found.address}`);
-          const pid = found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, "0")}` : "";
-          const hwid = found.hwVersion ? `0x${found.hwVersion}` : "";
-          const label = found.metadata?.label ?? "";
-          const battery = found.batteryMv !== undefined ? `${found.batteryMv}mV` : "";
-          rows.push([
-            driver.vendor,
-            found.address,
-            found.name ?? "",
-            pid,
-            hwid,
-            label,
-            mfr,
-            battery,
-            String(found.rssi ?? ""),
-          ]);
-        },
-      );
+          return;
+        }
+        matchedCount++;
+        const found = await driver.identifyDevice(device, address, name, manufacturerId, manufacturerData);
+        logDebug(`${driver.vendor}: identified ${found.name ?? found.address}`);
+        const pid = found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, "0")}` : "";
+        const hwid = found.hwVersion ? `0x${found.hwVersion}` : "";
+        const label = found.metadata?.label ?? "";
+        const battery = found.batteryMv !== undefined ? `${found.batteryMv}mV` : "";
+        rows.push([driver.vendor, found.address, found.name ?? "", pid, hwid, label, mfr, battery, String(found.rssi ?? "")]);
+      });
     });
     if (matchedCount === 0) {
-      console.log(
-        `no devices found in ${opts.duration}s - try a longer scan with -d, e.g. "-d 30"`,
-      );
+      console.log(`no devices found in ${opts.duration}s - try a longer scan with -d, e.g. "-d 30"`);
     }
     if (rows.length === 0) {
       return;
     }
-    const widths = header.map((title, col) =>
-      Math.max(title.length, ...rows.map((row) => row[col].length)),
-    );
-    const printRow = (row: string[]) =>
-      console.log(row.map((cell, col) => cell.padEnd(widths[col])).join("  "));
+    const widths = header.map((title, col) => Math.max(title.length, ...rows.map((row) => row[col].length)));
+    const printRow = (row: string[]) => console.log(row.map((cell, col) => cell.padEnd(widths[col])).join("  "));
     printRow(header);
     rows.forEach(printRow);
   });
@@ -252,10 +187,7 @@ program
 program
   .command("paint")
   .description("Render a template against a live SignalK server and send it to a device")
-  .option(
-    "-v, --vendor <vendor>",
-    "vendor driver to use - if omitted, inferred from the device's advertised name",
-  )
+  .option("-v, --vendor <vendor>", "vendor driver to use - if omitted, inferred from the device's advertised name")
   .requiredOption("-a, --address <address>", "BLE address of the device")
   .requiredOption("-t, --template <path>", "path to SVG template")
   .option(
@@ -328,9 +260,7 @@ program
 
 program
   .command("render")
-  .description(
-    "Render a template against a live SignalK server and write a PNG, without needing a device",
-  )
+  .description("Render a template against a live SignalK server and write a PNG, without needing a device")
   .requiredOption("-t, --template <path>", "path to SVG template")
   .requiredOption("-o, --output <path>", "output PNG path")
   .option(
@@ -368,9 +298,7 @@ program
 
 program
   .command("fields")
-  .description(
-    "List every <desc> binding in a template by element id, with its source spec and resolved value",
-  )
+  .description("List every <desc> binding in a template by element id, with its source spec and resolved value")
   .requiredOption("-t, --template <path>", "path to SVG template")
   .option(
     "-u, --url <url>",
@@ -383,10 +311,7 @@ program
     "load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u",
   )
   .action(async (opts) => {
-    const doc = new DOMParser().parseFromString(
-      await readFile(opts.template, "utf-8"),
-      "image/svg+xml",
-    );
+    const doc = new DOMParser().parseFromString(await readFile(opts.template, "utf-8"), "image/svg+xml");
     const rows: { id: string; tag: string; desc: string; binding?: Binding; error?: string }[] = [];
     for (const tag of ["text", "image"]) {
       const elements = doc.getElementsByTagName(tag);
@@ -419,42 +344,27 @@ program
           }
           const key = normalizeAssetKey(resolveBinding(row.binding, context));
           if (!key) return [row.id, row.desc, "(no usable value - image would be omitted)"];
-          const assetPath = resolveAssetPath(
-            dirname(opts.template),
-            BUNDLED_TEMPLATES_DIR,
-            row.binding.assets,
-            key,
-          );
+          const assetPath = resolveAssetPath(dirname(opts.template), BUNDLED_TEMPLATES_DIR, row.binding.assets, key);
           return [
             row.id,
             row.desc,
-            assetPath
-              ? `"${key}" -> ${basename(assetPath)}`
-              : `"${key}" -> no matching asset file (image would be omitted)`,
+            assetPath ? `"${key}" -> ${basename(assetPath)}` : `"${key}" -> no matching asset file (image would be omitted)`,
           ];
         } catch (err) {
           return [row.id, row.desc, `ERROR: ${(err as Error).message}`];
         }
       }),
     );
-    const widths = header.map((title, col) =>
-      Math.max(title.length, ...table.map((cells) => cells[col].length)),
-    );
-    const printRow = (cells: string[]) =>
-      console.log(cells.map((cell, col) => cell.padEnd(widths[col])).join("  "));
+    const widths = header.map((title, col) => Math.max(title.length, ...table.map((cells) => cells[col].length)));
+    const printRow = (cells: string[]) => console.log(cells.map((cell, col) => cell.padEnd(widths[col])).join("  "));
     printRow(header);
     table.forEach(printRow);
   });
 
 program
   .command("field")
-  .description(
-    "Resolve a single binding spec directly against a live SignalK server, with no template",
-  )
-  .argument(
-    "<spec>",
-    'binding spec, e.g. "source=resources,resource=tides,path=station.name" or a bare SignalK path',
-  )
+  .description("Resolve a single binding spec directly against a live SignalK server, with no template")
+  .argument("<spec>", 'binding spec, e.g. "source=resources,resource=tides,path=station.name" or a bare SignalK path')
   .option(
     "-u, --url <url>",
     "SignalK server base URL - resolves the spec's source=signalk/resources binding - if omitted, tries each of " +

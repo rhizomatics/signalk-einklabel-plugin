@@ -107,10 +107,7 @@ export function resolveTemplatesDir(templatesDir: string | undefined): string {
  * fallback, whatever's already saved so an existing selection doesn't vanish from the dropdown just
  * because this particular run hasn't re-scanned it yet.
  */
-function deviceOptions(
-  discovered: DiscoveredDevice[],
-  current: PluginConfig,
-): { values: string[]; labels: string[] } {
+function deviceOptions(discovered: DiscoveredDevice[], current: PluginConfig): { values: string[]; labels: string[] } {
   const values: string[] = [];
   const labels: string[] = [];
   const seen = new Set<string>();
@@ -119,9 +116,7 @@ function deviceOptions(
     if (found.pid === undefined) {
       continue;
     }
-    const modelToken = [found.vendor, found.pid, found.hwVersion]
-      .filter((part) => part !== undefined)
-      .join(":");
+    const modelToken = [found.vendor, found.pid, found.hwVersion].filter((part) => part !== undefined).join(":");
     const value = `${modelToken}@${found.address}`;
     if (seen.has(value)) {
       continue;
@@ -145,15 +140,11 @@ function deviceOptions(
   return { values, labels };
 }
 
-export function parseDevice(
-  device: string,
-): { vendor: string; pid: number; hwVersion?: string; address: string } | undefined {
+export function parseDevice(device: string): { vendor: string; pid: number; hwVersion?: string; address: string } | undefined {
   const [modelToken, address] = device.split("@");
   const [vendor, pidStr, hwVersion] = (modelToken ?? "").split(":");
   const pid = Number(pidStr);
-  return vendor && address && Number.isInteger(pid)
-    ? { vendor, pid, hwVersion, address }
-    : undefined;
+  return vendor && address && Number.isInteger(pid) ? { vendor, pid, hwVersion, address } : undefined;
 }
 
 function listSvgFiles(dir: string): string[] {
@@ -178,14 +169,8 @@ export function resolveTemplatePath(templatesDir: string, templateName: string):
 }
 
 /** JSON Schema forbids an empty `enum` array, so only attach one when there's at least one option - otherwise the whole config schema fails validation. */
-function withEnum<T extends object>(
-  schema: T,
-  values: string[],
-  names?: string[],
-): T & { enum?: string[]; enumNames?: string[] } {
-  return values.length > 0
-    ? { ...schema, enum: values, ...(names ? { enumNames: names } : {}) }
-    : schema;
+function withEnum<T extends object>(schema: T, values: string[], names?: string[]): T & { enum?: string[]; enumNames?: string[] } {
+  return values.length > 0 ? { ...schema, enum: values, ...(names ? { enumNames: names } : {}) } : schema;
 }
 
 export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []): object {
@@ -208,31 +193,27 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
       scanOnStart: {
         type: "boolean",
         title: "Scan for devices on plugin start",
-        description:
-          'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below.',
+        description: 'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below.',
         default: defaults.scanOnStart,
       },
       scanDurationSeconds: {
         type: "number",
         title: "Scan duration (seconds)",
-        description:
-          'How long the startup scan runs - increase if devices are missing from the "Device" picker below.',
+        description: 'How long the startup scan runs - increase if devices are missing from the "Device" picker below.',
         minimum: 1,
         default: defaults.scanDurationSeconds,
       },
       paintConnectTimeoutSeconds: {
         type: "number",
         title: "Paint connect timeout (seconds)",
-        description:
-          "How long to wait for a device to accept a BLE connection before giving up on a repaint attempt.",
+        description: "How long to wait for a device to accept a BLE connection before giving up on a repaint attempt.",
         minimum: 1,
         default: defaults.paintConnectTimeoutSeconds,
       },
       paintRetries: {
         type: "number",
         title: "Paint retries",
-        description:
-          "How many times to attempt a repaint (including the first try) before giving up and reporting failure.",
+        description: "How many times to attempt a repaint (including the first try) before giving up and reporting failure.",
         minimum: 1,
         default: defaults.paintRetries,
       },
@@ -255,17 +236,13 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               {
                 type: "string",
                 title: "Device",
-                description:
-                  "Picked from devices found by a scan (plugin start, or `esl-cli scan`) - sets both the model and BLE address.",
+                description: "Picked from devices found by a scan (plugin start, or `esl-cli scan`) - sets both the model and BLE address.",
               },
               deviceValues,
               deviceLabels,
             ),
 
-            templateName: withEnum(
-              { type: "string", title: "Template" },
-              templateNameOptions(resolveTemplatesDir(current.templatesDir)),
-            ),
+            templateName: withEnum({ type: "string", title: "Template" }, templateNameOptions(resolveTemplatesDir(current.templatesDir))),
             repaintTrigger: {
               type: "string",
               title: "Repaint trigger",
@@ -294,8 +271,7 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
             forceRepaint: {
               type: "boolean",
               title: "Force repaint",
-              description:
-                "Repaint even if the data is unchanged - clears itself automatically once that repaint completes",
+              description: "Repaint even if the data is unchanged - clears itself automatically once that repaint completes",
               default: false,
             },
           },

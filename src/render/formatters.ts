@@ -17,19 +17,9 @@ export interface DisplayUnits {
 }
 
 /** Converts a base-SI value (always what SignalK paths deliver) to its metadata's preferred display unit and formats it with the unit's symbol, e.g. 3.42 -> "11.2ft". */
-export function formatDisplayUnits(
-  value: number,
-  displayUnits: DisplayUnits,
-  round: number | undefined,
-): string {
-  const converted = displayUnits.formula
-    ? Number(evaluate(displayUnits.formula, { value }))
-    : value;
-  const decimals =
-    round ??
-    (displayUnits.displayFormat?.includes(".")
-      ? displayUnits.displayFormat.split(".")[1].length
-      : 0);
+export function formatDisplayUnits(value: number, displayUnits: DisplayUnits, round: number | undefined): string {
+  const converted = displayUnits.formula ? Number(evaluate(displayUnits.formula, { value })) : value;
+  const decimals = round ?? (displayUnits.displayFormat?.includes(".") ? displayUnits.displayFormat.split(".")[1].length : 0);
   const symbol = displayUnits.symbol ?? displayUnits.targetUnit;
   return `${converted.toFixed(decimals)}${symbol}`;
 }
@@ -126,12 +116,7 @@ function formatPosition(value: unknown, round: number | undefined): string {
 }
 
 /** Applies a named `format=` formatter to a resolved binding value. */
-export function applyFormat(
-  name: string,
-  value: unknown,
-  context: TemplateContext,
-  round: number | undefined,
-): string {
+export function applyFormat(name: string, value: unknown, context: TemplateContext, round: number | undefined): string {
   switch (name) {
     case "local_time":
       return formatLocalTime(value, context);

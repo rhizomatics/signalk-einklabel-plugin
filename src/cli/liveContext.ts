@@ -35,9 +35,7 @@ function unwrapSignalkTree(node: unknown): unknown {
   if ("value" in obj) {
     return obj.value;
   }
-  return Object.fromEntries(
-    Object.entries(obj).map(([key, value]) => [key, unwrapSignalkTree(value)]),
-  );
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, unwrapSignalkTree(value)]));
 }
 
 /**
@@ -49,14 +47,9 @@ function unwrapSignalkTree(node: unknown): unknown {
  * referenced context's/resource's *whole* subtree once and lets the existing binding resolver
  * navigate `path` within it.
  */
-export async function assembleLiveContext(
-  signalkUrl: string,
-  bindings: Binding[],
-): Promise<TemplateContext> {
+export async function assembleLiveContext(signalkUrl: string, bindings: Binding[]): Promise<TemplateContext> {
   const signalk: Record<string, unknown> = {};
-  const contexts = new Set(
-    bindings.filter((binding) => binding.source === "signalk").map((binding) => binding.context),
-  );
+  const contexts = new Set(bindings.filter((binding) => binding.source === "signalk").map((binding) => binding.context));
   for (const context of contexts) {
     const url = `${signalkUrl}/signalk/v1/api/${contextPath(context)}`;
     logDebug(`GET ${url}`);
@@ -76,20 +69,14 @@ export async function assembleLiveContext(
   }
 
   const resources: Record<string, unknown> = {};
-  const resourceNames = new Set(
-    bindings
-      .filter((binding) => binding.source === "resources")
-      .map((binding) => binding.resource as string),
-  );
+  const resourceNames = new Set(bindings.filter((binding) => binding.source === "resources").map((binding) => binding.resource as string));
   for (const name of resourceNames) {
     const url = `${signalkUrl}${RESOURCES_API_PATH}/${name}`;
     logDebug(`GET ${url}`);
     resources[name] = await fetchJson(url);
   }
 
-  const categoryNames = new Set(
-    bindings.filter((binding) => binding.category).map((binding) => binding.category as string),
-  );
+  const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));
   const categories = await fetchCategoryDisplayUnits(signalkUrl, categoryNames);
 
   // Matches `considerRepaint` in repaintScheduler.ts - the CLI has no real device repaint to time, so
@@ -131,14 +118,9 @@ async function readJsonFile(filePath: string): Promise<unknown> {
  * it's left empty: automatic unit conversion falls back to a path's `category=` binding if it has one,
  * or shows the raw value otherwise.
  */
-export async function assembleExampleContext(
-  examplesDir: string,
-  bindings: Binding[],
-): Promise<TemplateContext> {
+export async function assembleExampleContext(examplesDir: string, bindings: Binding[]): Promise<TemplateContext> {
   const signalk: Record<string, unknown> = {};
-  const contexts = new Set(
-    bindings.filter((binding) => binding.source === "signalk").map((binding) => binding.context),
-  );
+  const contexts = new Set(bindings.filter((binding) => binding.source === "signalk").map((binding) => binding.context));
   if (contexts.size > 0) {
     const vesselsPath = path.join(examplesDir, "vessels.json");
     logDebug(`reading ${vesselsPath}`);
@@ -147,35 +129,24 @@ export async function assembleExampleContext(
       const segments = contextPath(context).split("/");
       let node: unknown = vessels;
       for (const segment of segments) {
-        node =
-          node === null || typeof node !== "object"
-            ? undefined
-            : (node as Record<string, unknown>)[segment];
+        node = node === null || typeof node !== "object" ? undefined : (node as Record<string, unknown>)[segment];
       }
       if (node === undefined) {
-        throw new Error(
-          `example data file ${vesselsPath} has no "${segments.join(".")}" subtree for context "${context}"`,
-        );
+        throw new Error(`example data file ${vesselsPath} has no "${segments.join(".")}" subtree for context "${context}"`);
       }
       signalk[context] = unwrapSignalkTree(node);
     }
   }
 
   const resources: Record<string, unknown> = {};
-  const resourceNames = new Set(
-    bindings
-      .filter((binding) => binding.source === "resources")
-      .map((binding) => binding.resource as string),
-  );
+  const resourceNames = new Set(bindings.filter((binding) => binding.source === "resources").map((binding) => binding.resource as string));
   for (const name of resourceNames) {
     const resourcePath = path.join(examplesDir, "resources", `${name}.json`);
     logDebug(`reading ${resourcePath}`);
     resources[name] = await readJsonFile(resourcePath);
   }
 
-  const categoryNames = new Set(
-    bindings.filter((binding) => binding.category).map((binding) => binding.category as string),
-  );
+  const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));
   let categories: Record<string, DisplayUnits> = {};
   if (categoryNames.size > 0) {
     const categoriesPath = path.join(examplesDir, "categories.json");

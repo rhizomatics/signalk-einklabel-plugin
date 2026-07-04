@@ -15,11 +15,7 @@ import { fetchJson } from "./httpJson";
  * entirely by install method: a bare `npm install` defaults to 3000; container/systemd installs
  * commonly default to 80, or 443 if TLS-terminated locally.
  */
-export const SIGNALK_API_URL_OPTIONS = [
-  "http://localhost:3000",
-  "http://localhost",
-  "https://localhost",
-];
+export const SIGNALK_API_URL_OPTIONS = ["http://localhost:3000", "http://localhost", "https://localhost"];
 
 /** Cheap, always-required (for `category=` resolution) and read-only, so safe to use as a connectivity+access probe. */
 const PROBE_PATH = "/signalk/v1/unitpreferences/categories";

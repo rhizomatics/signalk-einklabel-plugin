@@ -12,10 +12,7 @@ declare module "@naugehyde/node-ble" {
     getFlags(): Promise<string[]>;
     isNotifying(): Promise<boolean>;
     readValue(offset?: number): Promise<Buffer>;
-    writeValue(
-      value: Buffer,
-      optionsOrOffset?: number | { offset?: number; type?: "command" | "request" | "reliable" },
-    ): Promise<void>;
+    writeValue(value: Buffer, optionsOrOffset?: number | { offset?: number; type?: "command" | "request" | "reliable" }): Promise<void>;
     writeValueWithoutResponse(value: Buffer, offset?: number): Promise<void>;
     writeValueWithResponse(value: Buffer, offset?: number): Promise<void>;
     startNotifications(): Promise<void>;

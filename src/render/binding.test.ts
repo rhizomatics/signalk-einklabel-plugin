@@ -13,19 +13,16 @@ test("parseBinding", async (t) => {
   });
 
   await t.test("parses key=value pairs", () => {
-    assert.deepEqual(
-      parseBinding("source=resources,resource=tides,path=extremes[0].level,category=depth,round=2"),
-      {
-        source: "resources",
-        context: "self",
-        resource: "tides",
-        path: "extremes[0].level",
-        format: undefined,
-        category: "depth",
-        round: 2,
-        assets: undefined,
-      },
-    );
+    assert.deepEqual(parseBinding("source=resources,resource=tides,path=extremes[0].level,category=depth,round=2"), {
+      source: "resources",
+      context: "self",
+      resource: "tides",
+      path: "extremes[0].level",
+      format: undefined,
+      category: "depth",
+      round: 2,
+      assets: undefined,
+    });
   });
 
   await t.test("rejects an unknown key", () => {
@@ -74,26 +71,13 @@ test("resolveBinding", async (t) => {
   });
 
   await t.test("supports both array index notations", () => {
-    assert.equal(
-      resolveBinding(
-        parseBinding("source=resources,resource=tides,path=extremes[0].level"),
-        context,
-      ),
-      1.2,
-    );
-    assert.equal(
-      resolveBinding(
-        parseBinding("source=resources,resource=tides,path=extremes[0].level"),
-        context,
-      ),
-      1.2,
-    );
+    assert.equal(resolveBinding(parseBinding("source=resources,resource=tides,path=extremes[0].level"), context), 1.2);
+    assert.equal(resolveBinding(parseBinding("source=resources,resource=tides,path=extremes[0].level"), context), 1.2);
   });
 
   await t.test("throws when the signalk context is missing", () => {
     assert.throws(
-      () =>
-        resolveBinding(parseBinding("source=signalk,context=urn:mrn:imo:mmsi:1,path=a"), context),
+      () => resolveBinding(parseBinding("source=signalk,context=urn:mrn:imo:mmsi:1,path=a"), context),
       /context "urn:mrn:imo:mmsi:1" which is not present/,
     );
   });
@@ -110,10 +94,7 @@ test("resolveBinding", async (t) => {
       ...context,
       meta: { repainted: "2026-06-21T18:05:00Z" },
     };
-    assert.equal(
-      resolveBinding(parseBinding("source=einklabel,path=repainted"), metaContext),
-      "2026-06-21T18:05:00Z",
-    );
+    assert.equal(resolveBinding(parseBinding("source=einklabel,path=repainted"), metaContext), "2026-06-21T18:05:00Z");
   });
 
   await t.test("throws when no meta is present in the render context", () => {
@@ -188,12 +169,6 @@ test("renderBinding", async (t) => {
       signalk: { self: { environment: { time: { timezoneRegion: "Europe/London" } } } },
       meta: { repainted: "2026-06-21T17:05:00Z" },
     };
-    assert.equal(
-      renderBinding(
-        parseBinding("source=einklabel,path=repainted,format=local_datetime_short"),
-        context,
-      ),
-      "21 Jun 26 18:05",
-    );
+    assert.equal(renderBinding(parseBinding("source=einklabel,path=repainted,format=local_datetime_short"), context), "21 Jun 26 18:05");
   });
 });

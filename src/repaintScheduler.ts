@@ -2,14 +2,7 @@ import { createHash } from "crypto";
 import { join } from "path";
 import { readFileSync, writeFileSync } from "fs";
 import { ServerAPI, Path, SignalKResourceType } from "@signalk/server-api";
-import {
-  BUNDLED_TEMPLATES_DIR,
-  DeviceConfig,
-  PluginConfig,
-  parseDevice,
-  resolveTemplatePath,
-  resolveTemplatesDir,
-} from "./config";
+import { BUNDLED_TEMPLATES_DIR, DeviceConfig, PluginConfig, parseDevice, resolveTemplatePath, resolveTemplatesDir } from "./config";
 import { withRetries } from "./devices/bleDiscovery";
 import { getDriver } from "./devices/registry";
 import { SvgRenderer } from "./render/svgRenderer";
@@ -52,9 +45,7 @@ function stableStringify(value: unknown): string {
     return `[${value.map(stableStringify).join(",")}]`;
   }
   if (value !== null && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) =>
-      a.localeCompare(b),
-    );
+    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
     return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
   }
   return JSON.stringify(value);
@@ -87,11 +78,7 @@ function setAtPath(target: Record<string, unknown>, path: string, value: unknown
  * best-effort (a missing/unreachable server just means no automatic conversion), but a `category=`
  * binding is a declared dependency, so a missing `apiUrl` is a hard error there.
  */
-async function assembleRawContext(
-  app: ServerAPI,
-  apiUrl: string | undefined,
-  bindings: Binding[],
-): Promise<TemplateContext> {
+async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bindings: Binding[]): Promise<TemplateContext> {
   const signalk: Record<string, unknown> = {};
   const seenSignalk = new Set<string>();
   for (const binding of bindings) {
@@ -99,19 +86,14 @@ async function assembleRawContext(
     const key = `${binding.context} ${binding.path}`;
     if (seenSignalk.has(key)) continue;
     seenSignalk.add(key);
-    const value =
-      binding.context === "self"
-        ? app.getSelfPath(binding.path)
-        : app.getPath(`${binding.context}.${binding.path}`);
+    const value = binding.context === "self" ? app.getSelfPath(binding.path) : app.getPath(`${binding.context}.${binding.path}`);
     const namespace = (signalk[binding.context] ??= {}) as Record<string, unknown>;
     setAtPath(namespace, binding.path, value);
   }
   signalk.self ??= {};
 
   const pathMeta: Record<string, unknown> = {};
-  const signalkContexts = new Set(
-    bindings.filter((binding) => binding.source === "signalk").map((binding) => binding.context),
-  );
+  const signalkContexts = new Set(bindings.filter((binding) => binding.source === "signalk").map((binding) => binding.context));
   if (apiUrl) {
     for (const ctx of signalkContexts) {
       try {
@@ -125,11 +107,7 @@ async function assembleRawContext(
   }
 
   const resources: Record<string, unknown> = {};
-  const resourceNames = new Set(
-    bindings
-      .filter((binding) => binding.source === "resources")
-      .map((binding) => binding.resource as string),
-  );
+  const resourceNames = new Set(bindings.filter((binding) => binding.source === "resources").map((binding) => binding.resource as string));
   for (const name of resourceNames) {
     // `listResources`'s type only allows the standard SignalKResourceType union, but the underlying
     // Resources API (and a custom provider like signalk-tides, registered under the non-standard
@@ -138,9 +116,7 @@ async function assembleRawContext(
     resources[name] = await app.resourcesApi.listResources(name as SignalKResourceType, {});
   }
 
-  const categoryNames = new Set(
-    bindings.filter((binding) => binding.category).map((binding) => binding.category as string),
-  );
+  const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));
   if (categoryNames.size > 0 && !apiUrl) {
     throw new Error(
       `binding references categor${categoryNames.size > 1 ? "ies" : "y"} "${[...categoryNames].join(", ")}" but no SignalK API base URL is configured`,
@@ -172,9 +148,7 @@ async function considerRepaint(
   const driver = model && getDriver(model.vendor);
   const metadata = model && driver?.metadataForPid(model.pid, model.hwVersion);
   if (!model || !driver || !metadata) {
-    app.debug(
-      `"${device.friendlyName}": no driver/metadata for device "${device.device}", skipping`,
-    );
+    app.debug(`"${device.friendlyName}": no driver/metadata for device "${device.device}", skipping`);
     return;
   }
   const templatesDir = resolveTemplatesDir(config.templatesDir);
@@ -255,9 +229,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
 
   for (const device of config.devices) {
     if (device.repaintTrigger === "subscription" && device.triggerPath) {
-      const stream = app.streambundle
-        .getSelfStream(device.triggerPath as Path)
-        .debounce(SUBSCRIPTION_DEBOUNCE_MS);
+      const stream = app.streambundle.getSelfStream(device.triggerPath as Path).debounce(SUBSCRIPTION_DEBOUNCE_MS);
       const unsub = stream.onValue(() => repaint(device));
       unsubscribes.push(unsub);
     }

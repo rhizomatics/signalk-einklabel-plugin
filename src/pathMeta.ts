@@ -21,10 +21,7 @@ function metaContextPath(context: string): string {
  * bound directly to the unenhanced `@signalk/path-metadata` package), so both the live plugin
  * (repaintScheduler.ts) and the CLI (cli/liveContext.ts) fetch it the same way, over HTTP.
  */
-export async function fetchPathMeta(
-  apiUrl: string,
-  context: string,
-): Promise<Record<string, PathMetadata>> {
+export async function fetchPathMeta(apiUrl: string, context: string): Promise<Record<string, PathMetadata>> {
   const url = `${apiUrl}/signalk/v1/api/${metaContextPath(context)}/meta`;
   return (await fetchJson(url)) as Record<string, PathMetadata>;
 }

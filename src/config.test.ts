@@ -5,15 +5,7 @@ import { homedir, tmpdir } from "os";
 import { join } from "path";
 import { ServerAPI } from "@signalk/server-api";
 import { DiscoveredDevice } from "./devices/types";
-import {
-  configSchema,
-  configUiSchema,
-  defaultConfig,
-  parseDevice,
-  PluginConfig,
-  resolveTemplatePath,
-  resolveTemplatesDir,
-} from "./config";
+import { configSchema, configUiSchema, defaultConfig, parseDevice, PluginConfig, resolveTemplatePath, resolveTemplatesDir } from "./config";
 
 function fakeApp(options: Partial<PluginConfig> = {}): ServerAPI {
   return { readPluginOptions: () => options } as unknown as ServerAPI;
@@ -96,85 +88,63 @@ test("resolveTemplatePath", async (t) => {
 });
 
 test("configSchema", async (t) => {
-  await t.test(
-    "lists local and bundled template names, with a local one shadowing a same-named bundled one",
-    () => {
-      withTempDir((dir) => {
-        writeFileSync(join(dir, "custom.svg"), "<svg/>");
-        writeFileSync(join(dir, "tide.svg"), "<svg/>");
-        const schema = configSchema(fakeApp({ templatesDir: dir }), []) as any;
-        assert.deepEqual(schema.properties.devices.items.properties.templateName.enum, [
-          "custom.svg",
-          "tide.svg",
-        ]);
-      });
-    },
-  );
+  await t.test("lists local and bundled template names, with a local one shadowing a same-named bundled one", () => {
+    withTempDir((dir) => {
+      writeFileSync(join(dir, "custom.svg"), "<svg/>");
+      writeFileSync(join(dir, "tide.svg"), "<svg/>");
+      const schema = configSchema(fakeApp({ templatesDir: dir }), []) as any;
+      assert.deepEqual(schema.properties.devices.items.properties.templateName.enum, ["custom.svg", "tide.svg"]);
+    });
+  });
 
-  await t.test(
-    "builds the device enum/enumNames from discovered devices, skipping ones with no confirmed pid",
-    () => {
-      const discovered: DiscoveredDevice[] = [
-        {
-          address: "AA:AA:AA:AA:AA:AA",
-          vendor: "zhsunyco",
+  await t.test("builds the device enum/enumNames from discovered devices, skipping ones with no confirmed pid", () => {
+    const discovered: DiscoveredDevice[] = [
+      {
+        address: "AA:AA:AA:AA:AA:AA",
+        vendor: "zhsunyco",
+        pid: 14,
+        metadata: {
           pid: 14,
-          metadata: {
-            pid: 14,
-            label: "2.9in BWR",
-            width: 296,
-            height: 128,
-            voffset: 0,
-            colours: ["black", "white", "red"],
-          },
+          label: "2.9in BWR",
+          width: 296,
+          height: 128,
+          voffset: 0,
+          colours: ["black", "white", "red"],
         },
-        { address: "BB:BB:BB:BB:BB:BB", vendor: "zhsunyco", pid: 0x99, hwVersion: "v2" },
-        { address: "CC:CC:CC:CC:CC:CC", vendor: "zhsunyco" },
-      ];
-      const schema = configSchema(fakeApp(), discovered) as any;
-      const deviceSchema = schema.properties.devices.items.properties.device;
-      assert.deepEqual(deviceSchema.enum, [
-        "zhsunyco:14@AA:AA:AA:AA:AA:AA",
-        "zhsunyco:153:v2@BB:BB:BB:BB:BB:BB",
-      ]);
-      assert.deepEqual(deviceSchema.enumNames, [
-        "zhsunyco 2.9in BWR (AA:AA:AA:AA:AA:AA)",
-        "zhsunyco unrecognised PID 0x0099 (BB:BB:BB:BB:BB:BB)",
-      ]);
-    },
-  );
+      },
+      { address: "BB:BB:BB:BB:BB:BB", vendor: "zhsunyco", pid: 0x99, hwVersion: "v2" },
+      { address: "CC:CC:CC:CC:CC:CC", vendor: "zhsunyco" },
+    ];
+    const schema = configSchema(fakeApp(), discovered) as any;
+    const deviceSchema = schema.properties.devices.items.properties.device;
+    assert.deepEqual(deviceSchema.enum, ["zhsunyco:14@AA:AA:AA:AA:AA:AA", "zhsunyco:153:v2@BB:BB:BB:BB:BB:BB"]);
+    assert.deepEqual(deviceSchema.enumNames, [
+      "zhsunyco 2.9in BWR (AA:AA:AA:AA:AA:AA)",
+      "zhsunyco unrecognised PID 0x0099 (BB:BB:BB:BB:BB:BB)",
+    ]);
+  });
 
-  await t.test(
-    "keeps a saved device from the current config even if not seen in the last scan",
-    () => {
-      const app = fakeApp({
-        devices: [
-          {
-            friendlyName: "Galley label",
-            device: "zhsunyco:14@AA:AA:AA:AA:AA:AA",
-            templateName: "tide.svg",
-            repaintTrigger: "interval",
-          },
-        ],
-      });
-      const deviceSchema = (configSchema(app, []) as any).properties.devices.items.properties
-        .device;
-      assert.deepEqual(deviceSchema.enum, ["zhsunyco:14@AA:AA:AA:AA:AA:AA"]);
-      assert.deepEqual(deviceSchema.enumNames, [
-        "zhsunyco:14@AA:AA:AA:AA:AA:AA (not seen in last scan)",
-      ]);
-    },
-  );
+  await t.test("keeps a saved device from the current config even if not seen in the last scan", () => {
+    const app = fakeApp({
+      devices: [
+        {
+          friendlyName: "Galley label",
+          device: "zhsunyco:14@AA:AA:AA:AA:AA:AA",
+          templateName: "tide.svg",
+          repaintTrigger: "interval",
+        },
+      ],
+    });
+    const deviceSchema = (configSchema(app, []) as any).properties.devices.items.properties.device;
+    assert.deepEqual(deviceSchema.enum, ["zhsunyco:14@AA:AA:AA:AA:AA:AA"]);
+    assert.deepEqual(deviceSchema.enumNames, ["zhsunyco:14@AA:AA:AA:AA:AA:AA (not seen in last scan)"]);
+  });
 
-  await t.test(
-    "omits enum/enumNames entirely when there are no device options, since JSON Schema forbids an empty enum",
-    () => {
-      const deviceSchema = (configSchema(fakeApp(), []) as any).properties.devices.items.properties
-        .device;
-      assert.equal("enum" in deviceSchema, false);
-      assert.equal("enumNames" in deviceSchema, false);
-    },
-  );
+  await t.test("omits enum/enumNames entirely when there are no device options, since JSON Schema forbids an empty enum", () => {
+    const deviceSchema = (configSchema(fakeApp(), []) as any).properties.devices.items.properties.device;
+    assert.equal("enum" in deviceSchema, false);
+    assert.equal("enumNames" in deviceSchema, false);
+  });
 
   await t.test("carries defaultConfig() values through as JSON Schema defaults", () => {
     const schema = configSchema(fakeApp(), []) as any;

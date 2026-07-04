@@ -7,45 +7,31 @@ import { DiscoveredDevice } from "./devices/types";
 import { startRepaintScheduler, RepaintScheduler } from "./repaintScheduler";
 
 /** Mirrors signalk-bluetti-plugin's convention: scan briefly, report finds via plugin status for the user to copy-paste. */
-async function runStartupScan(
-  app: ServerAPI,
-  discovered: DiscoveredDevice[],
-  durationSeconds: number,
-): Promise<void> {
+async function runStartupScan(app: ServerAPI, discovered: DiscoveredDevice[], durationSeconds: number): Promise<void> {
   app.setPluginStatus(`Scanning for ESL devices for ${durationSeconds}s...`);
   const startedAt = Date.now();
   let scanError: string | undefined;
   const drivers = allDrivers();
   try {
     await withDiscovery(durationSeconds * 1000, async (adapter) => {
-      await forEachAdvertisedDevice(
-        adapter,
-        async ({ device, address, name, manufacturerId, manufacturerData }) => {
-          const driver = drivers.find((candidate) =>
-            candidate.matchesAdvertisement(name, manufacturerId),
-          );
-          if (!driver) {
-            return;
-          }
-          const found = await driver
-            .identifyDevice(device, address, name, manufacturerId, manufacturerData)
-            .catch((err) => {
-              scanError = `${driver.vendor} scan failed: ${err.message}`;
-              app.debug(`${scanError}\n${err.stack ?? ""}`);
-              return undefined;
-            });
-          if (!found) {
-            return;
-          }
-          discovered.push(found);
-          const pid =
-            found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, "0")}` : "unknown";
-          const hwid = found.hwVersion ?? "unknown";
-          app.debug(
-            `discovered ${driver.vendor} device "${found.name ?? ""}" [${found.address}] pid=${pid} hwid=${hwid}`,
-          );
-        },
-      );
+      await forEachAdvertisedDevice(adapter, async ({ device, address, name, manufacturerId, manufacturerData }) => {
+        const driver = drivers.find((candidate) => candidate.matchesAdvertisement(name, manufacturerId));
+        if (!driver) {
+          return;
+        }
+        const found = await driver.identifyDevice(device, address, name, manufacturerId, manufacturerData).catch((err) => {
+          scanError = `${driver.vendor} scan failed: ${err.message}`;
+          app.debug(`${scanError}\n${err.stack ?? ""}`);
+          return undefined;
+        });
+        if (!found) {
+          return;
+        }
+        discovered.push(found);
+        const pid = found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, "0")}` : "unknown";
+        const hwid = found.hwVersion ?? "unknown";
+        app.debug(`discovered ${driver.vendor} device "${found.name ?? ""}" [${found.address}] pid=${pid} hwid=${hwid}`);
+      });
     });
   } catch (err) {
     // Without this, an error thrown anywhere in the discovery window (e.g. BlueZ dropping the
@@ -59,14 +45,10 @@ async function runStartupScan(
   app.setPluginError(scanError ?? "");
   const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
   if (discovered.length === 0) {
-    app.setPluginStatus(
-      `Scan complete - no ESL devices found nearby after ${elapsedSeconds} seconds.`,
-    );
+    app.setPluginStatus(`Scan complete - no ESL devices found nearby after ${elapsedSeconds} seconds.`);
     return;
   }
-  const summary = discovered
-    .map((device) => `${device.name ?? device.vendor} [${device.address}]`)
-    .join(", ");
+  const summary = discovered.map((device) => `${device.name ?? device.vendor} [${device.address}]`).join(", ");
   app.setPluginStatus(
     `Scan complete - found ${discovered.length} device(s) in ${elapsedSeconds}s: ${summary} - pick one from a device's "Device" field below`,
   );
@@ -109,8 +91,8 @@ export function createPlugin(app: ServerAPI): Plugin {
         } else {
           lastDiscovered.length = 0;
           scanStartedAt = Date.now();
-          const scan = runStartupScan(app, lastDiscovered, pluginConfig.scanDurationSeconds).catch(
-            (err) => app.debug(`startup scan failed: ${err.message}`),
+          const scan = runStartupScan(app, lastDiscovered, pluginConfig.scanDurationSeconds).catch((err) =>
+            app.debug(`startup scan failed: ${err.message}`),
           );
           scanInProgress = scan;
           scan.finally(() => {

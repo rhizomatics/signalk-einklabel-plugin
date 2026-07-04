@@ -11,24 +11,16 @@ import {
   withRetries,
 } from "./bleDiscovery";
 
-test(
-  "createBluetooth refuses to run on a non-Linux platform",
-  { skip: process.platform === "linux" },
-  () => {
-    assert.throws(() => createBluetooth(), /requires Linux/);
-  },
-);
+test("createBluetooth refuses to run on a non-Linux platform", { skip: process.platform === "linux" }, () => {
+  assert.throws(() => createBluetooth(), /requires Linux/);
+});
 
-test(
-  "withDiscovery refuses to run on a non-Linux platform",
-  { skip: process.platform === "linux" },
-  async () => {
-    await assert.rejects(
-      withDiscovery(10, async () => "unreachable"),
-      /requires Linux/,
-    );
-  },
-);
+test("withDiscovery refuses to run on a non-Linux platform", { skip: process.platform === "linux" }, async () => {
+  await assert.rejects(
+    withDiscovery(10, async () => "unreachable"),
+    /requires Linux/,
+  );
+});
 
 test("getManufacturerId", async (t) => {
   await t.test("returns the numeric key of the advertised manufacturer data", async () => {
@@ -133,32 +125,29 @@ test("getOrDiscoverDevice", async (t) => {
     assert.equal(startDiscoveryCalls, 0);
   });
 
-  await t.test(
-    "starts and stops discovery around waitDevice when BlueZ has no cached device",
-    async () => {
-      const device = {} as unknown as Device;
-      const calls: string[] = [];
-      const adapter = {
-        getDevice: async () => {
-          throw new Error("org.bluez.Error.DoesNotExist");
-        },
-        isDiscovering: async () => false,
-        startDiscovery: async () => {
-          calls.push("start");
-        },
-        stopDiscovery: async () => {
-          calls.push("stop");
-        },
-        waitDevice: async () => {
-          calls.push("wait");
-          return device;
-        },
-      } as unknown as Adapter;
+  await t.test("starts and stops discovery around waitDevice when BlueZ has no cached device", async () => {
+    const device = {} as unknown as Device;
+    const calls: string[] = [];
+    const adapter = {
+      getDevice: async () => {
+        throw new Error("org.bluez.Error.DoesNotExist");
+      },
+      isDiscovering: async () => false,
+      startDiscovery: async () => {
+        calls.push("start");
+      },
+      stopDiscovery: async () => {
+        calls.push("stop");
+      },
+      waitDevice: async () => {
+        calls.push("wait");
+        return device;
+      },
+    } as unknown as Adapter;
 
-      assert.equal(await getOrDiscoverDevice(adapter, "AA:AA:AA:AA:AA:AA", 1000), device);
-      assert.deepEqual(calls, ["start", "wait", "stop"]);
-    },
-  );
+    assert.equal(await getOrDiscoverDevice(adapter, "AA:AA:AA:AA:AA:AA", 1000), device);
+    assert.deepEqual(calls, ["start", "wait", "stop"]);
+  });
 
   await t.test("does not toggle discovery when it was already running", async () => {
     const device = {} as unknown as Device;
@@ -184,34 +173,28 @@ test("getOrDiscoverDevice", async (t) => {
     assert.deepEqual(calls, ["wait"]);
   });
 
-  await t.test(
-    "stops discovery even when waitDevice rejects (device never showed up)",
-    async () => {
-      const calls: string[] = [];
-      const adapter = {
-        getDevice: async () => {
-          throw new Error("org.bluez.Error.DoesNotExist");
-        },
-        isDiscovering: async () => false,
-        startDiscovery: async () => {
-          calls.push("start");
-        },
-        stopDiscovery: async () => {
-          calls.push("stop");
-        },
-        waitDevice: async () => {
-          calls.push("wait");
-          throw new Error("timed out waiting for device");
-        },
-      } as unknown as Adapter;
+  await t.test("stops discovery even when waitDevice rejects (device never showed up)", async () => {
+    const calls: string[] = [];
+    const adapter = {
+      getDevice: async () => {
+        throw new Error("org.bluez.Error.DoesNotExist");
+      },
+      isDiscovering: async () => false,
+      startDiscovery: async () => {
+        calls.push("start");
+      },
+      stopDiscovery: async () => {
+        calls.push("stop");
+      },
+      waitDevice: async () => {
+        calls.push("wait");
+        throw new Error("timed out waiting for device");
+      },
+    } as unknown as Adapter;
 
-      await assert.rejects(
-        getOrDiscoverDevice(adapter, "AA:AA:AA:AA:AA:AA", 1000),
-        /timed out waiting for device/,
-      );
-      assert.deepEqual(calls, ["start", "wait", "stop"]);
-    },
-  );
+    await assert.rejects(getOrDiscoverDevice(adapter, "AA:AA:AA:AA:AA:AA", 1000), /timed out waiting for device/);
+    assert.deepEqual(calls, ["start", "wait", "stop"]);
+  });
 });
 
 test("withRetries", async (t) => {

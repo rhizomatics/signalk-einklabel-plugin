@@ -34,19 +34,12 @@ export class ZhsunycoDriver implements VendorDriver {
   readonly vendor = "zhsunyco";
 
   matchesAdvertisement(name: string | undefined, manufacturerId: number | undefined): boolean {
-    return (
-      manufacturerId === ZHSUNYCO_MANUFACTURER_ID ||
-      (name ?? "").startsWith("WL") ||
-      (name ?? "").startsWith("WOESL")
-    );
+    return manufacturerId === ZHSUNYCO_MANUFACTURER_ID || (name ?? "").startsWith("WL") || (name ?? "").startsWith("WOESL");
   }
 
   metadataForPid(pid: number, hwVersion?: string): DeviceMetadata | undefined {
     const candidates = ZHSUNYCO_PID_METADATA.filter((model) => model.pid === pid);
-    return (
-      candidates.find((model) => model.hwVersion === hwVersion) ??
-      candidates.find((model) => model.hwVersion === undefined)
-    );
+    return candidates.find((model) => model.hwVersion === hwVersion) ?? candidates.find((model) => model.hwVersion === undefined);
   }
 
   supportedDevices(): DeviceMetadata[] {
@@ -84,11 +77,7 @@ export class ZhsunycoDriver implements VendorDriver {
     const { bluetooth, destroy } = createBluetooth();
     try {
       const adapter = await bluetooth.defaultAdapter();
-      const device = await getOrDiscoverDevice(
-        adapter,
-        config.address,
-        DEVICE_DISCOVERY_TIMEOUT_MS,
-      );
+      const device = await getOrDiscoverDevice(adapter, config.address, DEVICE_DISCOVERY_TIMEOUT_MS);
 
       await connectWithTimeout(device, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
       try {
@@ -103,9 +92,7 @@ export class ZhsunycoDriver implements VendorDriver {
         if (!info) {
           throw new Error("zhsunyco device did not return valid config data");
         }
-        const metadata = config.modelOverride
-          ? { pid: info.pid, ...config.modelOverride }
-          : this.metadataForPid(info.pid, info.hwVersion);
+        const metadata = config.modelOverride ? { pid: info.pid, ...config.modelOverride } : this.metadataForPid(info.pid, info.hwVersion);
         if (!metadata) {
           throw new Error(
             `zhsunyco device reports unrecognised PID 0x${info.pid.toString(16).padStart(4, "0")} - ` +
@@ -119,11 +106,7 @@ export class ZhsunycoDriver implements VendorDriver {
             if (errorCode === 0) {
               resolve();
             } else {
-              reject(
-                new Error(
-                  `zhsunyco device reported error 0x${errorCode.toString(16).padStart(2, "0")} after refresh`,
-                ),
-              );
+              reject(new Error(`zhsunyco device reported error 0x${errorCode.toString(16).padStart(2, "0")} after refresh`));
             }
           });
         });
@@ -136,14 +119,10 @@ export class ZhsunycoDriver implements VendorDriver {
         const pixelData = encodeBitmap(bitmap, metadata);
         for (let offset = 0; offset < pixelData.length; offset += UPLOAD_CHUNK_SIZE) {
           const chunk = pixelData.subarray(offset, offset + UPLOAD_CHUNK_SIZE);
-          await dataChar.writeValueWithResponse(
-            Buffer.concat([commandHeader(COMMAND.uploadBlock, offset), chunk]),
-          );
+          await dataChar.writeValueWithResponse(Buffer.concat([commandHeader(COMMAND.uploadBlock, offset), chunk]));
           await sleep(CHUNK_WRITE_DELAY_MS);
         }
-        await dataChar.writeValueWithResponse(
-          commandHeader(COMMAND.refreshUncompressed, pixelData.length),
-        );
+        await dataChar.writeValueWithResponse(commandHeader(COMMAND.refreshUncompressed, pixelData.length));
 
         await Promise.race([statusReceived, sleep(STATUS_WAIT_TIMEOUT_MS)]);
       } finally {
@@ -192,9 +171,7 @@ async function readDeviceDetails(
       // out of range) should still show up in the scan with whatever the advertisement itself
       // carried, just without battery/PID-by-read. Logged so a blank battery column has a reason
       // instead of looking like the read was simply never attempted.
-      console.error(
-        `${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read failed: ${(err as Error).message}`,
-      );
+      console.error(`${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read failed: ${(err as Error).message}`);
       return fallback;
     }
   };
@@ -205,9 +182,7 @@ async function readDeviceDetails(
   return Promise.race([
     read(),
     sleep(SCAN_CONNECT_TIMEOUT_MS * 2).then(() => {
-      console.error(
-        `${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read timed out after ${SCAN_CONNECT_TIMEOUT_MS * 2}ms`,
-      );
+      console.error(`${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read timed out after ${SCAN_CONNECT_TIMEOUT_MS * 2}ms`);
       return fallback;
     }),
   ]);
