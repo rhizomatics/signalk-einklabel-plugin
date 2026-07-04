@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import { dirname } from 'path';
 import { DOMParser, Element as XmlElement, XMLSerializer } from '@xmldom/xmldom';
 import { Resvg, initWasm } from '@resvg/resvg-wasm';
 import { Bitmap, Renderer, TemplateContext } from './types';
@@ -6,6 +7,7 @@ import { parseBinding, renderBinding, resolveBinding } from './binding';
 import { describeAssetsDirProblem, normalizeAssetKey, resolveAssetPath } from './assets';
 import { DEFAULT_FONT_PATHS, GENERIC_FONT_FAMILY_MAP } from './fonts';
 import { PLUGIN_NAME } from '../pluginVersion';
+import { BUNDLED_TEMPLATES_DIR } from '../config';
 
 let wasmReady: Promise<void> | undefined;
 
@@ -57,13 +59,13 @@ function expandGenericFontFamilies(svgSource: string): string {
  * whole tree and rendered blank.
  *
  * Non-textual inclusion: an `<image>` element with a `<desc>` child works the same way, except the
- * resolved value picks one of a directory of `.svg` files (an `assets=` key, required, names that
- * directory, tried first relative to `svgTemplatePath` and then, if given, relative to
- * `fallbackTemplateDir` - see `resolveAssetPath` in `./assets.ts`) rather than substituting text,
- * and the element is dropped entirely (rather than showing an error placeholder) whenever the value
- * is unavailable or doesn't map to a file - e.g. a device without the `derived-data` plugin
- * installed simply shows no moon-phase icon. The matched file's contents are inlined as a
- * `data:image/svg+xml;base64,...` URI so no filesystem access happens at resvg-wasm's render step.
+ * resolved value picks one of a directory of `.svg` files (an `assets=` key, required, names an
+ * `assets/<name>` directory looked up under `templatesDir` first and `BUNDLED_TEMPLATES_DIR` otherwise
+ * - see `resolveAssetPath` in `./assets.ts`) rather than substituting text, and the element is dropped
+ * entirely (rather than showing an error placeholder) whenever the value is unavailable or doesn't map
+ * to a file - e.g. a device without the `derived-data` plugin installed simply shows no moon-phase
+ * icon. The matched file's contents are inlined as a `data:image/svg+xml;base64,...` URI so no
+ * filesystem access happens at resvg-wasm's render step.
  *
  * resvg-wasm cannot see the host's installed fonts (`loadSystemFonts`/`fontFiles`
  * are silently no-ops under plain Node) - it only renders text if given font
@@ -93,7 +95,8 @@ export class SvgRenderer implements Renderer {
     context: TemplateContext,
     width: number,
     height: number,
-    fallbackTemplateDir?: string,
+    templatesDir: string = dirname(svgTemplatePath),
+    bundledTemplatesDir: string = BUNDLED_TEMPLATES_DIR,
   ): Promise<Bitmap> {
     const [, fontBuffers] = await Promise.all([ensureWasmInitialized(), this.loadFontBuffers()]);
 
@@ -142,9 +145,9 @@ export class SvgRenderer implements Renderer {
           throw new Error('an <image> binding requires an "assets" key naming the directory to pick a file from');
         }
         const key = normalizeAssetKey(resolveBinding(binding, context));
-        const assetPath = key && resolveAssetPath(svgTemplatePath, binding.assets, key, fallbackTemplateDir);
+        const assetPath = key && resolveAssetPath(templatesDir, bundledTemplatesDir, binding.assets, key);
         if (!assetPath) {
-          const dirProblem = describeAssetsDirProblem(svgTemplatePath, binding.assets, fallbackTemplateDir);
+          const dirProblem = describeAssetsDirProblem(templatesDir, bundledTemplatesDir, binding.assets);
           console.error(
             key
               ? `${PLUGIN_NAME}: image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`

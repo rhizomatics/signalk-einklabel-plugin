@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from 'fs/promises';
-import { basename } from 'path';
+import { basename, dirname } from 'path';
 import { Command } from 'commander';
 import { DOMParser } from '@xmldom/xmldom';
 import { allDrivers, getDriver, registerDriver } from '../devices/registry';
@@ -235,7 +235,7 @@ program
     const bindings = findBindings(await readFile(opts.template, 'utf-8'));
     const context = await assembleContext(opts, bindings);
     const renderer = new SvgRenderer();
-    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height), BUNDLED_TEMPLATES_DIR);
+    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height), dirname(opts.template), BUNDLED_TEMPLATES_DIR);
     const connectTimeoutMs = Number(opts.connectTimeout) * 1000;
     await withRetries(Number(opts.retries), async (attempt) => {
       if (attempt > 1) {
@@ -272,7 +272,7 @@ program
     const bindings = findBindings(await readFile(opts.template, 'utf-8'));
     const context = await assembleContext(opts, bindings);
     const renderer = opts.font ? new SvgRenderer(opts.font) : new SvgRenderer();
-    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height), BUNDLED_TEMPLATES_DIR);
+    const bitmap = await renderer.render(opts.template, context, Number(opts.width), Number(opts.height), dirname(opts.template), BUNDLED_TEMPLATES_DIR);
     await writeFile(opts.output, bitmapToPng(bitmap));
     console.log(`wrote ${opts.output} (${bitmap.width}x${bitmap.height})`);
   });

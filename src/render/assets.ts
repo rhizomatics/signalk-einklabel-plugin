@@ -1,5 +1,5 @@
 import { accessSync, constants, existsSync, statSync } from 'fs';
-import { dirname, join } from 'path';
+import { join } from 'path';
 
 /**
  * Turns a resolved binding value into a filename stem, e.g. `"Waning Gibbous"` -> `"waning_gibbous"` -
@@ -18,24 +18,35 @@ export function normalizeAssetKey(value: unknown): string | undefined {
 }
 
 /**
- * Resolves an `assets=` binding to an actual `.svg` file, looked up as `<key>.svg` inside `assetsDir`
- * resolved relative to the template's own directory first - so a fully custom template can ship its
- * own asset set right alongside itself. If that misses and `fallbackTemplateDir` is given (the
- * package's own bundled `templates/` directory - see `BUNDLED_TEMPLATES_DIR` in `../config.ts`), also
- * tries `assetsDir` relative to *that* - so overriding a bundled template (e.g. to retouch its layout)
- * doesn't also require duplicating the bundled resources (e.g. `resources/svg/lunar_phases`) alongside
- * the override just to keep a binding it never touched working. `undefined` if neither has a matching
- * file, which callers treat as "no image" rather than an error, since an unmapped value (e.g. a phase
- * name the asset set doesn't cover) is an expected, not exceptional, case.
+ * Picks which `assets/<assetsName>` directory an `assets=` binding should read from - the user's own
+ * `templatesDir/assets/<assetsName>` if it exists as a directory at all, otherwise
+ * `bundledTemplatesDir/assets/<assetsName>` (see `BUNDLED_TEMPLATES_DIR` in `../config.ts`). This is a
+ * whole-directory choice, not a per-file merge: a user who provides their own `assets/lunar_phases`
+ * directory (even a partial one, missing some phases) gets exactly that directory and nothing from the
+ * bundled set, so it's always clear which files are in play - see the module's "overrides only work at
+ * directory level" design note. This choice is independent of which template file (bundled or a user
+ * override) ended up being rendered, so a user can override just a template, just its resources, or
+ * both, in any combination.
  */
-export function resolveAssetPath(templatePath: string, assetsDir: string, key: string, fallbackTemplateDir?: string): string | undefined {
-  const primary = join(dirname(templatePath), assetsDir, `${key}.svg`);
-  if (existsSync(primary)) return primary;
-  if (fallbackTemplateDir) {
-    const fallback = join(fallbackTemplateDir, assetsDir, `${key}.svg`);
-    if (existsSync(fallback)) return fallback;
+function selectAssetsDir(templatesDir: string, bundledTemplatesDir: string, assetsName: string): string {
+  const userDir = join(templatesDir, 'assets', assetsName);
+  try {
+    if (statSync(userDir).isDirectory()) return userDir;
+  } catch {
+    // doesn't exist (or isn't readable) - fall through to the bundled directory
   }
-  return undefined;
+  return join(bundledTemplatesDir, 'assets', assetsName);
+}
+
+/**
+ * Resolves an `assets=` binding to an actual `.svg` file, looked up as `<key>.svg` inside whichever
+ * `assets/<assetsName>` directory `selectAssetsDir` picks. `undefined` if that directory has no
+ * matching file, which callers treat as "no image" rather than an error, since an unmapped value
+ * (e.g. a phase name the asset set doesn't cover) is an expected, not exceptional, case.
+ */
+export function resolveAssetPath(templatesDir: string, bundledTemplatesDir: string, assetsName: string, key: string): string | undefined {
+  const candidate = join(selectAssetsDir(templatesDir, bundledTemplatesDir, assetsName), `${key}.svg`);
+  return existsSync(candidate) ? candidate : undefined;
 }
 
 /** `undefined` when `dir` is a readable directory - otherwise a human-readable reason it isn't. */
@@ -58,17 +69,13 @@ function describeDir(dir: string): string | undefined {
 
 /**
  * Diagnoses why an `assets=` directory itself might be at fault, for a caller to log when
- * `resolveAssetPath` comes back empty - a wrong/misconfigured `assets=` directory (typo, moved
- * template, unreadable permissions) looks identical to "this value just has no icon" from
- * `resolveAssetPath` alone, and the two need very different fixes. Checks the same primary/fallback
- * pair `resolveAssetPath` tried; returns `undefined` only when at least one of them is a fine
- * (existing, readable) directory - the miss is then just this value's, not the directory's.
+ * `resolveAssetPath` comes back empty - a wrong/misconfigured `assets=` name (typo, nothing bundled or
+ * user-supplied under that name) looks identical to "this value just has no icon" from
+ * `resolveAssetPath` alone, and the two need very different fixes. Checks the same directory
+ * `resolveAssetPath` would have read from; `undefined` when that directory is fine (exists, is a
+ * directory, is readable) - the miss is then just this value's.
  */
-export function describeAssetsDirProblem(templatePath: string, assetsDir: string, fallbackTemplateDir?: string): string | undefined {
-  const primaryProblem = describeDir(join(dirname(templatePath), assetsDir));
-  if (!fallbackTemplateDir) return primaryProblem && `assets directory ${primaryProblem}`;
-
-  const fallbackProblem = describeDir(join(fallbackTemplateDir, assetsDir));
-  if (!primaryProblem || !fallbackProblem) return undefined;
-  return `assets directory ${primaryProblem}, and bundled fallback ${fallbackProblem}`;
+export function describeAssetsDirProblem(templatesDir: string, bundledTemplatesDir: string, assetsName: string): string | undefined {
+  const problem = describeDir(selectAssetsDir(templatesDir, bundledTemplatesDir, assetsName));
+  return problem && `assets directory ${problem}`;
 }

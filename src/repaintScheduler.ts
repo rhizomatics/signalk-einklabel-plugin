@@ -151,7 +151,8 @@ async function considerRepaint(
     app.debug(`"${device.friendlyName}": no driver/metadata for device "${device.device}", skipping`);
     return;
   }
-  const templatePath = resolveTemplatePath(resolveTemplatesDir(config.templatesDir), device.templateName);
+  const templatesDir = resolveTemplatesDir(config.templatesDir);
+  const templatePath = resolveTemplatePath(templatesDir, device.templateName);
   const bindings = findBindings(readFileSync(templatePath, 'utf-8'));
 
   const apiUrl = await getApiUrl().catch((err) => {
@@ -179,6 +180,7 @@ async function considerRepaint(
     renderContext,
     metadata.width,
     metadata.height - metadata.voffset,
+    templatesDir,
     BUNDLED_TEMPLATES_DIR,
   );
   const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;

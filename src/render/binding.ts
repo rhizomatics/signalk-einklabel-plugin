@@ -21,7 +21,14 @@ export interface Binding {
   /** Explicit unit-preferences category (e.g. `depth`, `speed`, `temperature`) for a numeric value with no path metadata of its own, e.g. a `source=resources` value - see `../unitCategories.ts`. */
   category?: string;
   round?: number;
-  /** Only meaningful on an `<image>` element's binding (see `SvgRenderer`) - a directory, resolved relative to the template file, of `<value>.svg` files to pick from by the resolved value (see `../assets.ts`'s `normalizeAssetKey`). */
+  /**
+   * Only meaningful on an `<image>` element's binding (see `SvgRenderer`) - names an `assets/<name>`
+   * directory (e.g. `assets=lunar_phases` for `templates/assets/lunar_phases/`) of `<value>.svg` files
+   * to pick from by the resolved value (see `../assets.ts`'s `normalizeAssetKey`/`resolveAssetPath`).
+   * Looked up under the user's configured templates directory first, then the plugin's own bundled
+   * `templates/` directory - never relative to the specific template file itself, so overriding a
+   * template doesn't also require duplicating its bundled asset sets.
+   */
   assets?: string;
 }
 
