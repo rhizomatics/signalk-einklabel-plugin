@@ -1,19 +1,21 @@
-import { readFile } from 'fs/promises';
-import { dirname } from 'path';
-import { DOMParser, Element as XmlElement, XMLSerializer } from '@xmldom/xmldom';
-import { Resvg, initWasm } from '@resvg/resvg-wasm';
-import { Bitmap, Renderer, TemplateContext } from './types';
-import { parseBinding, renderBinding, resolveBinding } from './binding';
-import { describeAssetsDirProblem, normalizeAssetKey, resolveAssetPath } from './assets';
-import { DEFAULT_FONT_PATHS, GENERIC_FONT_FAMILY_MAP } from './fonts';
-import { PLUGIN_NAME } from '../pluginVersion';
-import { BUNDLED_TEMPLATES_DIR } from '../config';
+import { readFile } from "fs/promises";
+import { dirname } from "path";
+import { DOMParser, Element as XmlElement, XMLSerializer } from "@xmldom/xmldom";
+import { Resvg, initWasm } from "@resvg/resvg-wasm";
+import { Bitmap, Renderer, TemplateContext } from "./types";
+import { parseBinding, renderBinding, resolveBinding } from "./binding";
+import { describeAssetsDirProblem, normalizeAssetKey, resolveAssetPath } from "./assets";
+import { DEFAULT_FONT_PATHS, GENERIC_FONT_FAMILY_MAP } from "./fonts";
+import { PLUGIN_NAME } from "../pluginVersion";
+import { BUNDLED_TEMPLATES_DIR } from "../config";
 
 let wasmReady: Promise<void> | undefined;
 
 function ensureWasmInitialized(): Promise<void> {
   if (!wasmReady) {
-    wasmReady = readFile(require.resolve('@resvg/resvg-wasm/index_bg.wasm')).then((buffer) => initWasm(buffer));
+    wasmReady = readFile(require.resolve("@resvg/resvg-wasm/index_bg.wasm")).then((buffer) =>
+      initWasm(buffer),
+    );
   }
   return wasmReady;
 }
@@ -23,7 +25,8 @@ function ensureWasmInitialized(): Promise<void> {
 // quote-aware handling of the surrounding XML attribute delimiter to avoid corrupting the
 // document, and it's unnecessary: resvg-wasm (and any browser) prefers the style declaration
 // whenever both are present, and every <text>/<tspan> in our templates sets one.
-const GENERIC_FONT_FAMILY_PATTERN = /font-family\s*:\s*(['"]?)(sans-serif|serif|monospace)\1(?=\s*[;"])/g;
+const GENERIC_FONT_FAMILY_PATTERN =
+  /font-family\s*:\s*(['"]?)(sans-serif|serif|monospace)\1(?=\s*[;"])/g;
 
 /**
  * Rewrites CSS generic font-family keywords to the literal embedded name of the bundled font
@@ -36,9 +39,12 @@ const GENERIC_FONT_FAMILY_PATTERN = /font-family\s*:\s*(['"]?)(sans-serif|serif|
  * CSS for preview in e.g. Inkscape or a browser; it's inert as far as resvg-wasm is concerned.
  */
 function expandGenericFontFamilies(svgSource: string): string {
-  return svgSource.replace(GENERIC_FONT_FAMILY_PATTERN, (_match, _quote: string, generic: string) => {
-    return `font-family:'${GENERIC_FONT_FAMILY_MAP[generic]}',${generic}`;
-  });
+  return svgSource.replace(
+    GENERIC_FONT_FAMILY_PATTERN,
+    (_match, _quote: string, generic: string) => {
+      return `font-family:'${GENERIC_FONT_FAMILY_MAP[generic]}',${generic}`;
+    },
+  );
 }
 
 /**
@@ -79,13 +85,17 @@ export class SvgRenderer implements Renderer {
 
   constructor(private readonly fontPaths: string[] = DEFAULT_FONT_PATHS) {
     if (fontPaths.length === 0) {
-      throw new Error('SvgRenderer requires at least one font path - resvg-wasm cannot use host system fonts');
+      throw new Error(
+        "SvgRenderer requires at least one font path - resvg-wasm cannot use host system fonts",
+      );
     }
   }
 
   private loadFontBuffers(): Promise<Uint8Array[]> {
     if (!this.fontBuffers) {
-      this.fontBuffers = Promise.all(this.fontPaths.map(async (path) => new Uint8Array(await readFile(path))));
+      this.fontBuffers = Promise.all(
+        this.fontPaths.map(async (path) => new Uint8Array(await readFile(path))),
+      );
     }
     return this.fontBuffers;
   }
@@ -100,25 +110,27 @@ export class SvgRenderer implements Renderer {
   ): Promise<Bitmap> {
     const [, fontBuffers] = await Promise.all([ensureWasmInitialized(), this.loadFontBuffers()]);
 
-    const svgSource = expandGenericFontFamilies(await readFile(svgTemplatePath, 'utf-8'));
-    const doc = new DOMParser().parseFromString(svgSource, 'image/svg+xml');
-    const elements = doc.getElementsByTagName('text');
+    const svgSource = expandGenericFontFamilies(await readFile(svgTemplatePath, "utf-8"));
+    const doc = new DOMParser().parseFromString(svgSource, "image/svg+xml");
+    const elements = doc.getElementsByTagName("text");
 
     for (let i = 0; i < elements.length; i++) {
       const element = elements.item(i);
       if (!element) continue;
 
-      const descElement = element.getElementsByTagName('desc').item(0);
+      const descElement = element.getElementsByTagName("desc").item(0);
       if (!descElement) continue;
 
       // Scoped to this one element - a single bad/unavailable binding (e.g. a resource that hasn't
       // loaded yet) must not blank out every other field on the label, nor abort the whole repaint.
       try {
-        const binding = parseBinding(descElement.textContent ?? '');
+        const binding = parseBinding(descElement.textContent ?? "");
         element.textContent = renderBinding(binding, context);
       } catch (err) {
-        console.error(`${PLUGIN_NAME}: field "${descElement.textContent}" failed to render: ${(err as Error).message}`);
-        element.textContent = 'ERROR';
+        console.error(
+          `${PLUGIN_NAME}: field "${descElement.textContent}" failed to render: ${(err as Error).message}`,
+        );
+        element.textContent = "ERROR";
       }
     }
 
@@ -126,28 +138,35 @@ export class SvgRenderer implements Renderer {
     // removed outright (see below), and removing from a live NodeList while iterating it by index would
     // skip whatever shifts into the removed slot.
     const imageElements: XmlElement[] = [];
-    const rawImageElements = doc.getElementsByTagName('image');
+    const rawImageElements = doc.getElementsByTagName("image");
     for (let i = 0; i < rawImageElements.length; i++) {
       const element = rawImageElements.item(i);
       if (element) imageElements.push(element);
     }
 
     for (const element of imageElements) {
-      const descElement = element.getElementsByTagName('desc').item(0);
+      const descElement = element.getElementsByTagName("desc").item(0);
       if (!descElement) continue;
 
       // Same one-field-at-a-time isolation as the `<text>` loop - and the same "no value" outcome
       // (here, dropping the element rather than blanking to 'ERROR' text) for a value that isn't
       // available at all as for one that doesn't map to any asset file, per the binding's contract.
       try {
-        const binding = parseBinding(descElement.textContent ?? '');
+        const binding = parseBinding(descElement.textContent ?? "");
         if (!binding.assets) {
-          throw new Error('an <image> binding requires an "assets" key naming the directory to pick a file from');
+          throw new Error(
+            'an <image> binding requires an "assets" key naming the directory to pick a file from',
+          );
         }
         const key = normalizeAssetKey(resolveBinding(binding, context));
-        const assetPath = key && resolveAssetPath(templatesDir, bundledTemplatesDir, binding.assets, key);
+        const assetPath =
+          key && resolveAssetPath(templatesDir, bundledTemplatesDir, binding.assets, key);
         if (!assetPath) {
-          const dirProblem = describeAssetsDirProblem(templatesDir, bundledTemplatesDir, binding.assets);
+          const dirProblem = describeAssetsDirProblem(
+            templatesDir,
+            bundledTemplatesDir,
+            binding.assets,
+          );
           console.error(
             key
               ? `${PLUGIN_NAME}: image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
@@ -159,19 +178,21 @@ export class SvgRenderer implements Renderer {
           element.parentNode?.removeChild(element);
           continue;
         }
-        const assetSource = await readFile(assetPath, 'utf-8');
-        const dataUri = `data:image/svg+xml;base64,${Buffer.from(assetSource).toString('base64')}`;
-        const hrefAttr = element.getAttribute('href') !== null ? 'href' : 'xlink:href';
+        const assetSource = await readFile(assetPath, "utf-8");
+        const dataUri = `data:image/svg+xml;base64,${Buffer.from(assetSource).toString("base64")}`;
+        const hrefAttr = element.getAttribute("href") !== null ? "href" : "xlink:href";
         element.setAttribute(hrefAttr, dataUri);
       } catch (err) {
-        console.error(`${PLUGIN_NAME}: image "${descElement.textContent}" failed to render: ${(err as Error).message}`);
+        console.error(
+          `${PLUGIN_NAME}: image "${descElement.textContent}" failed to render: ${(err as Error).message}`,
+        );
         element.parentNode?.removeChild(element);
       }
     }
 
     const svgOutput = new XMLSerializer().serializeToString(doc);
     const resvg = new Resvg(svgOutput, {
-      fitTo: { mode: 'width', value: width },
+      fitTo: { mode: "width", value: width },
       font: { fontBuffers },
     });
     const rendered = resvg.render();

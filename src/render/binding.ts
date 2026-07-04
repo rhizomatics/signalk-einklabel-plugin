@@ -1,8 +1,8 @@
-import { DOMParser } from '@xmldom/xmldom';
-import { TemplateContext } from './types';
-import { applyFormat, DisplayUnits, formatDisplayUnits } from './formatters';
+import { DOMParser } from "@xmldom/xmldom";
+import { TemplateContext } from "./types";
+import { applyFormat, DisplayUnits, formatDisplayUnits } from "./formatters";
 
-const SOURCES = ['signalk', 'resources', 'einklabel'] as const;
+const SOURCES = ["signalk", "resources", "einklabel"] as const;
 type Source = (typeof SOURCES)[number];
 
 /**
@@ -32,7 +32,16 @@ export interface Binding {
   assets?: string;
 }
 
-const KNOWN_KEYS = new Set(['source', 'context', 'resource', 'path', 'format', 'category', 'round', 'assets']);
+const KNOWN_KEYS = new Set([
+  "source",
+  "context",
+  "resource",
+  "path",
+  "format",
+  "category",
+  "round",
+  "assets",
+]);
 
 /**
  * Parses a `<desc>` element's text content into a `Binding`, e.g.
@@ -45,15 +54,15 @@ const KNOWN_KEYS = new Set(['source', 'context', 'resource', 'path', 'format', '
  */
 export function parseBinding(desc: string): Binding {
   const trimmedDesc = desc.trim();
-  if (trimmedDesc && !trimmedDesc.includes('=')) {
-    return { source: 'signalk', context: 'self', path: trimmedDesc };
+  if (trimmedDesc && !trimmedDesc.includes("=")) {
+    return { source: "signalk", context: "self", path: trimmedDesc };
   }
 
   const fields: Record<string, string> = {};
-  for (const pair of desc.split(',')) {
+  for (const pair of desc.split(",")) {
     const trimmed = pair.trim();
     if (!trimmed) continue;
-    const eq = trimmed.indexOf('=');
+    const eq = trimmed.indexOf("=");
     if (eq < 0) {
       throw new Error(`invalid binding "${desc}" - expected "key=value" pairs, got "${trimmed}"`);
     }
@@ -64,12 +73,12 @@ export function parseBinding(desc: string): Binding {
     fields[key] = trimmed.slice(eq + 1).trim();
   }
 
-  const source = (fields.source ?? 'signalk') as Source;
+  const source = (fields.source ?? "signalk") as Source;
   if (!SOURCES.includes(source)) {
     throw new Error(`invalid binding "${desc}" - unknown source "${source}"`);
   }
-  const context = fields.context ?? 'self';
-  if (source === 'resources' && !fields.resource) {
+  const context = fields.context ?? "self";
+  if (source === "resources" && !fields.resource) {
     throw new Error(`invalid binding "${desc}" - source=resources requires a "resource" key`);
   }
   if (!fields.path) {
@@ -96,12 +105,12 @@ export function parseBinding(desc: string): Binding {
  * way as a `<text>` binding.
  */
 export function findBindings(svgSource: string): Binding[] {
-  const doc = new DOMParser().parseFromString(svgSource, 'image/svg+xml');
+  const doc = new DOMParser().parseFromString(svgSource, "image/svg+xml");
   const bindings: Binding[] = [];
-  for (const tagName of ['text', 'image']) {
+  for (const tagName of ["text", "image"]) {
     const elements = doc.getElementsByTagName(tagName);
     for (let i = 0; i < elements.length; i++) {
-      const desc = elements.item(i)?.getElementsByTagName('desc').item(0);
+      const desc = elements.item(i)?.getElementsByTagName("desc").item(0);
       if (desc?.textContent) {
         bindings.push(parseBinding(desc.textContent));
       }
@@ -113,12 +122,12 @@ export function findBindings(svgSource: string): Binding[] {
 /** Supports both `a.[0].b` and `a[0].b` array index notation, matching `setAtPath` in repaintScheduler.ts. */
 function getAtPath(obj: unknown, path: string): unknown {
   const segments = path
-    .replace(/\[(\d+)\]/g, '.$1')
-    .split('.')
+    .replace(/\[(\d+)\]/g, ".$1")
+    .split(".")
     .filter((segment) => segment.length > 0);
   let node: unknown = obj;
   for (const segment of segments) {
-    if (node === null || typeof node !== 'object') return undefined;
+    if (node === null || typeof node !== "object") return undefined;
     node = (node as Record<string, unknown>)[segment];
   }
   return node;
@@ -126,19 +135,23 @@ function getAtPath(obj: unknown, path: string): unknown {
 
 /** Resolves a parsed `Binding` against the render context assembled by `assembleRawContext`. */
 export function resolveBinding(binding: Binding, context: TemplateContext): unknown {
-  if (binding.source === 'signalk') {
+  if (binding.source === "signalk") {
     const signalk = context.signalk as Record<string, unknown> | undefined;
     const vessel = signalk?.[binding.context];
     if (vessel === undefined) {
-      throw new Error(`binding references context "${binding.context}" which is not present in the render context`);
+      throw new Error(
+        `binding references context "${binding.context}" which is not present in the render context`,
+      );
     }
     return getAtPath(vessel, binding.path);
   }
 
-  if (binding.source === 'einklabel') {
+  if (binding.source === "einklabel") {
     const meta = context.meta as Record<string, unknown> | undefined;
     if (meta === undefined) {
-      throw new Error('binding references source "einklabel" but no "meta" is present in the render context');
+      throw new Error(
+        'binding references source "einklabel" but no "meta" is present in the render context',
+      );
     }
     return getAtPath(meta, binding.path);
   }
@@ -146,7 +159,9 @@ export function resolveBinding(binding: Binding, context: TemplateContext): unkn
   const resources = context.resources as Record<string, unknown> | undefined;
   const resource = resources?.[binding.resource as string];
   if (resource === undefined) {
-    throw new Error(`binding references resource "${binding.resource}" which is not present in the render context`);
+    throw new Error(
+      `binding references resource "${binding.resource}" which is not present in the render context`,
+    );
   }
   return getAtPath(resource, binding.path);
 }
@@ -160,8 +175,10 @@ export function resolveBinding(binding: Binding, context: TemplateContext): unkn
  * rather than an error).
  */
 function resolveDisplayUnits(binding: Binding, context: TemplateContext): DisplayUnits | undefined {
-  if (binding.source !== 'signalk') return undefined;
-  const pathMeta = context.pathMeta as Record<string, Record<string, { displayUnits?: DisplayUnits }>> | undefined;
+  if (binding.source !== "signalk") return undefined;
+  const pathMeta = context.pathMeta as
+    | Record<string, Record<string, { displayUnits?: DisplayUnits }>>
+    | undefined;
   return pathMeta?.[binding.context]?.[binding.path]?.displayUnits;
 }
 
@@ -174,7 +191,9 @@ function resolveCategoryDisplayUnits(binding: Binding, context: TemplateContext)
   const categories = context.categories as Record<string, DisplayUnits> | undefined;
   const displayUnits = categories?.[binding.category as string];
   if (!displayUnits) {
-    throw new Error(`binding references category "${binding.category}" which is not present in the render context`);
+    throw new Error(
+      `binding references category "${binding.category}" which is not present in the render context`,
+    );
   }
   return displayUnits;
 }
@@ -195,14 +214,21 @@ function resolveCategoryDisplayUnits(binding: Binding, context: TemplateContext)
  */
 export function renderBinding(binding: Binding, context: TemplateContext): string {
   const value = resolveBinding(binding, context);
-  if (binding.format && binding.format !== 'raw') return applyFormat(binding.format, value, context, binding.round);
-  if (typeof value === 'number') {
-    if (binding.category) return formatDisplayUnits(value, resolveCategoryDisplayUnits(binding, context), binding.round);
-    const displayUnits = binding.format === 'raw' ? undefined : resolveDisplayUnits(binding, context);
+  if (binding.format && binding.format !== "raw")
+    return applyFormat(binding.format, value, context, binding.round);
+  if (typeof value === "number") {
+    if (binding.category)
+      return formatDisplayUnits(
+        value,
+        resolveCategoryDisplayUnits(binding, context),
+        binding.round,
+      );
+    const displayUnits =
+      binding.format === "raw" ? undefined : resolveDisplayUnits(binding, context);
     if (displayUnits) return formatDisplayUnits(value, displayUnits, binding.round);
     if (binding.round !== undefined) return value.toFixed(binding.round);
   }
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'object') return JSON.stringify(value);
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }

@@ -4,7 +4,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/@rhizomatics/signalk-einklabel-plugin.svg)](https://www.npmjs.com/package/@rhizomatics/signalk-einklabel-plugin)
 [![SignalK Plugin CI](https://github.com/rhizomatics/signalk-einklabel-plugin/actions/workflows/signalk-ci.yml/badge.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/actions/workflows/signalk-ci.yml)
 [![codecov](https://img.shields.io/codecov/c/github/rhizomatics/signalk-einklabel-plugin)](https://codecov.io/gh/rhizomatics/signalk-einklabel-plugin)
-[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
+[![code style: oxfmt](https://img.shields.io/badge/code_style-oxfmt-blue.svg)](https://github.com)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/LICENSE)
 
 ** Fully working but limited vendor/product support and requires Linux for device access **

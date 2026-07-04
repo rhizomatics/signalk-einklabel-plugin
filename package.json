@@ -2,8 +2,28 @@
   "name": "@rhizomatics/signalk-einklabel-plugin",
   "version": "0.7.0",
   "description": "Display SignalK data on eInk Electronic Shelf Labels",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "keywords": [
+    "ble",
+    "display",
+    "eink",
+    "esl",
+    "instrument",
+    "signalk",
+    "signalk-category-hardware",
+    "signalk-category-instruments",
+    "signalk-node-server-plugin",
+    "tides"
+  ],
+  "homepage": "https://github.com/rhizomatics/signalk-einklabel-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/rhizomatics/signalk-einklabel-plugin/issues"
+  },
+  "license": "APACHE-2.0",
+  "author": "jey burrows",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhizomatics/signalk-einklabel-plugin.git"
+  },
   "bin": {
     "esl-cli": "dist/cli/index.js"
   },
@@ -14,38 +34,17 @@
     "CHANGELOG.md",
     "README.md"
   ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
     "cli": "ts-node src/cli/index.ts",
     "test": "node scripts/run-tests.js",
     "coverage": "node scripts/run-tests.js --coverage",
-    "prettier:check": "prettier --check .",
-    "prettier:write": "prettier --write .",
-    "prepublishOnly": "npm run build"
-  },
-  "signalk": {
-    "displayName": "eInk Label Displays",
-    "appIcon": "docs/assets/icons/icon_tmp.png",
-    "screenshots": [
-      "docs/assets/screenshots/example_tidal_clock.png",
-      "docs/assets/screenshots/plugin_config.png"
-    ]
-  },
-  "keywords": [
-    "signalk-node-server-plugin",
-    "signalk-category-instruments",
-    "signalk-category-hardware",
-    "signalk",
-    "eink",
-    "esl",
-    "display",
-    "instrument",
-    "ble",
-    "tides"
-  ],
-  "engines": {
-    "node": ">=18"
+    "prepublishOnly": "npm run build",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.2.10",
@@ -65,18 +64,20 @@
     "@types/luxon": "^3.7.1",
     "@types/node": "^20.14.0",
     "@types/pngjs": "^6.0.5",
-    "prettier": "^3.8.5",
+    "oxfmt": "^0.56.0",
+    "oxlint": "^1.71.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.0"
   },
-  "license": "APACHE-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rhizomatics/signalk-einklabel-plugin.git"
+  "engines": {
+    "node": ">=18"
   },
-  "author": "jey burrows",
-  "bugs": {
-    "url": "https://github.com/rhizomatics/signalk-einklabel-plugin/issues"
-  },
-  "homepage": "https://github.com/rhizomatics/signalk-einklabel-plugin#readme"
+  "signalk": {
+    "displayName": "eInk Label Displays",
+    "appIcon": "docs/assets/icons/icon_tmp.png",
+    "screenshots": [
+      "docs/assets/screenshots/example_tidal_clock.png",
+      "docs/assets/screenshots/plugin_config.png"
+    ]
+  }
 }

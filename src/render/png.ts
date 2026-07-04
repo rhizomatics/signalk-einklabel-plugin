@@ -1,5 +1,5 @@
-import { PNG } from 'pngjs';
-import { Bitmap } from './types';
+import { PNG } from "pngjs";
+import { Bitmap } from "./types";
 
 /** Encodes a common Bitmap as PNG bytes, for previewing templates without a physical device. */
 export function bitmapToPng(bitmap: Bitmap): Buffer {

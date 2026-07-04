@@ -1,5 +1,5 @@
-import { Bitmap } from '../../render/types';
-import { DeviceMetadata } from '../types';
+import { Bitmap } from "../../render/types";
+import { DeviceMetadata } from "../types";
 
 /** 2-bit colour codes used by the Wolink wire format. */
 const enum WolinkColour {
@@ -42,7 +42,8 @@ export function encodeBitmap(bitmap: Bitmap, metadata: DeviceMetadata): Buffer {
     const physX = width - 1 - x;
     for (let y = 0; y < height; y++) {
       const srcY = y - voffset;
-      const colour = srcY >= 0 && srcY < bitmap.height ? samplePixel(bitmap, x, srcY) : WolinkColour.Black;
+      const colour =
+        srcY >= 0 && srcY < bitmap.height ? samplePixel(bitmap, x, srcY) : WolinkColour.Black;
       const physY = height - 1 - y;
       const byteIdx = physX * bytesPerColumn + Math.floor(physY / 4);
       const bitShift = 6 - (physY % 4) * 2;

@@ -1,20 +1,20 @@
-import { createCipheriv } from 'crypto';
+import { createCipheriv } from "crypto";
 
 /**
  * Wolink ESL GATT service ("WOLINKBLEESL2020") and characteristic UUIDs, transcribed
  * from the reference driver (examples/device_driver/zhunyco/wolink_ble.py).
  */
-export const WOLINK_SERVICE_UUID = '30323032-4c53-4545-4c42-4b4e494c4f57';
+export const WOLINK_SERVICE_UUID = "30323032-4c53-4545-4c42-4b4e494c4f57";
 
 /** BLE manufacturer ID Zhsunyco/Wolink devices advertise under. */
 export const ZHSUNYCO_MANUFACTURER_ID = 0xbbaa;
 
 export const WOLINK_CHARACTERISTIC_UUIDS = {
-  data: '31323032-4c53-4545-4c42-4b4e494c4f57',
-  config: '32323032-4c53-4545-4c42-4b4e494c4f57',
-  authenticate: '33323032-4c53-4545-4c42-4b4e494c4f57',
-  status: '34323032-4c53-4545-4c42-4b4e494c4f57',
-  battery: '35323032-4c53-4545-4c42-4b4e494c4f57',
+  data: "31323032-4c53-4545-4c42-4b4e494c4f57",
+  config: "32323032-4c53-4545-4c42-4b4e494c4f57",
+  authenticate: "33323032-4c53-4545-4c42-4b4e494c4f57",
+  status: "34323032-4c53-4545-4c42-4b4e494c4f57",
+  battery: "35323032-4c53-4545-4c42-4b4e494c4f57",
 } as const;
 
 export const COMMAND = {
@@ -35,8 +35,8 @@ export function decodeAdvertisedInfo(data: Buffer): AdvertisedDeviceInfo | undef
   }
   return {
     pid: data.readUInt16BE(2),
-    appVersion: data.readUInt16BE(4).toString(16).padStart(4, '0'),
-    hwVersion: data.readUInt16BE(6).toString(16).padStart(4, '0'),
+    appVersion: data.readUInt16BE(4).toString(16).padStart(4, "0"),
+    hwVersion: data.readUInt16BE(6).toString(16).padStart(4, "0"),
   };
 }
 
@@ -64,11 +64,13 @@ const AES_CHALLENGE_LENGTH = 16;
  * reference driver's `BLE_SECRET_KEY`). Used as a fallback when a device hasn't been
  * given its own key via the plugin config.
  */
-export const DEFAULT_BLE_AUTH = [155, 96, 159, 40, 188, 73, 226, 87, 41, 189, 123, 141, 242, 43, 68, 32];
+export const DEFAULT_BLE_AUTH = [
+  155, 96, 159, 40, 188, 73, 226, 87, 41, 189, 123, 141, 242, 43, 68, 32,
+];
 
 /** Resolves the configured per-device hex key, falling back to `DEFAULT_BLE_AUTH`. */
 export function resolveAesKey(aesKeyHex?: string): Buffer {
-  return aesKeyHex ? Buffer.from(aesKeyHex, 'hex') : Buffer.from(DEFAULT_BLE_AUTH);
+  return aesKeyHex ? Buffer.from(aesKeyHex, "hex") : Buffer.from(DEFAULT_BLE_AUTH);
 }
 
 /**
@@ -81,12 +83,16 @@ export function resolveAesKey(aesKeyHex?: string): Buffer {
  */
 export function authResponse(challenge: Buffer, key: Buffer): Buffer {
   if (key.length !== AES_KEY_LENGTH) {
-    throw new Error(`zhsunyco AES key must be ${AES_KEY_LENGTH} bytes (${AES_KEY_LENGTH * 2} hex chars), got ${key.length}`);
+    throw new Error(
+      `zhsunyco AES key must be ${AES_KEY_LENGTH} bytes (${AES_KEY_LENGTH * 2} hex chars), got ${key.length}`,
+    );
   }
   if (challenge.length !== AES_CHALLENGE_LENGTH) {
-    throw new Error(`zhsunyco auth challenge expected ${AES_CHALLENGE_LENGTH} bytes, got ${challenge.length}`);
+    throw new Error(
+      `zhsunyco auth challenge expected ${AES_CHALLENGE_LENGTH} bytes, got ${challenge.length}`,
+    );
   }
-  const cipher = createCipheriv('aes-128-cbc', key, Buffer.alloc(16));
+  const cipher = createCipheriv("aes-128-cbc", key, Buffer.alloc(16));
   cipher.setAutoPadding(false);
   return Buffer.concat([cipher.update(challenge), cipher.final()]);
 }

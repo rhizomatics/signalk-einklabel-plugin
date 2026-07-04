@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
 /**
  * Collects src/**\/*.test.ts itself and passes explicit file paths to `node --test`, rather than a
@@ -10,35 +10,35 @@
  * like `**` or `$(find ...)` aren't available anyway.
  */
 
-const { readdirSync, mkdirSync } = require('fs');
-const path = require('path');
-const { spawnSync } = require('child_process');
+const { readdirSync, mkdirSync } = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
 
-const rootDir = path.join(__dirname, '..');
+const rootDir = path.join(__dirname, "..");
 
 function findTestFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) return findTestFiles(full);
-    return entry.name.endsWith('.test.ts') ? [full] : [];
+    return entry.name.endsWith(".test.ts") ? [full] : [];
   });
 }
 
-const coverage = process.argv.includes('--coverage');
-const testFiles = findTestFiles(path.join(rootDir, 'src'));
+const coverage = process.argv.includes("--coverage");
+const testFiles = findTestFiles(path.join(rootDir, "src"));
 
-const args = ['--require', 'ts-node/register'];
+const args = ["--require", "ts-node/register"];
 if (coverage) {
-  mkdirSync(path.join(rootDir, 'coverage'), { recursive: true });
+  mkdirSync(path.join(rootDir, "coverage"), { recursive: true });
   args.push(
-    '--experimental-test-coverage',
-    '--test-reporter=spec',
-    '--test-reporter-destination=stdout',
-    '--test-reporter=lcov',
-    '--test-reporter-destination=coverage/lcov.info',
+    "--experimental-test-coverage",
+    "--test-reporter=spec",
+    "--test-reporter-destination=stdout",
+    "--test-reporter=lcov",
+    "--test-reporter-destination=coverage/lcov.info",
   );
 }
-args.push('--test', ...testFiles);
+args.push("--test", ...testFiles);
 
-const result = spawnSync(process.execPath, args, { stdio: 'inherit', cwd: rootDir });
+const result = spawnSync(process.execPath, args, { stdio: "inherit", cwd: rootDir });
 process.exit(result.status ?? 1);

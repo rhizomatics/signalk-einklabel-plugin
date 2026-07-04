@@ -1,13 +1,13 @@
-import { ServerAPI, Plugin } from '@signalk/server-api';
-import { createPlugin } from './plugin';
-import { registerDriver, getDriver, allDrivers } from './devices/registry';
+import { ServerAPI, Plugin } from "@signalk/server-api";
+import { createPlugin } from "./plugin";
+import { registerDriver, getDriver, allDrivers } from "./devices/registry";
 import type {
   VendorDriver as VendorDriverType,
   DeviceMetadata as DeviceMetadataType,
   DiscoveredDevice as DiscoveredDeviceType,
   VendorDeviceConfig as VendorDeviceConfigType,
   Colour as ColourType,
-} from './devices/types';
+} from "./devices/types";
 
 /**
  * Public extension point for vendor packages. A package that adds support for a new

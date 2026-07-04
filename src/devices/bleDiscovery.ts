@@ -1,4 +1,9 @@
-import { Adapter, Bluetooth, Device, createBluetooth as createBluetoothImpl } from '@naugehyde/node-ble';
+import {
+  Adapter,
+  Bluetooth,
+  Device,
+  createBluetooth as createBluetoothImpl,
+} from "@naugehyde/node-ble";
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,10 +20,10 @@ export function sleep(ms: number): Promise<void> {
  * `createBluetooth()` or its callers can see it; it takes the whole process down.
  */
 export function createBluetooth(): { bluetooth: Bluetooth; destroy: () => void } {
-  if (process.platform !== 'linux') {
+  if (process.platform !== "linux") {
     throw new Error(
       `BLE support requires Linux (BlueZ over D-Bus); "${process.platform}" is not supported - ` +
-        'run this on the target Linux host (e.g. the NanoPi), not on macOS/Windows.',
+        "run this on the target Linux host (e.g. the NanoPi), not on macOS/Windows.",
     );
   }
   return createBluetoothImpl();
@@ -45,7 +50,10 @@ export interface AdvertisedDevice {
  * any) a device belongs to costs one `getName`/`getManufacturerData` read per device total, not
  * one per device per registered driver.
  */
-export async function forEachAdvertisedDevice(adapter: Adapter, fn: (advertised: AdvertisedDevice) => Promise<void>): Promise<void> {
+export async function forEachAdvertisedDevice(
+  adapter: Adapter,
+  fn: (advertised: AdvertisedDevice) => Promise<void>,
+): Promise<void> {
   for (const address of await adapter.devices()) {
     // BlueZ can drop a device from its cache between `adapter.devices()` listing it and this
     // lookup (e.g. it went out of range mid-scan) - skip it rather than aborting the whole scan.
@@ -57,7 +65,13 @@ export async function forEachAdvertisedDevice(adapter: Adapter, fn: (advertised:
     const manufacturerData = await device.getManufacturerData().catch(() => undefined);
     const [key] = Object.keys(manufacturerData ?? {});
     const manufacturerId = key === undefined ? undefined : Number(key);
-    await fn({ address, device, name, manufacturerId, manufacturerData: key === undefined ? undefined : manufacturerData![key] });
+    await fn({
+      address,
+      device,
+      name,
+      manufacturerId,
+      manufacturerData: key === undefined ? undefined : manufacturerData![key],
+    });
   }
 }
 
@@ -66,7 +80,10 @@ export async function forEachAdvertisedDevice(adapter: Adapter, fn: (advertised:
  * shared by the repaint scheduler and the CLI's `paint` command so one flaky BLE connection
  * doesn't fail a whole repaint after a single bad attempt.
  */
-export async function withRetries<T>(attempts: number, fn: (attempt: number) => Promise<T>): Promise<T> {
+export async function withRetries<T>(
+  attempts: number,
+  fn: (attempt: number) => Promise<T>,
+): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 1; attempt <= Math.max(1, attempts); attempt++) {
     try {
@@ -83,7 +100,10 @@ export async function withRetries<T>(attempts: number, fn: (attempt: number) => 
  * `fn` - shared by `plugin.ts`'s startup scan and the CLI's `scan` command so scanning across
  * multiple registered vendor drivers costs one discovery window total, not one window per driver.
  */
-export async function withDiscovery<T>(durationMs: number, fn: (adapter: Adapter) => Promise<T>): Promise<T> {
+export async function withDiscovery<T>(
+  durationMs: number,
+  fn: (adapter: Adapter) => Promise<T>,
+): Promise<T> {
   const { bluetooth, destroy } = createBluetooth();
   try {
     const adapter = await bluetooth.defaultAdapter();
@@ -119,7 +139,11 @@ export async function connectWithTimeout(device: Device, timeoutMs: number): Pro
 }
 
 /** Uses an already-known device if BlueZ has one cached, otherwise scans until it appears. */
-export async function getOrDiscoverDevice(adapter: Adapter, address: string, timeoutMs: number): Promise<Device> {
+export async function getOrDiscoverDevice(
+  adapter: Adapter,
+  address: string,
+  timeoutMs: number,
+): Promise<Device> {
   try {
     return await adapter.getDevice(address);
   } catch {

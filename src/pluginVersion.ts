@@ -1,7 +1,7 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync } from "fs";
+import { join } from "path";
 
-const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
+const packageJson = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
 
 /**
  * The installed plugin's own version, read from `package.json` once at module load - exposed to
@@ -18,4 +18,4 @@ export const PLUGIN_VERSION: string = packageJson.version;
  * it, so without this prefix those `console.error` lines would show up in the server log
  * unidentified next to ones that are - matching the unscoped form keeps the two consistent.
  */
-export const PLUGIN_NAME: string = (packageJson.name as string).replace(/^@[^/]+\//, '');
+export const PLUGIN_NAME: string = (packageJson.name as string).replace(/^@[^/]+\//, "");

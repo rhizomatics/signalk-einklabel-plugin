@@ -1,5 +1,5 @@
-import { fetchJson } from './httpJson';
-import { DisplayUnits } from './render/formatters';
+import { fetchJson } from "./httpJson";
+import { DisplayUnits } from "./render/formatters";
 
 export interface PathMetadata {
   units?: string;
@@ -9,7 +9,7 @@ export interface PathMetadata {
 
 /** `self` -> `vessels/self`, `vessels.urn:mrn:imo:mmsi:1` -> `vessels/urn:mrn:imo:mmsi:1` - matches the REST path for that context's whole-vessel metadata. */
 function metaContextPath(context: string): string {
-  return context === 'self' ? 'vessels/self' : context.replace(/\./g, '/');
+  return context === "self" ? "vessels/self" : context.replace(/\./g, "/");
 }
 
 /**
@@ -21,7 +21,10 @@ function metaContextPath(context: string): string {
  * bound directly to the unenhanced `@signalk/path-metadata` package), so both the live plugin
  * (repaintScheduler.ts) and the CLI (cli/liveContext.ts) fetch it the same way, over HTTP.
  */
-export async function fetchPathMeta(apiUrl: string, context: string): Promise<Record<string, PathMetadata>> {
+export async function fetchPathMeta(
+  apiUrl: string,
+  context: string,
+): Promise<Record<string, PathMetadata>> {
   const url = `${apiUrl}/signalk/v1/api/${metaContextPath(context)}/meta`;
   return (await fetchJson(url)) as Record<string, PathMetadata>;
 }

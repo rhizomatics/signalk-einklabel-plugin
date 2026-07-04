@@ -1,4 +1,4 @@
-import { VendorDriver } from './types';
+import { VendorDriver } from "./types";
 
 const drivers = new Map<string, VendorDriver>();
 

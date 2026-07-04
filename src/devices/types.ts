@@ -1,7 +1,7 @@
-import { Device } from '@naugehyde/node-ble';
-import { Bitmap } from '../render/types';
+import { Device } from "@naugehyde/node-ble";
+import { Bitmap } from "../render/types";
 
-export type Colour = 'black' | 'white' | 'red' | 'yellow';
+export type Colour = "black" | "white" | "red" | "yellow";
 
 /**
  * Static facts about one device model, keyed by (vendor, pid) by the registry —
@@ -43,7 +43,7 @@ export interface DiscoveredDevice {
 }
 
 /** Manual model facts a user can supply for hardware that isn't yet in a driver's PID table. */
-export type DeviceModelOverride = Omit<DeviceMetadata, 'pid'>;
+export type DeviceModelOverride = Omit<DeviceMetadata, "pid">;
 
 /** Per-device settings the user supplies when registering a device, beyond what's in DeviceMetadata. */
 export interface VendorDeviceConfig {

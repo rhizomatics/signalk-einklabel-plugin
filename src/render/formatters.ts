@@ -1,6 +1,6 @@
-import { DateTime } from 'luxon';
-import { evaluate } from 'mathjs';
-import { TemplateContext } from './types';
+import { DateTime } from "luxon";
+import { evaluate } from "mathjs";
+import { TemplateContext } from "./types";
 
 /**
  * Matches `displayUnits` on a path's own metadata (`app.getMetadata(path).displayUnits` in the live
@@ -17,9 +17,19 @@ export interface DisplayUnits {
 }
 
 /** Converts a base-SI value (always what SignalK paths deliver) to its metadata's preferred display unit and formats it with the unit's symbol, e.g. 3.42 -> "11.2ft". */
-export function formatDisplayUnits(value: number, displayUnits: DisplayUnits, round: number | undefined): string {
-  const converted = displayUnits.formula ? Number(evaluate(displayUnits.formula, { value })) : value;
-  const decimals = round ?? (displayUnits.displayFormat?.includes('.') ? displayUnits.displayFormat.split('.')[1].length : 0);
+export function formatDisplayUnits(
+  value: number,
+  displayUnits: DisplayUnits,
+  round: number | undefined,
+): string {
+  const converted = displayUnits.formula
+    ? Number(evaluate(displayUnits.formula, { value }))
+    : value;
+  const decimals =
+    round ??
+    (displayUnits.displayFormat?.includes(".")
+      ? displayUnits.displayFormat.split(".")[1].length
+      : 0);
   const symbol = displayUnits.symbol ?? displayUnits.targetUnit;
   return `${converted.toFixed(decimals)}${symbol}`;
 }
@@ -50,10 +60,13 @@ function selfTimezone(context: TemplateContext): string {
  * binding (see `considerRepaint`).
  */
 export function resolveLocalZoneAbbreviation(context: TemplateContext): string {
-  const part = new Intl.DateTimeFormat(undefined, { timeZone: selfTimezone(context), timeZoneName: 'short' })
+  const part = new Intl.DateTimeFormat(undefined, {
+    timeZone: selfTimezone(context),
+    timeZoneName: "short",
+  })
     .formatToParts(new Date())
-    .find((p) => p.type === 'timeZoneName');
-  return part?.value ?? '';
+    .find((p) => p.type === "timeZoneName");
+  return part?.value ?? "";
 }
 
 /**
@@ -64,8 +77,8 @@ export function resolveLocalZoneAbbreviation(context: TemplateContext): string {
  * the CLI render identically regardless of which path a binding's data took.
  */
 function parseTimestamp(value: unknown): DateTime | undefined {
-  if (value instanceof Date) return DateTime.fromJSDate(value, { zone: 'utc' });
-  if (typeof value === 'string') return DateTime.fromISO(value, { zone: 'utc' });
+  if (value instanceof Date) return DateTime.fromJSDate(value, { zone: "utc" });
+  if (typeof value === "string") return DateTime.fromISO(value, { zone: "utc" });
   return undefined;
 }
 
@@ -76,19 +89,19 @@ function parseTimestamp(value: unknown): DateTime | undefined {
  */
 function formatLocalTime(value: unknown, context: TemplateContext): string {
   const dt = parseTimestamp(value)?.setZone(selfTimezone(context));
-  return dt?.isValid ? dt.toFormat('HH:mm') : '';
+  return dt?.isValid ? dt.toFormat("HH:mm") : "";
 }
 
 /** e.g. "27 Jun" - day of month (no leading zero) and abbreviated month name, in the local vessel's timezone. */
 function formatDayMonth(value: unknown, context: TemplateContext): string {
   const dt = parseTimestamp(value)?.setZone(selfTimezone(context));
-  return dt?.isValid ? dt.toFormat('d MMM') : '';
+  return dt?.isValid ? dt.toFormat("d MMM") : "";
 }
 
 /** e.g. "21 Jun 26 18:05" - day of month (no leading zero), abbreviated month, 2-digit year, and 24h time, in the local vessel's timezone. */
 function formatLocalDatetimeShort(value: unknown, context: TemplateContext): string {
   const dt = parseTimestamp(value)?.setZone(selfTimezone(context));
-  return dt?.isValid ? dt.toFormat('d MMM yy HH:mm') : '';
+  return dt?.isValid ? dt.toFormat("d MMM yy HH:mm") : "";
 }
 
 /**
@@ -96,34 +109,39 @@ function formatLocalDatetimeShort(value: unknown, context: TemplateContext): str
  * in summer); show the numeric offset actually in effect.
  */
 function formatUtcOffset(value: unknown): string {
-  if (typeof value !== 'string' || !value) return '';
+  if (typeof value !== "string" || !value) return "";
   const dt = DateTime.now().setZone(value);
-  return dt.isValid ? `UTC${dt.toFormat('ZZ')}` : '';
+  return dt.isValid ? `UTC${dt.toFormat("ZZ")}` : "";
 }
 
 function formatPosition(value: unknown, round: number | undefined): string {
   const position = value as { latitude?: number; longitude?: number } | undefined;
-  if (typeof position?.latitude !== 'number' || typeof position?.longitude !== 'number') return '';
+  if (typeof position?.latitude !== "number" || typeof position?.longitude !== "number") return "";
   const decimals = round ?? 4;
   const lat = Math.abs(position.latitude).toFixed(decimals);
   const lon = Math.abs(position.longitude).toFixed(decimals);
-  const latHemisphere = position.latitude >= 0 ? 'N' : 'S';
-  const lonHemisphere = position.longitude >= 0 ? 'E' : 'W';
+  const latHemisphere = position.latitude >= 0 ? "N" : "S";
+  const lonHemisphere = position.longitude >= 0 ? "E" : "W";
   return `${lat}°${latHemisphere} ${lon}°${lonHemisphere}`;
 }
 
 /** Applies a named `format=` formatter to a resolved binding value. */
-export function applyFormat(name: string, value: unknown, context: TemplateContext, round: number | undefined): string {
+export function applyFormat(
+  name: string,
+  value: unknown,
+  context: TemplateContext,
+  round: number | undefined,
+): string {
   switch (name) {
-    case 'local_time':
+    case "local_time":
       return formatLocalTime(value, context);
-    case 'day_mon':
+    case "day_mon":
       return formatDayMonth(value, context);
-    case 'local_datetime_short':
+    case "local_datetime_short":
       return formatLocalDatetimeShort(value, context);
-    case 'utc_offset':
+    case "utc_offset":
       return formatUtcOffset(value);
-    case 'position':
+    case "position":
       return formatPosition(value, round);
     default:
       throw new Error(`unknown format "${name}"`);

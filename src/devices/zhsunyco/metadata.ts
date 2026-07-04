@@ -1,4 +1,4 @@
-import { DeviceMetadata } from '../types';
+import { DeviceMetadata } from "../types";
 
 /**
  * Keyed by PID within the Zhsunyco/Wolink namespace only — this table is not shared
@@ -25,7 +25,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
     width: 200,
     height: 200,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
   {
     pid: 0x000a,
@@ -33,7 +33,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
     width: 250,
     height: 128,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
   {
     pid: 0x000e,
@@ -41,34 +41,34 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
     width: 416,
     height: 240,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
   {
     pid: 0x000e,
-    hwVersion: '0103',
+    hwVersion: "0103",
     label: '2.13"',
     width: 250,
     height: 128,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
   {
     pid: 0x000e,
-    hwVersion: '0201',
+    hwVersion: "0201",
     label: '3.5"',
     width: 384,
     height: 184,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
   {
     pid: 0x000e,
-    hwVersion: '0203',
+    hwVersion: "0203",
     label: '7.5"',
     width: 800,
     height: 480,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
   {
     pid: 0x0012,
@@ -76,7 +76,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
     width: 296,
     height: 128,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
   {
     pid: 0x0016,
@@ -84,7 +84,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
     width: 400,
     height: 300,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
   {
     pid: 0x001a,
@@ -92,6 +92,6 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
     width: 648,
     height: 480,
     voffset: 0,
-    colours: ['black', 'white', 'red', 'yellow'],
+    colours: ["black", "white", "red", "yellow"],
   },
 ];

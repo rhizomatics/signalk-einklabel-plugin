@@ -1,4 +1,4 @@
-import { fetchJson } from './httpJson';
+import { fetchJson } from "./httpJson";
 
 /**
  * This whole module is a workaround for a gap in the plugin API, not a permanent design choice -
@@ -15,10 +15,14 @@ import { fetchJson } from './httpJson';
  * entirely by install method: a bare `npm install` defaults to 3000; container/systemd installs
  * commonly default to 80, or 443 if TLS-terminated locally.
  */
-export const SIGNALK_API_URL_OPTIONS = ['http://localhost:3000', 'http://localhost', 'https://localhost'];
+export const SIGNALK_API_URL_OPTIONS = [
+  "http://localhost:3000",
+  "http://localhost",
+  "https://localhost",
+];
 
 /** Cheap, always-required (for `category=` resolution) and read-only, so safe to use as a connectivity+access probe. */
-const PROBE_PATH = '/signalk/v1/unitpreferences/categories';
+const PROBE_PATH = "/signalk/v1/unitpreferences/categories";
 
 async function probe(url: string): Promise<boolean> {
   try {
@@ -43,7 +47,7 @@ export async function resolveSignalkApiUrl(configuredUrl: string | undefined): P
   throw new Error(
     configuredUrl
       ? `configured SignalK API base URL "${configuredUrl}" did not respond to ${PROBE_PATH} - check the port, and that anonymous read access is enabled`
-      : `could not reach this server's API on any of ${SIGNALK_API_URL_OPTIONS.join(', ')} - it may be on a different port, or anonymous read access may not be enabled`,
+      : `could not reach this server's API on any of ${SIGNALK_API_URL_OPTIONS.join(", ")} - it may be on a different port, or anonymous read access may not be enabled`,
   );
 }
 

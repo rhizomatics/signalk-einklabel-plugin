@@ -1,10 +1,9 @@
-import { existsSync, readdirSync } from 'fs';
-import { homedir } from 'os';
-import { isAbsolute, join } from 'path';
-import { ServerAPI } from '@signalk/server-api';
-import { allDrivers } from './devices/registry';
-import { DiscoveredDevice } from './devices/types';
-import { SIGNALK_API_URL_OPTIONS } from './resolveApiUrl';
+import { existsSync, readdirSync } from "fs";
+import { homedir } from "os";
+import { isAbsolute, join } from "path";
+import { ServerAPI } from "@signalk/server-api";
+import { DiscoveredDevice } from "./devices/types";
+import { SIGNALK_API_URL_OPTIONS } from "./resolveApiUrl";
 
 export interface DeviceConfig {
   friendlyName: string;
@@ -17,7 +16,7 @@ export interface DeviceConfig {
   /** Per-device override; if omitted, the vendor driver may fall back to a stock/manufacturer-default key. */
   aesKey?: string;
   templateName: string;
-  repaintTrigger: 'subscription' | 'interval';
+  repaintTrigger: "subscription" | "interval";
   /** SignalK path to subscribe to when `repaintTrigger` is `subscription` - a repaint is considered on every delta. */
   triggerPath?: string;
   /** When `repaintTrigger` is `interval`: repaint every N hours... */
@@ -70,14 +69,14 @@ export interface PluginConfig {
  * bundled template shouldn't also require duplicating its bundled asset sets (e.g.
  * `templates/assets/lunar_phases`) just to keep a binding the override never touched working.
  */
-export const BUNDLED_TEMPLATES_DIR = join(__dirname, '..', 'templates');
+export const BUNDLED_TEMPLATES_DIR = join(__dirname, "..", "templates");
 
-const SIGNALK_HOME_DIR = join(homedir(), '.signalk');
-const DEFAULT_TEMPLATES_DIR = join(SIGNALK_HOME_DIR, 'einklabel', 'templates');
+const SIGNALK_HOME_DIR = join(homedir(), ".signalk");
+const DEFAULT_TEMPLATES_DIR = join(SIGNALK_HOME_DIR, "einklabel", "templates");
 
 export function defaultConfig(): PluginConfig {
   return {
-    templatesDir: '',
+    templatesDir: "",
     scanOnStart: true,
     scanDurationSeconds: 20,
     paintConnectTimeoutSeconds: 30,
@@ -108,7 +107,10 @@ export function resolveTemplatesDir(templatesDir: string | undefined): string {
  * fallback, whatever's already saved so an existing selection doesn't vanish from the dropdown just
  * because this particular run hasn't re-scanned it yet.
  */
-function deviceOptions(discovered: DiscoveredDevice[], current: PluginConfig): { values: string[]; labels: string[] } {
+function deviceOptions(
+  discovered: DiscoveredDevice[],
+  current: PluginConfig,
+): { values: string[]; labels: string[] } {
   const values: string[] = [];
   const labels: string[] = [];
   const seen = new Set<string>();
@@ -117,7 +119,9 @@ function deviceOptions(discovered: DiscoveredDevice[], current: PluginConfig): {
     if (found.pid === undefined) {
       continue;
     }
-    const modelToken = [found.vendor, found.pid, found.hwVersion].filter((part) => part !== undefined).join(':');
+    const modelToken = [found.vendor, found.pid, found.hwVersion]
+      .filter((part) => part !== undefined)
+      .join(":");
     const value = `${modelToken}@${found.address}`;
     if (seen.has(value)) {
       continue;
@@ -126,7 +130,7 @@ function deviceOptions(discovered: DiscoveredDevice[], current: PluginConfig): {
     values.push(value);
     const label = found.metadata
       ? `${found.vendor} ${found.metadata.label} (${found.address})`
-      : `${found.vendor} unrecognised PID 0x${found.pid.toString(16).padStart(4, '0')} (${found.address})`;
+      : `${found.vendor} unrecognised PID 0x${found.pid.toString(16).padStart(4, "0")} (${found.address})`;
     labels.push(label);
   }
 
@@ -141,16 +145,20 @@ function deviceOptions(discovered: DiscoveredDevice[], current: PluginConfig): {
   return { values, labels };
 }
 
-export function parseDevice(device: string): { vendor: string; pid: number; hwVersion?: string; address: string } | undefined {
-  const [modelToken, address] = device.split('@');
-  const [vendor, pidStr, hwVersion] = (modelToken ?? '').split(':');
+export function parseDevice(
+  device: string,
+): { vendor: string; pid: number; hwVersion?: string; address: string } | undefined {
+  const [modelToken, address] = device.split("@");
+  const [vendor, pidStr, hwVersion] = (modelToken ?? "").split(":");
   const pid = Number(pidStr);
-  return vendor && address && Number.isInteger(pid) ? { vendor, pid, hwVersion, address } : undefined;
+  return vendor && address && Number.isInteger(pid)
+    ? { vendor, pid, hwVersion, address }
+    : undefined;
 }
 
 function listSvgFiles(dir: string): string[] {
   try {
-    return readdirSync(dir).filter((name) => name.endsWith('.svg'));
+    return readdirSync(dir).filter((name) => name.endsWith(".svg"));
   } catch {
     return [];
   }
@@ -170,8 +178,14 @@ export function resolveTemplatePath(templatesDir: string, templateName: string):
 }
 
 /** JSON Schema forbids an empty `enum` array, so only attach one when there's at least one option - otherwise the whole config schema fails validation. */
-function withEnum<T extends object>(schema: T, values: string[], names?: string[]): T & { enum?: string[]; enumNames?: string[] } {
-  return values.length > 0 ? { ...schema, enum: values, ...(names ? { enumNames: names } : {}) } : schema;
+function withEnum<T extends object>(
+  schema: T,
+  values: string[],
+  names?: string[],
+): T & { enum?: string[]; enumNames?: string[] } {
+  return values.length > 0
+    ? { ...schema, enum: values, ...(names ? { enumNames: names } : {}) }
+    : schema;
 }
 
 export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []): object {
@@ -180,85 +194,108 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
   const { values: deviceValues, labels: deviceLabels } = deviceOptions(discovered, current);
 
   return {
-    type: 'object',
+    type: "object",
     properties: {
       templatesDir: {
-        type: 'string',
-        title: 'Templates directory',
+        type: "string",
+        title: "Templates directory",
         description:
           `Relative path from ~/.signalk (e.g., "esl/templates" becomes ~/.signalk/esl/templates). ` +
           `Leave empty for default (${DEFAULT_TEMPLATES_DIR}). Absolute paths also supported. A template here ` +
-          'with the same name as a bundled one takes priority. Also used to override SVG assets, like the bundled lunar_phases.',
+          "with the same name as a bundled one takes priority. Also used to override SVG assets, like the bundled lunar_phases.",
         default: defaults.templatesDir,
       },
       scanOnStart: {
-        type: 'boolean',
-        title: 'Scan for devices on plugin start',
-        description: 'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below.',
+        type: "boolean",
+        title: "Scan for devices on plugin start",
+        description:
+          'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below.',
         default: defaults.scanOnStart,
       },
       scanDurationSeconds: {
-        type: 'number',
-        title: 'Scan duration (seconds)',
-        description: 'How long the startup scan runs - increase if devices are missing from the "Device" picker below.',
+        type: "number",
+        title: "Scan duration (seconds)",
+        description:
+          'How long the startup scan runs - increase if devices are missing from the "Device" picker below.',
         minimum: 1,
         default: defaults.scanDurationSeconds,
       },
       paintConnectTimeoutSeconds: {
-        type: 'number',
-        title: 'Paint connect timeout (seconds)',
-        description: 'How long to wait for a device to accept a BLE connection before giving up on a repaint attempt.',
+        type: "number",
+        title: "Paint connect timeout (seconds)",
+        description:
+          "How long to wait for a device to accept a BLE connection before giving up on a repaint attempt.",
         minimum: 1,
         default: defaults.paintConnectTimeoutSeconds,
       },
       paintRetries: {
-        type: 'number',
-        title: 'Paint retries',
-        description: 'How many times to attempt a repaint (including the first try) before giving up and reporting failure.',
+        type: "number",
+        title: "Paint retries",
+        description:
+          "How many times to attempt a repaint (including the first try) before giving up and reporting failure.",
         minimum: 1,
         default: defaults.paintRetries,
       },
       signalkApiUrl: {
-        type: 'string',
-        title: 'SignalK API base URL (leave blank to auto-detect)',
+        type: "string",
+        title: "SignalK API base URL (leave blank to auto-detect)",
         description:
-          'Used for plugin access to SignalK REST APIs not yet integrated for direct plugin access. Left blank, the plugin probes the likely options at startup (3000, 80, 443 ) - only set this manually to skip probing. Anonymous read access is required.',
-        enum: ['', ...SIGNALK_API_URL_OPTIONS],
+          "Used for plugin access to SignalK REST APIs not yet integrated for direct plugin access. Left blank, the plugin probes the likely options at startup (3000, 80, 443 ) - only set this manually to skip probing. Anonymous read access is required.",
+        enum: ["", ...SIGNALK_API_URL_OPTIONS],
       },
       devices: {
-        type: 'array',
-        title: 'Devices',
+        type: "array",
+        title: "Devices",
         items: {
-          type: 'object',
-          required: ['friendlyName', 'device', 'templateName', 'repaintTrigger'],
+          type: "object",
+          required: ["friendlyName", "device", "templateName", "repaintTrigger"],
           properties: {
-            friendlyName: { type: 'string', title: 'Friendly name' },
+            friendlyName: { type: "string", title: "Friendly name" },
             device: withEnum(
               {
-                type: 'string',
-                title: 'Device',
-                description: 'Picked from devices found by a scan (plugin start, or `esl-cli scan`) - sets both the model and BLE address.',
+                type: "string",
+                title: "Device",
+                description:
+                  "Picked from devices found by a scan (plugin start, or `esl-cli scan`) - sets both the model and BLE address.",
               },
               deviceValues,
               deviceLabels,
             ),
 
-            templateName: withEnum({ type: 'string', title: 'Template' }, templateNameOptions(resolveTemplatesDir(current.templatesDir))),
-            repaintTrigger: { type: 'string', title: 'Repaint trigger', enum: ['subscription', 'interval'] },
-            triggerPath: { type: 'string', title: 'Trigger SignalK path (if repaint trigger is subscription)' },
-            intervalHours: { type: 'number', title: 'Repaint every N hours (if repaint trigger is interval)', minimum: 1 },
+            templateName: withEnum(
+              { type: "string", title: "Template" },
+              templateNameOptions(resolveTemplatesDir(current.templatesDir)),
+            ),
+            repaintTrigger: {
+              type: "string",
+              title: "Repaint trigger",
+              enum: ["subscription", "interval"],
+            },
+            triggerPath: {
+              type: "string",
+              title: "Trigger SignalK path (if repaint trigger is subscription)",
+            },
+            intervalHours: {
+              type: "number",
+              title: "Repaint every N hours (if repaint trigger is interval)",
+              minimum: 1,
+            },
             intervalMinute: {
-              type: 'number',
-              title: 'Minutes past the hour (if repaint trigger is interval)',
+              type: "number",
+              title: "Minutes past the hour (if repaint trigger is interval)",
               minimum: 0,
               maximum: 59,
               default: 0,
             },
-            aesKey: { type: 'string', title: 'BLE AES key (vendor-specific; leave blank to use a default key)' },
+            aesKey: {
+              type: "string",
+              title: "BLE AES key (vendor-specific; leave blank to use a default key)",
+            },
             forceRepaint: {
-              type: 'boolean',
-              title: 'Force repaint',
-              description: 'Repaint even if the data is unchanged - clears itself automatically once that repaint completes',
+              type: "boolean",
+              title: "Force repaint",
+              description:
+                "Repaint even if the data is unchanged - clears itself automatically once that repaint completes",
               default: false,
             },
           },
@@ -272,7 +309,7 @@ export function configUiSchema(): object {
   return {
     devices: {
       items: {
-        repaintTrigger: { 'ui:widget': 'radio' },
+        repaintTrigger: { "ui:widget": "radio" },
       },
     },
   };

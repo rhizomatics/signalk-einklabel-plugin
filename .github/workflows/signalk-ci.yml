@@ -11,7 +11,7 @@ jobs:
     uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
     with:
       coverage-command: npm run coverage
-      format-check-command: npm run prettier:check
+      format-check-command: npm run fmt:check
 
   # Separate from the `test` matrix above (which only persists coverage/ as a
   # short-lived build artifact) - uploads the same lcov report to Codecov so the
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
       - run: npm ci
       - run: npm run coverage

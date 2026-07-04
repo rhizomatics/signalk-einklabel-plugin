@@ -1,5 +1,5 @@
-import { accessSync, constants, existsSync, statSync } from 'fs';
-import { join } from 'path';
+import { accessSync, constants, existsSync, statSync } from "fs";
+import { join } from "path";
 
 /**
  * Turns a resolved binding value into a filename stem, e.g. `"Waning Gibbous"` -> `"waning_gibbous"` -
@@ -8,12 +8,12 @@ import { join } from 'path';
  * a file (non-string, empty, or all-punctuation), which callers treat as "no image".
  */
 export function normalizeAssetKey(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
+  if (typeof value !== "string") return undefined;
   const normalized = value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
   return normalized || undefined;
 }
 
@@ -28,14 +28,18 @@ export function normalizeAssetKey(value: unknown): string | undefined {
  * override) ended up being rendered, so a user can override just a template, just its resources, or
  * both, in any combination.
  */
-function selectAssetsDir(templatesDir: string, bundledTemplatesDir: string, assetsName: string): string {
-  const userDir = join(templatesDir, 'assets', assetsName);
+function selectAssetsDir(
+  templatesDir: string,
+  bundledTemplatesDir: string,
+  assetsName: string,
+): string {
+  const userDir = join(templatesDir, "assets", assetsName);
   try {
     if (statSync(userDir).isDirectory()) return userDir;
   } catch {
     // doesn't exist (or isn't readable) - fall through to the bundled directory
   }
-  return join(bundledTemplatesDir, 'assets', assetsName);
+  return join(bundledTemplatesDir, "assets", assetsName);
 }
 
 /**
@@ -44,8 +48,16 @@ function selectAssetsDir(templatesDir: string, bundledTemplatesDir: string, asse
  * matching file, which callers treat as "no image" rather than an error, since an unmapped value
  * (e.g. a phase name the asset set doesn't cover) is an expected, not exceptional, case.
  */
-export function resolveAssetPath(templatesDir: string, bundledTemplatesDir: string, assetsName: string, key: string): string | undefined {
-  const candidate = join(selectAssetsDir(templatesDir, bundledTemplatesDir, assetsName), `${key}.svg`);
+export function resolveAssetPath(
+  templatesDir: string,
+  bundledTemplatesDir: string,
+  assetsName: string,
+  key: string,
+): string | undefined {
+  const candidate = join(
+    selectAssetsDir(templatesDir, bundledTemplatesDir, assetsName),
+    `${key}.svg`,
+  );
   return existsSync(candidate) ? candidate : undefined;
 }
 
@@ -75,7 +87,11 @@ function describeDir(dir: string): string | undefined {
  * `resolveAssetPath` would have read from; `undefined` when that directory is fine (exists, is a
  * directory, is readable) - the miss is then just this value's.
  */
-export function describeAssetsDirProblem(templatesDir: string, bundledTemplatesDir: string, assetsName: string): string | undefined {
+export function describeAssetsDirProblem(
+  templatesDir: string,
+  bundledTemplatesDir: string,
+  assetsName: string,
+): string | undefined {
   const problem = describeDir(selectAssetsDir(templatesDir, bundledTemplatesDir, assetsName));
   return problem && `assets directory ${problem}`;
 }

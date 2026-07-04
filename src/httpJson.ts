@@ -7,7 +7,7 @@
 function describeCause(cause: unknown): string {
   const errors = (cause as { errors?: unknown[] }).errors;
   if (Array.isArray(errors)) {
-    return errors.map(describeCause).join('; ');
+    return errors.map(describeCause).join("; ");
   }
   if (cause instanceof Error) {
     return cause.message || (cause as NodeJS.ErrnoException).code || cause.toString();
@@ -30,8 +30,10 @@ export async function fetchJson(url: string): Promise<unknown> {
     throw new Error(`fetch failed: ${url} - ${detail}`);
   }
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`fetch failed: ${url} (${response.status} ${response.statusText})${body ? ` - ${body}` : ''}`);
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `fetch failed: ${url} (${response.status} ${response.statusText})${body ? ` - ${body}` : ""}`,
+    );
   }
   return response.json();
 }

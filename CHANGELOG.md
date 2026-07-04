@@ -12,6 +12,10 @@
   - Means that the bundled lunar phase icons can be easily replaced without touching the template - use the same file names in `templates/assets/lunar_phases` directory.
   - Added attribution to the Lunar Phases icons
 
+## Build
+
+- Added `pre-commit`, `oxlint` and `oxfmt` for code quality, retired `prettier`
+
 # 0.6.4
 
 - Log improvements for device paint requests

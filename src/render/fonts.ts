@@ -21,9 +21,9 @@
  */
 export const DEFAULT_FONT_PATHS: string[] = [
   // first font is the default
-  require.resolve('@fontsource/roboto/files/roboto-latin-400-normal.woff2'),
-  require.resolve('@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff2'),
-  require.resolve('@fontsource/roboto-serif/files/roboto-serif-latin-400-normal.woff2'),
+  require.resolve("@fontsource/roboto/files/roboto-latin-400-normal.woff2"),
+  require.resolve("@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff2"),
+  require.resolve("@fontsource/roboto-serif/files/roboto-serif-latin-400-normal.woff2"),
 ];
 
 /**
@@ -34,7 +34,7 @@ export const DEFAULT_FONT_PATHS: string[] = [
  * - see project memory. Keep these in sync with DEFAULT_FONT_PATHS if a bucket's font ever changes.
  */
 export const GENERIC_FONT_FAMILY_MAP: Record<string, string> = {
-  'sans-serif': 'Roboto',
-  monospace: 'Roboto Mono',
-  serif: 'Roboto Serif 20pt',
+  "sans-serif": "Roboto",
+  monospace: "Roboto Mono",
+  serif: "Roboto Serif 20pt",
 };

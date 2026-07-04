@@ -4,15 +4,18 @@
  * surface documented in its README/JSDoc (https://github.com/chrvadala/node-ble),
  * limited to what this driver uses.
  */
-declare module '@naugehyde/node-ble' {
-  import { EventEmitter } from 'events';
+declare module "@naugehyde/node-ble" {
+  import { EventEmitter } from "events";
 
   export class GattCharacteristic extends EventEmitter {
     getUUID(): Promise<string>;
     getFlags(): Promise<string[]>;
     isNotifying(): Promise<boolean>;
     readValue(offset?: number): Promise<Buffer>;
-    writeValue(value: Buffer, optionsOrOffset?: number | { offset?: number; type?: 'command' | 'request' | 'reliable' }): Promise<void>;
+    writeValue(
+      value: Buffer,
+      optionsOrOffset?: number | { offset?: number; type?: "command" | "request" | "reliable" },
+    ): Promise<void>;
     writeValueWithoutResponse(value: Buffer, offset?: number): Promise<void>;
     writeValueWithResponse(value: Buffer, offset?: number): Promise<void>;
     startNotifications(): Promise<void>;

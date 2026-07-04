@@ -1,9 +1,9 @@
-import { fetchJson } from './httpJson';
-import { DisplayUnits } from './render/formatters';
+import { fetchJson } from "./httpJson";
+import { DisplayUnits } from "./render/formatters";
 
-const CATEGORIES_PATH = '/signalk/v1/unitpreferences/categories';
-const ACTIVE_PRESET_PATH = '/signalk/v1/unitpreferences/active';
-const DEFINITIONS_PATH = '/signalk/v1/unitpreferences/definitions';
+const CATEGORIES_PATH = "/signalk/v1/unitpreferences/categories";
+const ACTIVE_PRESET_PATH = "/signalk/v1/unitpreferences/active";
+const DEFINITIONS_PATH = "/signalk/v1/unitpreferences/definitions";
 
 interface CategoryMap {
   categoryToBaseUnit?: Record<string, string>;
@@ -36,7 +36,10 @@ interface UnitDefinition {
  * exposed via `ServerAPI`, it's an internal signalk-server module, so both the live plugin
  * (repaintScheduler.ts) and the CLI (cli/liveContext.ts) fetch it the same way, over HTTP.
  */
-export async function fetchCategoryDisplayUnits(apiUrl: string, categoryNames: Set<string>): Promise<Record<string, DisplayUnits>> {
+export async function fetchCategoryDisplayUnits(
+  apiUrl: string,
+  categoryNames: Set<string>,
+): Promise<Record<string, DisplayUnits>> {
   if (categoryNames.size === 0) return {};
 
   const [categoryMap, activePreset, definitions] = await Promise.all([
@@ -49,14 +52,17 @@ export async function fetchCategoryDisplayUnits(apiUrl: string, categoryNames: S
   for (const category of categoryNames) {
     const siUnit = categoryMap.categoryToBaseUnit?.[category];
     if (!siUnit) {
-      throw new Error(`unknown unit category "${category}" - not in this server's categoryToBaseUnit map`);
+      throw new Error(
+        `unknown unit category "${category}" - not in this server's categoryToBaseUnit map`,
+      );
     }
     const presetCategory = activePreset.categories?.[category];
     const targetUnit = presetCategory?.targetUnit ?? siUnit;
     // A conversion entry only exists for a non-identity target unit - e.g. siUnit "m"/targetUnit "m"
     // (the common case for depth on the default metric preset) has no "m"->"m" entry in definitions.
     // Fall back to the target unit's own name as the symbol in that case, rather than showing nothing.
-    const conversion = targetUnit !== siUnit ? definitions[siUnit]?.conversions?.[targetUnit] : undefined;
+    const conversion =
+      targetUnit !== siUnit ? definitions[siUnit]?.conversions?.[targetUnit] : undefined;
     result[category] = {
       category,
       targetUnit,
