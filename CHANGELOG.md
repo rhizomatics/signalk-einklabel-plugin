@@ -2,6 +2,8 @@
 
 - Auto default SignalK URL if `-u` or `-e` not passed as CLI arguments
 - Default timeout for painting a device screen is now 60 seconds
+- Code now prettified, and prettier check added to CI
+- Test coverage improved and now reported
 
 # 0.6.1
 
