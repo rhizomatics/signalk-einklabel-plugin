@@ -235,7 +235,7 @@ program
     const connectTimeoutMs = Number(opts.connectTimeout) * 1000;
     await withRetries(Number(opts.retries), async (attempt) => {
       if (attempt > 1) {
-        logDebug(`paint attempt ${attempt}/${opts.retries}`);
+        logDebug(`Attempting paint ${attempt}/${opts.retries}`);
       }
       await driver.paint(bitmap, { address: opts.address, aesKey: opts.aesKey, modelOverride, connectTimeoutMs });
     });

@@ -1,3 +1,7 @@
+# 0.6.4
+
+- Log improvements for device paint requests
+
 # 0.6.3
 
 - Improve logging if an image cannot be found in an `assets` directory to match a SignalK path value

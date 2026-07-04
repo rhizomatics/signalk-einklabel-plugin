@@ -176,11 +176,14 @@ async function considerRepaint(
   const renderer = new SvgRenderer();
   const bitmap = await renderer.render(templatePath, renderContext, metadata.width, metadata.height - metadata.voffset);
   const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;
+  let paintDurationMs = 0;
   await withRetries(config.paintRetries, async (attempt) => {
     if (attempt > 1) {
-      app.debug(`"${device.friendlyName}": paint attempt ${attempt}/${config.paintRetries}`);
+      app.debug(`"${device.friendlyName}": attempting paint ${attempt}/${config.paintRetries}`);
     }
+    const startedAt = Date.now();
     await driver.paint(bitmap, { address: model.address, aesKey: device.aesKey, connectTimeoutMs });
+    paintDurationMs = Date.now() - startedAt;
   });
 
   state[device.friendlyName] = { hash };
@@ -188,7 +191,7 @@ async function considerRepaint(
   if (device.forceRepaint) {
     clearForceRepaint(app, device.friendlyName);
   }
-  app.debug(`"${device.friendlyName}": repainted`);
+  app.debug(`"${device.friendlyName}": repainted (paint took ${paintDurationMs}ms)`);
 }
 
 export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): RepaintScheduler {
