@@ -220,7 +220,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
         const hours = device.intervalHours ?? 1;
         const minute = device.intervalMinute ?? 0;
         if (now.getHours() % hours === 0 && now.getMinutes() === minute) {
-          repaint(device);
+          void repaint(device);
         }
       }
     }, INTERVAL_POLL_MS);
@@ -238,7 +238,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   // Check every device once at startup - harmless given hash dedup, and covers newly-added
   // devices or a forceRepaint left set from before a restart.
   for (const device of config.devices) {
-    repaint(device);
+    void repaint(device);
   }
 
   return {

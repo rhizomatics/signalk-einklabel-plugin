@@ -1,17 +1,23 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+   "ignorePatterns": ["**/*.test.ts","dist/**", "node_modules/**","coverage/**","package-lock.json","*.min.js"],
+
   "plugins": [
     "typescript",
     "unicorn",
-    "oxc"
+    "oxc",
+    "import"
   ],
   "categories": {
     "correctness": "error"
   },
   "options": {
-    "typeAware": true
+    "typeAware": true,
+    "typeCheck": true
   },
-  "rules": {},
+  "rules": {
+    "import/no-cycle": ["error", { "maxDepth": 3 }]
+  },
   "env": {
     "builtin": true
   }

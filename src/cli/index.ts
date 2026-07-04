@@ -94,7 +94,10 @@ program.name("esl-cli").description("Local CLI for testing ESL device scan and p
 program.option(
   "-r, --require <module>",
   "require a module before running, e.g. an npm package that registers a vendor driver (repeatable)",
-  (value, previous: string[] = []) => [...previous, value],
+  // Commander's own typings declare `previous` as always `string[]`, but at runtime it's actually
+  // `undefined` on the first invocation when no default is passed to `.option()` - the `| undefined`
+  // here keeps that true and makes the `= []` fallback meaningful rather than dead code.
+  (value, previous: string[] | undefined = []) => [...previous, value],
 );
 program.option("-l, --log-level <level>", "log verbosity: info or debug (e.g. trace which URLs are fetched)", "info");
 
@@ -278,7 +281,8 @@ program
   .option(
     "-f, --font <path>",
     "override a bundled font with this file (repeatable) - defaults to the bundled monospace/sans-serif/serif trio",
-    (value, previous: string[] = []) => [...previous, value],
+    // See the -r/--require option above for why `| undefined` is needed here despite commander's typings.
+    (value, previous: string[] | undefined = []) => [...previous, value],
   )
   .action(async (opts) => {
     const bindings = findBindings(await readFile(opts.template, "utf-8"));

@@ -95,7 +95,7 @@ export function createPlugin(app: ServerAPI): Plugin {
             app.debug(`startup scan failed: ${err.message}`),
           );
           scanInProgress = scan;
-          scan.finally(() => {
+          void scan.finally(() => {
             scanInProgress = undefined;
             scanStartedAt = undefined;
           });
