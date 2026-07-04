@@ -12,3 +12,24 @@ jobs:
     with:
       coverage-command: npm run coverage
       format-check-command: npm run prettier:check
+
+  # Separate from the `test` matrix above (which only persists coverage/ as a
+  # short-lived build artifact) - uploads the same lcov report to Codecov so the
+  # README's coverage badge has a live percentage to read.
+  coverage:
+    name: Upload coverage to Codecov
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run coverage
+      - uses: codecov/codecov-action@v5
+        with:
+          files: coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
