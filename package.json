@@ -1,7 +1,7 @@
 {
   "name": "@rhizomatics/signalk-einklabel-plugin",
-  "version": "0.6.0",
-  "description": "SignalK plugin that renders selected SignalK data to eInk Electronic Shelf Labels",
+  "version": "0.6.1",
+  "description": "Display SignalK data on eInk Electronic Shelf Labels",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -23,7 +23,7 @@
     "prepublishOnly": "npm run build"
   },
   "signalk": {
-    "displayName": "eInk Label Instruments",
+    "displayName": "eInk Label Displays",
     "appIcon": "docs/assets/icons/icon_tmp.png",
     "screenshots": [
       "docs/assets/screenshots/example_tidal_clock.png"
@@ -38,7 +38,8 @@
     "esl",
     "display",
     "instrument",
-    "ble"
+    "ble",
+    "tides"
   ],
   "engines": {
     "node": ">=18"
