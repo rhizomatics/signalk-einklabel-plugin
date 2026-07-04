@@ -88,7 +88,13 @@ export class SvgRenderer implements Renderer {
     return this.fontBuffers;
   }
 
-  async render(svgTemplatePath: string, context: TemplateContext, width: number, height: number, fallbackTemplateDir?: string): Promise<Bitmap> {
+  async render(
+    svgTemplatePath: string,
+    context: TemplateContext,
+    width: number,
+    height: number,
+    fallbackTemplateDir?: string,
+  ): Promise<Bitmap> {
     const [, fontBuffers] = await Promise.all([ensureWasmInitialized(), this.loadFontBuffers()]);
 
     const svgSource = expandGenericFontFamilies(await readFile(svgTemplatePath, 'utf-8'));
@@ -144,7 +150,9 @@ export class SvgRenderer implements Renderer {
               ? `${PLUGIN_NAME}: image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
               : `${PLUGIN_NAME}: image "${descElement.textContent}" resolved to no usable value to pick an asset file with`,
           );
-          console.error(`${PLUGIN_NAME}: ${dirProblem ?? `assets directory for "${binding.assets}" checked out fine - the miss is just this value's`}`);
+          console.error(
+            `${PLUGIN_NAME}: ${dirProblem ?? `assets directory for "${binding.assets}" checked out fine - the miss is just this value's`}`,
+          );
           element.parentNode?.removeChild(element);
           continue;
         }

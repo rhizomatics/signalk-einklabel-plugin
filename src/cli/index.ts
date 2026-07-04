@@ -326,7 +326,11 @@ program
           const key = normalizeAssetKey(resolveBinding(row.binding, context));
           if (!key) return [row.id, row.desc, '(no usable value - image would be omitted)'];
           const assetPath = resolveAssetPath(opts.template, row.binding.assets, key, BUNDLED_TEMPLATES_DIR);
-          return [row.id, row.desc, assetPath ? `"${key}" -> ${basename(assetPath)}` : `"${key}" -> no matching asset file (image would be omitted)`];
+          return [
+            row.id,
+            row.desc,
+            assetPath ? `"${key}" -> ${basename(assetPath)}` : `"${key}" -> no matching asset file (image would be omitted)`,
+          ];
         } catch (err) {
           return [row.id, row.desc, `ERROR: ${(err as Error).message}`];
         }
