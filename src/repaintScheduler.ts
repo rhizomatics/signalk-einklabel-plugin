@@ -9,6 +9,7 @@ import { SvgRenderer } from "./render/svgRenderer";
 import { Binding, findBindings } from "./render/binding";
 import { resolveLocalZoneAbbreviation } from "./render/formatters";
 import { TemplateContext } from "./render/types";
+import { unwrapSignalkTree } from "./render/unwrapSignalkTree";
 import { fetchCategoryDisplayUnits } from "./unitCategories";
 import { fetchPathMeta } from "./pathMeta";
 import { createApiUrlResolver } from "./resolveApiUrl";
@@ -70,13 +71,20 @@ function setAtPath(target: Record<string, unknown>, path: string, value: unknown
 /**
  * Reads live data for exactly what a template's own bindings ask for - no separate config declaring it.
  * `signalk`-sourced bindings are read directly (`self` via `getSelfPath`, anything else via `getPath`
- * against that literal SignalK context) - in-process, no URL needed. `resources`-sourced bindings go
- * through `app.resourcesApi`, in-process too. Per-path unit-conversion metadata (`pathMeta`, for
- * automatic conversion - see `renderBinding`) and an explicit `category=` binding's resolved
- * conversion both have no in-process equivalent (confirmed against the signalk-server source - that
- * resolution only happens in its REST layer), so both need `apiUrl` - fetching `pathMeta` is
- * best-effort (a missing/unreachable server just means no automatic conversion), but a `category=`
- * binding is a declared dependency, so a missing `apiUrl` is a hard error there.
+ * against that literal SignalK context) - in-process, no URL needed. Despite their names, neither
+ * already returns a bare value for a regular published path - both return the full data-model node
+ * (`{ path, value, context, source, $source, timestamp }`); only a handful of vessel-identity fields
+ * like `uuid` come back bare. `unwrapSignalkTree` strips that wrapper the same way it does for the
+ * CLI's HTTP-fetched equivalent (`assembleLiveContext` in `cli/liveContext.ts`), so a `path=` binding
+ * resolves to the same value either way - without it, `resolveBinding` would hand back the whole
+ * wrapper object instead of e.g. a plain string, breaking any binding that expects one (a `<image>`'s
+ * `assets=`, a `format=` formatter, etc). `resources`-sourced bindings go through `app.resourcesApi`,
+ * in-process too, with no such wrapper. Per-path unit-conversion metadata (`pathMeta`, for automatic
+ * conversion - see `renderBinding`) and an explicit `category=` binding's resolved conversion both
+ * have no in-process equivalent (confirmed against the signalk-server source - that resolution only
+ * happens in its REST layer), so both need `apiUrl` - fetching `pathMeta` is best-effort (a
+ * missing/unreachable server just means no automatic conversion), but a `category=` binding is a
+ * declared dependency, so a missing `apiUrl` is a hard error there.
  */
 async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bindings: Binding[]): Promise<TemplateContext> {
   const signalk: Record<string, unknown> = {};
@@ -86,7 +94,8 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
     const key = `${binding.context} ${binding.path}`;
     if (seenSignalk.has(key)) continue;
     seenSignalk.add(key);
-    const value = binding.context === "self" ? app.getSelfPath(binding.path) : app.getPath(`${binding.context}.${binding.path}`);
+    const rawValue = binding.context === "self" ? app.getSelfPath(binding.path) : app.getPath(`${binding.context}.${binding.path}`);
+    const value = unwrapSignalkTree(rawValue);
     const namespace = (signalk[binding.context] ??= {}) as Record<string, unknown>;
     setAtPath(namespace, binding.path, value);
   }

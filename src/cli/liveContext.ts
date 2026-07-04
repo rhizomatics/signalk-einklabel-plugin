@@ -3,6 +3,7 @@ import path from "path";
 import { Binding } from "../render/binding";
 import { DisplayUnits, resolveLocalZoneAbbreviation } from "../render/formatters";
 import { TemplateContext } from "../render/types";
+import { unwrapSignalkTree } from "../render/unwrapSignalkTree";
 import { fetchJson } from "../httpJson";
 import { fetchCategoryDisplayUnits } from "../unitCategories";
 import { fetchPathMeta } from "../pathMeta";
@@ -14,28 +15,6 @@ const RESOURCES_API_PATH = "/signalk/v2/api/resources";
 /** `context=self` -> `vessels/self`, `context=vessels.urn:mrn:imo:mmsi:1` -> `vessels/urn:mrn:imo:mmsi:1` - matches the REST path for that context's full-data-model subtree. */
 function contextPath(context: string): string {
   return context === "self" ? "vessels/self" : context.replace(/\./g, "/");
-}
-
-/**
- * `GET .../vessels/self` (or any other subtree) returns SignalK's full delta-tree shape, where every
- * leaf is wrapped as `{ value, $source, timestamp, ... }` rather than the bare value - unlike
- * `app.getSelfPath`/`getPath` in the live plugin (repaintScheduler.ts), which already return bare
- * values. Recursively unwraps every such leaf so `path=` bindings resolve the same way over HTTP as
- * they do live. Only applied to `signalk` fetches - `resources` responses have no such wrapper.
- *
- * Keys off `value` alone, not also requiring `timestamp`/`$source` - not every server includes both on
- * every leaf, and a `value` key is otherwise meaningless on a SignalK data-model node (it isn't a
- * regular vessel property name), so there's no real risk of unwrapping something that isn't this
- * wrapper.
- */
-function unwrapSignalkTree(node: unknown): unknown {
-  if (node === null || typeof node !== "object") return node;
-  if (Array.isArray(node)) return node.map(unwrapSignalkTree);
-  const obj = node as Record<string, unknown>;
-  if ("value" in obj) {
-    return obj.value;
-  }
-  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, unwrapSignalkTree(value)]));
 }
 
 /**
