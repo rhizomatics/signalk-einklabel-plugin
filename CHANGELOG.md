@@ -5,7 +5,7 @@
 - Better logging diagnostics if asset image resolution fails
 - Improved use of override template files
 - Replace separate fixed `resources/svg` directory for images with user overridable `templates/assets`
-  - Means that the bundled lunar phase icons can be easily replaced without touching the template, just use the same file names
+  - Means that the bundled lunar phase icons can be easily replaced without touching the template, just use the same file names in `templates/assets/lunar_phases` directory.
 
 # 0.6.4
 

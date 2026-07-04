@@ -188,7 +188,7 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         description:
           `Relative path from ~/.signalk (e.g., "esl/templates" becomes ~/.signalk/esl/templates). ` +
           `Leave empty for default (${DEFAULT_TEMPLATES_DIR}). Absolute paths also supported. A template here ` +
-          'with the same name as a bundled one takes priority.',
+          'with the same name as a bundled one takes priority. Also used to override SVG assets, like the bundled lunar_phases.',
         default: defaults.templatesDir,
       },
       scanOnStart: {
