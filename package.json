@@ -44,7 +44,8 @@
     "coverage": "node scripts/run-tests.js --coverage",
     "prepublishOnly": "npm run build",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.2.10",
