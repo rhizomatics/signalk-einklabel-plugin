@@ -1,8 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { homedir } from 'os';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { homedir, tmpdir } from 'os';
 import { join } from 'path';
-import { defaultConfig, parseDevice, resolveTemplatesDir } from './config';
+import { ServerAPI } from '@signalk/server-api';
+import { DiscoveredDevice } from './devices/types';
+import { configSchema, configUiSchema, defaultConfig, parseDevice, PluginConfig, resolveTemplatePath, resolveTemplatesDir } from './config';
+
+function fakeApp(options: Partial<PluginConfig> = {}): ServerAPI {
+  return { readPluginOptions: () => options } as unknown as ServerAPI;
+}
 
 test('resolveTemplatesDir', async (t) => {
   await t.test('defaults to ~/.signalk/esl/templates when empty/undefined', () => {
