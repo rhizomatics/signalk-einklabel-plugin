@@ -140,7 +140,7 @@ program
   )
   .action(async (opts) => {
     const durationMs = Number(opts.duration) * 1000;
-    const header = ['vendor', 'address', 'name', 'pid', 'label', 'mfr', 'battery', 'rssi'];
+    const header = ['vendor', 'address', 'name', 'pid', 'hwid', 'label', 'mfr', 'battery', 'rssi'];
     const rows: string[][] = [];
     let matchedCount = 0;
     const drivers = allDrivers();
@@ -155,7 +155,7 @@ program
               .getRSSI()
               .then((value) => (value === undefined ? undefined : Number(value)))
               .catch(() => undefined);
-            rows.push(['(unmatched)', address, name ?? '', '', '', mfr, '', String(rssi ?? '')]);
+            rows.push(['(unmatched)', address, name ?? '', '', '', '', mfr, '', String(rssi ?? '')]);
           }
           return;
         }
@@ -163,9 +163,10 @@ program
         const found = await driver.identifyDevice(device, address, name, manufacturerId, manufacturerData);
         logDebug(`${driver.vendor}: identified ${found.name ?? found.address}`);
         const pid = found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, '0')}` : '';
+        const hwid = found.hwVersion ? `0x${found.hwVersion}` : '';
         const label = found.metadata?.label ?? '';
         const battery = found.batteryMv !== undefined ? `${found.batteryMv}mV` : '';
-        rows.push([driver.vendor, found.address, found.name ?? '', pid, label, mfr, battery, String(found.rssi ?? '')]);
+        rows.push([driver.vendor, found.address, found.name ?? '', pid, hwid, label, mfr, battery, String(found.rssi ?? '')]);
       });
     });
     if (matchedCount === 0) {

@@ -73,6 +73,24 @@ The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk
 To show the lunar phase, the `environment.moon.phaseName` path is required, which can
 be easily achieved by installing and configuring the `derived-data` plugin.
 
+## Scanning for Devices
+
+Since these are ultra-low power devices, they don't respond instantly to either identify themselves or accept a new image. By default, both scanning and painting have time-outs to wait for a response, which can be altered in the plugin configuration or CLI argument.
+
+One other quirk is that some devices respond with a different name at different times, for example the genric `WOESL` sometimes and model specific `WL17500C74` other times. However, the MAC address, e.g. `66:66:17:50:0D:2B` is constant, and this is what's tracked by the plugin.
+
+The plugin will optionally re-scan whenever it starts up, although this isn't essential once a label has been configured.
+
+### Scans from CLI
+
+The command line tools, run from inside the `.signalk` directory, can be used to help troubleshoot
+
+- Scan for longer, in this example 90 seconds
+  - ```npx esl-cli scan -d 90``` 
+- Scan for all BLE devices, whatever they are
+  - ```npx esl-cli scan -a``` 
+
+
 ## Templating
 
 Templates are simply SVG files, to which expressions can be added to use SignalK data, with options to make it easier to read, like rounding or simplifying dates and times. The template can have sample data in the placeholder, so is easy to layout and visualize.

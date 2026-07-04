@@ -53,7 +53,7 @@ export class ZhsunycoDriver implements VendorDriver {
     manufacturerData: Buffer | undefined,
   ): Promise<DiscoveredDevice> {
     const advertisedInfo = manufacturerData ? decodeAdvertisedInfo(manufacturerData) : undefined;
-    const { info, batteryMv } = await readDeviceDetails(device, advertisedInfo);
+    const { info, batteryMv } = await readDeviceDetails(device, address, advertisedInfo);
     return {
       address,
       name,
@@ -144,6 +144,7 @@ export class ZhsunycoDriver implements VendorDriver {
  */
 async function readDeviceDetails(
   device: Device,
+  address: string,
   advertisedInfo: AdvertisedDeviceInfo | undefined,
 ): Promise<{ info: AdvertisedDeviceInfo | undefined; batteryMv: number | undefined }> {
   const fallback = { info: advertisedInfo, batteryMv: undefined };
@@ -164,7 +165,12 @@ async function readDeviceDetails(
       } finally {
         await device.disconnect();
       }
-    } catch {
+    } catch (err) {
+      // Swallowed rather than thrown - a device that refuses this connect (e.g. busy elsewhere,
+      // out of range) should still show up in the scan with whatever the advertisement itself
+      // carried, just without battery/PID-by-read. Logged so a blank battery column has a reason
+      // instead of looking like the read was simply never attempted.
+      console.error(`zhsunyco [${address}]: battery/config read failed: ${(err as Error).message}`);
       return fallback;
     }
   };
@@ -172,5 +178,11 @@ async function readDeviceDetails(
   // `getPrimaryService`/`readValue`) has no timeout of its own either - race the whole read so
   // one unresponsive device can't stall the rest of the scan (see `plugin.ts`'s `scanInProgress`,
   // which otherwise stays set forever and silently skips every later scan).
-  return Promise.race([read(), sleep(SCAN_CONNECT_TIMEOUT_MS * 2).then(() => fallback)]);
+  return Promise.race([
+    read(),
+    sleep(SCAN_CONNECT_TIMEOUT_MS * 2).then(() => {
+      console.error(`zhsunyco [${address}]: battery/config read timed out after ${SCAN_CONNECT_TIMEOUT_MS * 2}ms`);
+      return fallback;
+    }),
+  ]);
 }

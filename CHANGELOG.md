@@ -1,6 +1,7 @@
 # 0.6.4
 
 - Log improvements for device paint requests
+- CLI scan now shows `hwid`, and adds reason for failing to retrieve `battery` level
 
 # 0.6.3
 
