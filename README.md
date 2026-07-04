@@ -77,6 +77,12 @@ The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk
 To show the lunar phase, the `environment.moon.phaseName` path is required, which can
 be easily achieved by installing and configuring the `derived-data` plugin.
 
+## Configuration
+
+Use the standard configuration option in the SignalK menu for the plugin.
+
+![Plugin Configuration](docs/assets/screenshots/plugin_config.png)
+
 ## Scanning for Devices
 
 Since these are ultra-low power devices, they don't respond instantly to either identify themselves or accept a new image. By default, both scanning and painting have time-outs to wait for a response, which can be altered in the plugin configuration or CLI argument.
@@ -145,18 +151,17 @@ These can all be combined as in `source=resources,resource=tides,path=extremes[2
 
 ### Non-Textual Fields (Images)
 
-The same `<desc>` mechanism works on an `<image>` element instead of a `<text>` element, for a value that's better shown as a picture than as text - a moon phase icon, a wind direction arrow, a weather condition glyph, and so on. Rather than substituting text, the resolved value picks one of a directory of `.svg` files to embed, by an extra required `assets=` key naming that directory. That directory is sought in `templates/assets`, first of all the user configured `templates` directory
-and failing that the bundled templates. For example, the tide clock's moon phase icon uses:
+The same `<desc>` mechanism works on an `<image>` element instead of a `<text>` element, for a value that's better shown as a picture than as text - a moon phase icon, a wind direction arrow, a weather condition glyph, and so on. Rather than substituting text, the resolved value picks one of a directory of `.svg` files to embed, by an extra required `assets=` key naming that directory - an `assets/<name>` sub-directory looked up in your configured `templates` directory first, and the bundled `templates` directory otherwise. For example, the tide clock's moon phase icon uses:
 
 ```
 path=environment.moon.phaseName,assets=lunar_phases
 ```
 
-The resolved value (e.g. `"Waning Gibbous"`, as published by the [derived-data](https://www.npmjs.com/package/signalk-derived-data) plugin) is normalized to match a filename - lower-cased, punctuation and spaces collapsed to underscores - so `"Waning Gibbous"` picks `waning_gibbous.svg` out of that directory. If the underlying path has no value at all (e.g. the `derived-data` plugin isn't installed), or the value doesn't normalize to any file in the directory, the `<image>` element is omitted from that render - no broken image, no placeholder, nothing shown - and a line is logged to the console so a missing/unmatched value isn't silently invisible.
+which resolves against `templates/assets/lunar_phases/` (bundled, or your own configured `templates` directory's `assets/lunar_phases/` if you have one). The resolved value (e.g. `"Waning Gibbous"`, as published by the [derived-data](https://www.npmjs.com/package/signalk-derived-data) plugin) is normalized to match a filename - lower-cased, punctuation and spaces collapsed to underscores - so `"Waning Gibbous"` picks `waning_gibbous.svg` out of that directory. If the underlying path has no value at all (e.g. the `derived-data` plugin isn't installed), or the value doesn't normalize to any file in the directory, the `<image>` element is omitted from that render - no broken image, no placeholder, nothing shown - and a line is logged to the console so a missing/unmatched value isn't silently invisible.
 
-In the tide clock example, f you don't like the bundled icons, save your own in the `assets/lunar_phases` sub-directory of your configured `templates` path.
+If you don't like the bundled moon phase icons, save your own `<value>.svg` files in the `assets/lunar_phases` sub-directory of your configured `templates` directory - the whole directory is used in place of the bundled one, so add all 8 phases you want to keep, not just the ones you're changing.
 
-This is a general mechanism, not specific to moon phases - any `source`/`context`/`path`/`format` combination valid for a `<text>` binding works here too (a `source=resources` value, an explicit `category=`, etc.), the only difference is the required `assets=` directory and the "no match -> no image" behaviour instead of substituted text. To add your own, put a directory of `<value>.svg` files somewhere relative to your template, add an `<image>` element in your SVG editor at the size/position you want, and give it a `<desc>` the same way you would a text field.
+This is a general mechanism, not specific to moon phases - any `source`/`context`/`path`/`format` combination valid for a `<text>` binding works here too (a `source=resources` value, an explicit `category=`, etc.), the only difference is the required `assets=` directory and the "no match -> no image" behaviour instead of substituted text. To add your own, put a directory of `<value>.svg` files under an `assets/<name>` sub-directory of your `templates` directory, add an `<image>` element in your SVG editor at the size/position you want, and give it a `<desc>` the same way you would a text field - overriding just the template, just its assets, or both together, all work independently.
 
 ### Fonts
 
@@ -223,7 +228,7 @@ Additional vendors and devices can be added by a separate npm package that imple
 
 Templates can be added to the configurable directory. [Inkscape](https://inkscape.org) free, open source, and recommended for editing templates, or your own favourite editor, or by hand in a text editor for hard core (or just tidying up the template side).
 
-![Example Field Definition](docs/assets/inkscape_desc.png)
+![Example Field Definition](docs/assets/screenshots/inkscape_desc.png)
 
 The object ID and label aren't used by the plugin, only the description is used to define fields. You can also add in ordinary text fields without field definitions, as labels, logos, help text etc.
 

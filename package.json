@@ -28,7 +28,8 @@
     "displayName": "eInk Label Displays",
     "appIcon": "docs/assets/icons/icon_tmp.png",
     "screenshots": [
-      "docs/assets/screenshots/example_tidal_clock.png"
+      "docs/assets/screenshots/example_tidal_clock.png",
+      "docs/assets/screenshots/plugin_config.png"
     ]
   },
   "keywords": [
