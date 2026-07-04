@@ -174,7 +174,7 @@ async function considerRepaint(
     },
   };
   const renderer = new SvgRenderer();
-  const bitmap = await renderer.render(templatePath, renderContext, metadata.width, metadata.height - metadata.voffset);
+  const bitmap = await renderer.render(templatePath, renderContext, metadata.width, metadata.height - metadata.voffset, BUNDLED_TEMPLATES_DIR);
   const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;
   let paintDurationMs = 0;
   await withRetries(config.paintRetries, async (attempt) => {
