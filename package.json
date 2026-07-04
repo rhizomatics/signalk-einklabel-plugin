@@ -20,7 +20,7 @@
     "watch": "tsc --watch",
     "cli": "ts-node src/cli/index.ts",
     "test": "node --require ts-node/register --test \"src/**/*.test.ts\"",
-    "coverage": "node --require ts-node/register --experimental-test-coverage --test \"src/**/*.test.ts\"",
+    "coverage": "node -e \"require('fs').mkdirSync('coverage',{recursive:true})\" && node --require ts-node/register --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test \"src/**/*.test.ts\"",
     "prettier:check": "prettier --check .",
     "prettier:write": "prettier --write .",
     "prepublishOnly": "npm run build"

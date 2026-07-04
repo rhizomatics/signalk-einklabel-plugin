@@ -252,3 +252,5 @@ extremes.0.level         source=resources,resource=tides,path=extremes[0].level,
 - `vessels.json` - The standard SignalK vessel paths
 - `resources/xxxx.json` - The output of the `xxxx` resources API call
 - `categories.json` - SignalK unit categories needed for `category=depth` type formatting
+
+For example, `npx esl-cli fields -t templates/tide.svg -e examples` will show all the field data that will be populated from the example API, vessel and category data in the `examples` local directory.
