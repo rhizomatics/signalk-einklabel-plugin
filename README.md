@@ -1,5 +1,10 @@
 # eInk Labels for SignalK
 
+[![npm version](https://img.shields.io/npm/v/@rhizomatics/signalk-einklabel-plugin.svg)](https://www.npmjs.com/package/@rhizomatics/signalk-einklabel-plugin)
+[![npm downloads](https://img.shields.io/npm/dm/@rhizomatics/signalk-einklabel-plugin.svg)](https://www.npmjs.com/package/@rhizomatics/signalk-einklabel-plugin)
+[![SignalK Plugin CI](https://github.com/rhizomatics/signalk-einklabel-plugin/actions/workflows/signalk-ci.yml/badge.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/actions/workflows/signalk-ci.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/LICENSE)
+
 ** Fully working but limited vendor/product support **
 
 A SignalK plugin to display data from SignalK paths, APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates.
