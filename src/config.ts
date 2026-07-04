@@ -63,12 +63,12 @@ export interface PluginConfig {
 }
 
 /**
- * The package's own bundled `templates/` directory (ships alongside `dist/` and `resources/`, see
+ * The package's own bundled `templates/` directory (ships alongside `dist/`, see
  * package.json's `files`) - templates here are always available, but a same-named template in the
  * user's `templatesDir` takes priority. Exported so `SvgRenderer` can fall back to it when resolving
  * an `assets=` binding's directory (see `resolveAssetPath` in `./render/assets.ts`) - overriding a
  * bundled template shouldn't also require duplicating its bundled asset sets (e.g.
- * `resources/svg/lunar_phases`) just to keep a binding the override never touched working.
+ * `templates/assets/lunar_phases`) just to keep a binding the override never touched working.
  */
 export const BUNDLED_TEMPLATES_DIR = join(__dirname, '..', 'templates');
 
