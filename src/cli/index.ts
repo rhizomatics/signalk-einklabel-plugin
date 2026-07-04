@@ -10,13 +10,16 @@ import { SvgRenderer } from '../render/svgRenderer';
 import { bitmapToPng } from '../render/png';
 import { Binding, findBindings, parseBinding, renderBinding } from '../render/binding';
 import { assembleExampleContext, assembleLiveContext } from './liveContext';
+import { fetchJson } from '../httpJson';
 import { logDebug, setLogLevel } from './log';
 import { TemplateContext } from '../render/types';
 
 registerDriver(new ZhsunycoDriver());
 
 const VENDOR_IDENTIFY_TIMEOUT_MS = 30_000;
-const DEFAULT_SIGNALK_URL = 'http://localhost:3000';
+
+/** Tried in order when -u/--url is omitted (and -e/--example-data isn't given) - first one that answers wins. */
+const DEFAULT_SIGNALK_URLS = ['http://localhost', 'http://localhost:3000', 'https://localhost'];
 
 const COLOUR_CODES: Record<string, Colour[]> = {
   BW: ['black', 'white'],
@@ -32,9 +35,25 @@ function parseColours(code: string): Colour[] {
   return colours;
 }
 
-/** Shared by every command that takes -u/--url and -e/--example-data - -e wins when both are present (-u always carries a default, so its mere presence doesn't mean it was explicitly chosen). */
-function assembleContext(opts: { url: string; exampleData?: string }, bindings: Binding[]): Promise<TemplateContext> {
-  return opts.exampleData ? assembleExampleContext(opts.exampleData, bindings) : assembleLiveContext(opts.url, bindings);
+/** Probes DEFAULT_SIGNALK_URLS in order and returns the first that answers a plain GET - used when -u/--url is omitted. */
+async function resolveDefaultUrl(): Promise<string> {
+  for (const candidate of DEFAULT_SIGNALK_URLS) {
+    try {
+      logDebug(`probing ${candidate} as a default SignalK server`);
+      await fetchJson(`${candidate}/signalk`);
+      return candidate;
+    } catch (err) {
+      logDebug(`${candidate} did not answer: ${(err as Error).message}`);
+    }
+  }
+  throw new Error(`no -u/--url given and none of ${DEFAULT_SIGNALK_URLS.join(', ')} answered - specify the server explicitly with -u/--url`);
+}
+
+/** Shared by every command that takes -u/--url and -e/--example-data - -e wins when both are present; when neither is given, probes DEFAULT_SIGNALK_URLS for a default. */
+async function assembleContext(opts: { url?: string; exampleData?: string }, bindings: Binding[]): Promise<TemplateContext> {
+  if (opts.exampleData) return assembleExampleContext(opts.exampleData, bindings);
+  const url = opts.url ?? (await resolveDefaultUrl());
+  return assembleLiveContext(url, bindings);
 }
 
 /** Connects long enough to read the advertised name and manufacturer ID, then matches against registered drivers. */
@@ -158,7 +177,7 @@ program
   .option('-v, --vendor <vendor>', 'vendor driver to use - if omitted, inferred from the device\'s advertised name')
   .requiredOption('-a, --address <address>', 'BLE address of the device')
   .requiredOption('-t, --template <path>', 'path to SVG template')
-  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings', DEFAULT_SIGNALK_URL)
+  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings - if omitted, tries each of ' + DEFAULT_SIGNALK_URLS.join(', ') + ' in turn')
   .option('-e, --example-data <dir>', 'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u')
   .option('-k, --aes-key <hex>', 'AES-128 key for device authentication, as 32 hex characters - defaults to the vendor\'s stock key if omitted')
   .option('-w, --width <px>', 'render width', '416')
@@ -193,7 +212,7 @@ program
       }
       await driver.paint(bitmap, { address: opts.address, aesKey: opts.aesKey, modelOverride, connectTimeoutMs });
     });
-    console.log(`painted ${opts.address} (${bitmap.width}x${bitmap.height})`);
+    console.log(`painted ${opts.address} (${bitmap.width}x${bitmap.height}) ${opts.colours}`);
   });
 
 program
@@ -201,7 +220,7 @@ program
   .description('Render a template against a live SignalK server and write a PNG, without needing a device')
   .requiredOption('-t, --template <path>', 'path to SVG template')
   .requiredOption('-o, --output <path>', 'output PNG path')
-  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings', DEFAULT_SIGNALK_URL)
+  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings - if omitted, tries each of ' + DEFAULT_SIGNALK_URLS.join(', ') + ' in turn')
   .option('-e, --example-data <dir>', 'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u')
   .option('-w, --width <px>', 'render width', '416')
   .option('--height <px>', 'render height', '240')
@@ -223,7 +242,7 @@ program
   .command('fields')
   .description('List every <desc> binding in a template by element id, with its source spec and resolved value')
   .requiredOption('-t, --template <path>', 'path to SVG template')
-  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings', DEFAULT_SIGNALK_URL)
+  .option('-u, --url <url>', 'SignalK server base URL - resolves the template\'s source=signalk/resources bindings - if omitted, tries each of ' + DEFAULT_SIGNALK_URLS.join(', ') + ' in turn')
   .option('-e, --example-data <dir>', 'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u')
   .action(async (opts) => {
     const doc = new DOMParser().parseFromString(await readFile(opts.template, 'utf-8'), 'image/svg+xml');
@@ -262,7 +281,7 @@ program
   .command('field')
   .description('Resolve a single binding spec directly against a live SignalK server, with no template')
   .argument('<spec>', 'binding spec, e.g. "source=resources,resource=tides,path=station.name" or a bare SignalK path')
-  .option('-u, --url <url>', 'SignalK server base URL - resolves the spec\'s source=signalk/resources binding', DEFAULT_SIGNALK_URL)
+  .option('-u, --url <url>', 'SignalK server base URL - resolves the spec\'s source=signalk/resources binding - if omitted, tries each of ' + DEFAULT_SIGNALK_URLS.join(', ') + ' in turn')
   .option('-e, --example-data <dir>', 'load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u')
   .action(async (spec, opts) => {
     const binding = parseBinding(spec);

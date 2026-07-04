@@ -147,7 +147,7 @@ See also the commands useful for debugging under [Developing Templates]
 
 The width, height, vertical offset and colour palette for the device is taken from the internal register of devices, however can be overridden on the command line. This could be used to help you choose what size of label to buy, or to get an unsupported label working.
 
-( The CLI can also be run from a checked out module, or by opening a terminal shell at `~/.signalk/node_modules/@rhizomatics/signalk-einklabel-plugin`, as `npm run cli -- command --args` )
+( The CLI can also be run from a checked out module, or by opening a terminal shell at `~/.signalk/node_modules/@rhizomatics/signalk-einklabel-plugin`, as `npx esl-cli command --args` )
 
 ## Vendors
 
@@ -214,7 +214,7 @@ The `esl-cli` can be used to debug and validate templates quickly:
 #### List all Fields and Rendered Values
 
 ```bash
-npm run cli -- fields -t templates/tide.svg -u http://localhost
+npx esl-cli fields -t templates/tide.svg -u http://localhost
 ```
 
 ```

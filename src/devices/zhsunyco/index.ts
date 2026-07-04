@@ -27,7 +27,7 @@ const DEVICE_DISCOVERY_TIMEOUT_MS = 30_000;
 /** Used while identifying a device during a scan - kept short since a scan may be enumerating several devices. */
 const SCAN_CONNECT_TIMEOUT_MS = 10_000;
 /** Fallback when `VendorDeviceConfig.connectTimeoutMs` is omitted (e.g. a bare CLI `paint` call) - matches `defaultConfig().paintConnectTimeoutSeconds`. */
-const DEFAULT_PAINT_CONNECT_TIMEOUT_MS = 30_000;
+const DEFAULT_PAINT_CONNECT_TIMEOUT_MS = 60_000;
 
 export class ZhsunycoDriver implements VendorDriver {
   readonly vendor = 'zhsunyco';

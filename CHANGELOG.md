@@ -1,3 +1,6 @@
+# 0.6.2
+- Auto default SignalK URL if `-u` or `-e` not passed as CLI arguments
+- Default timeout for painting a device screen is now 60 seconds
 # 0.6.1
 - Corrected tide lunar phase path from `environment.moonPhase.name` to `environment.moon.phaseName`
 # 0.6.0
