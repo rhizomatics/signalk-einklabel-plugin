@@ -325,7 +325,7 @@ program
           }
           const key = normalizeAssetKey(resolveBinding(row.binding, context));
           if (!key) return [row.id, row.desc, '(no usable value - image would be omitted)'];
-          const assetPath = resolveAssetPath(opts.template, row.binding.assets, key, BUNDLED_TEMPLATES_DIR);
+          const assetPath = resolveAssetPath(dirname(opts.template), BUNDLED_TEMPLATES_DIR, row.binding.assets, key);
           return [
             row.id,
             row.desc,

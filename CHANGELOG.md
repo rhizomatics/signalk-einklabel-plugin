@@ -1,11 +1,14 @@
-# 0.6.5
+# 0.7.0
 
+## Logging
 - Standardize all log output to show a `signalk-einklabel-plugin` prefix
+
+## Image Fields
 - Include image fields on CLI `fields` command output
-- Better logging diagnostics if asset image resolution fails
-- Improved use of override template files
+- Better logging diagnostics if asset image resolution fails or directory not found
 - Replace separate fixed `resources/svg` directory for images with user overridable `templates/assets`
-  - Means that the bundled lunar phase icons can be easily replaced without touching the template, just use the same file names in `templates/assets/lunar_phases` directory.
+  - Means that the bundled lunar phase icons can be easily replaced without touching the template - use the same file names in `templates/assets/lunar_phases` directory.
+  - Added attribution to the Lunar Phases icons
 
 # 0.6.4
 
