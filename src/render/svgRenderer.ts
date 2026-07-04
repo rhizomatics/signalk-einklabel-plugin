@@ -87,7 +87,7 @@ export class SvgRenderer implements Renderer {
     return this.fontBuffers;
   }
 
-  async render(svgTemplatePath: string, context: TemplateContext, width: number, height: number): Promise<Bitmap> {
+  async render(svgTemplatePath: string, context: TemplateContext, width: number, height: number, fallbackTemplateDir?: string): Promise<Bitmap> {
     const [, fontBuffers] = await Promise.all([ensureWasmInitialized(), this.loadFontBuffers()]);
 
     const svgSource = expandGenericFontFamilies(await readFile(svgTemplatePath, 'utf-8'));

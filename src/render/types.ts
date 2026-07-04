@@ -24,5 +24,5 @@ export interface Bitmap {
 export type TemplateContext = Record<string, unknown>;
 
 export interface Renderer {
-  render(svgTemplatePath: string, context: TemplateContext, width: number, height: number): Promise<Bitmap>;
+  render(svgTemplatePath: string, context: TemplateContext, width: number, height: number, fallbackTemplateDir?: string): Promise<Bitmap>;
 }
