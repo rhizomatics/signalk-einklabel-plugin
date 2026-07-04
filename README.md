@@ -26,8 +26,10 @@ Unlike some eInk projects, this plugin doesn't require any physical modification
 Most of these requirements are about making SignalK work with Bluetooth Low Energy, which is good thing to have anyway, since vendors like Victron, Switchbot, Ruuvi and others have BLE enabled hardware that's useful to have on a boat. [Direct BLE support](https://github.com/SignalK/signalk-server/issues/2411) in SignalK is being planned in 2026.
 
 1. A SignalK server, **running Linux**
-  - MacOS and Windows aren't supported by the [BLE interface layer](https://www.npmjs.com/package/@naugehyde/node-ble), however can be used for template development and
+
+- MacOS and Windows aren't supported by the [BLE interface layer](https://www.npmjs.com/package/@naugehyde/node-ble), however can be used for template development and
   debugging (everything except `scan` and `paint`)
+
 2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy), which is Bluetooth v4.0 or higher
 
 - Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
@@ -88,10 +90,9 @@ The plugin will optionally re-scan whenever it starts up, although this isn't es
 The command line tools, run from inside the `.signalk` directory, can be used to help troubleshoot
 
 - Scan for longer, in this example 90 seconds
-  - ```npx esl-cli scan -d 90``` 
+  - `npx esl-cli scan -d 90`
 - Scan for all BLE devices, whatever they are
-  - ```npx esl-cli scan -a``` 
-
+  - `npx esl-cli scan -a`
 
 ## Templating
 
