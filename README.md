@@ -7,7 +7,7 @@
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/LICENSE)
 
-** Fully working but limited vendor/product support **
+** Fully working but limited vendor/product support and requires Linux for device access **
 
 A SignalK plugin to display data from SignalK paths, APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates.
 
@@ -25,7 +25,9 @@ Unlike some eInk projects, this plugin doesn't require any physical modification
 
 Most of these requirements are about making SignalK work with Bluetooth Low Energy, which is good thing to have anyway, since vendors like Victron, Switchbot, Ruuvi and others have BLE enabled hardware that's useful to have on a boat. [Direct BLE support](https://github.com/SignalK/signalk-server/issues/2411) in SignalK is being planned in 2026.
 
-1. A SignalK server, preferably running Linux (MacOS does weird things with bluetooth)
+1. A SignalK server, **running Linux**
+  - MacOS and Windows aren't supported by the [BLE interface layer](https://www.npmjs.com/package/@naugehyde/node-ble), however can be used for template development and
+  debugging (everything except `scan` and `paint`)
 2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy), which is Bluetooth v4.0 or higher
 
 - Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
@@ -73,7 +75,7 @@ The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk
 To show the lunar phase, the `environment.moon.phaseName` path is required, which can
 be easily achieved by installing and configuring the `derived-data` plugin.
 
-## Scanning for Devices
+## Scanning for Devices
 
 Since these are ultra-low power devices, they don't respond instantly to either identify themselves or accept a new image. By default, both scanning and painting have time-outs to wait for a response, which can be altered in the plugin configuration or CLI argument.
 
