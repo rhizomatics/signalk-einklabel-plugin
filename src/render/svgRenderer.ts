@@ -3,7 +3,7 @@ import { DOMParser, Element as XmlElement, XMLSerializer } from '@xmldom/xmldom'
 import { Resvg, initWasm } from '@resvg/resvg-wasm';
 import { Bitmap, Renderer, TemplateContext } from './types';
 import { parseBinding, renderBinding, resolveBinding } from './binding';
-import { normalizeAssetKey, resolveAssetPath } from './assets';
+import { describeAssetsDirProblem, normalizeAssetKey, resolveAssetPath } from './assets';
 import { DEFAULT_FONT_PATHS, GENERIC_FONT_FAMILY_MAP } from './fonts';
 import { PLUGIN_NAME } from '../pluginVersion';
 
@@ -137,11 +137,13 @@ export class SvgRenderer implements Renderer {
         const key = normalizeAssetKey(resolveBinding(binding, context));
         const assetPath = key && resolveAssetPath(svgTemplatePath, binding.assets, key);
         if (!assetPath) {
+          const dirProblem = describeAssetsDirProblem(svgTemplatePath, binding.assets);
           console.error(
             key
               ? `${PLUGIN_NAME}: image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
               : `${PLUGIN_NAME}: image "${descElement.textContent}" resolved to no usable value to pick an asset file with`,
           );
+          console.error(`${PLUGIN_NAME}: ${dirProblem ?? `assets directory for "${binding.assets}" checked out fine - the miss is just this value's`}`);
           element.parentNode?.removeChild(element);
           continue;
         }

@@ -1,3 +1,9 @@
+# 0.6.5
+
+- Standardize all log output to show a `signalk-einklabel-plugin` prefix
+- Include image fields on CLI `fields` command output
+- Better logging diagnostics if asset image resolution fails
+
 # 0.6.4
 
 - Log improvements for device paint requests

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from 'fs/promises';
+import { basename } from 'path';
 import { Command } from 'commander';
 import { DOMParser } from '@xmldom/xmldom';
 import { allDrivers, getDriver, registerDriver } from '../devices/registry';
@@ -15,7 +16,8 @@ import {
 import { Colour, DeviceModelOverride } from '../devices/types';
 import { SvgRenderer } from '../render/svgRenderer';
 import { bitmapToPng } from '../render/png';
-import { Binding, findBindings, parseBinding, renderBinding } from '../render/binding';
+import { Binding, findBindings, parseBinding, renderBinding, resolveBinding } from '../render/binding';
+import { normalizeAssetKey, resolveAssetPath } from '../render/assets';
 import { assembleExampleContext, assembleLiveContext } from './liveContext';
 import { fetchJson } from '../httpJson';
 import { logDebug, setLogLevel } from './log';
@@ -290,17 +292,19 @@ program
   )
   .action(async (opts) => {
     const doc = new DOMParser().parseFromString(await readFile(opts.template, 'utf-8'), 'image/svg+xml');
-    const elements = doc.getElementsByTagName('text');
-    const rows: { id: string; desc: string; binding?: Binding; error?: string }[] = [];
-    for (let i = 0; i < elements.length; i++) {
-      const element = elements.item(i);
-      const desc = element?.getElementsByTagName('desc').item(0);
-      if (!element || !desc?.textContent) continue;
-      const id = element.getAttribute('id') ?? `#${i}`;
-      try {
-        rows.push({ id, desc: desc.textContent, binding: parseBinding(desc.textContent) });
-      } catch (err) {
-        rows.push({ id, desc: desc.textContent, error: (err as Error).message });
+    const rows: { id: string; tag: string; desc: string; binding?: Binding; error?: string }[] = [];
+    for (const tag of ['text', 'image']) {
+      const elements = doc.getElementsByTagName(tag);
+      for (let i = 0; i < elements.length; i++) {
+        const element = elements.item(i);
+        const desc = element?.getElementsByTagName('desc').item(0);
+        if (!element || !desc?.textContent) continue;
+        const id = element.getAttribute('id') ?? `${tag}#${i}`;
+        try {
+          rows.push({ id, tag, desc: desc.textContent, binding: parseBinding(desc.textContent) });
+        } catch (err) {
+          rows.push({ id, tag, desc: desc.textContent, error: (err as Error).message });
+        }
       }
     }
     const header = ['id', 'spec', 'value'];
@@ -309,7 +313,19 @@ program
         if (row.error || !row.binding) return [row.id, row.desc, row.error ?? ''];
         try {
           const context = await assembleContext(opts, [row.binding]);
-          return [row.id, row.desc, renderBinding(row.binding, context)];
+          if (row.tag !== 'image') {
+            return [row.id, row.desc, renderBinding(row.binding, context)];
+          }
+          // `<image>` bindings don't substitute text - they pick a `.svg` file (see SvgRenderer) -
+          // so show what asset that resolves to instead of running it through renderBinding's
+          // text formatting, otherwise this row would silently show nothing useful to test against.
+          if (!row.binding.assets) {
+            return [row.id, row.desc, 'ERROR: an <image> binding requires an "assets" key'];
+          }
+          const key = normalizeAssetKey(resolveBinding(row.binding, context));
+          if (!key) return [row.id, row.desc, '(no usable value - image would be omitted)'];
+          const assetPath = resolveAssetPath(opts.template, row.binding.assets, key);
+          return [row.id, row.desc, assetPath ? `"${key}" -> ${basename(assetPath)}` : `"${key}" -> no matching asset file (image would be omitted)`];
         } catch (err) {
           return [row.id, row.desc, `ERROR: ${(err as Error).message}`];
         }
