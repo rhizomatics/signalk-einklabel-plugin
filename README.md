@@ -58,7 +58,7 @@ npm install @rhizomatics/signalk-einklabel-plugin
 
 The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. The [tide.svg](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tide.svg) can be customized to run with other APIs or take data only from SignalK data paths.
 
-To show the lunar phase, the `environment.moonPhase.name` path is required, which can
+To show the lunar phase, the `environment.moon.phaseName` path is required, which can
 be easily achieved by installing and configuring the `derived-data` plugin.
 
 ## Templating
@@ -114,7 +114,7 @@ These can all be combined as in `source=resources,resource=tides,path=extremes[2
 The same `<desc>` mechanism works on an `<image>` element instead of a `<text>` element, for a value that's better shown as a picture than as text - a moon phase icon, a wind direction arrow, a weather condition glyph, and so on. Rather than substituting text, the resolved value picks one of a directory of `.svg` files to embed, by an extra required `assets=` key naming that directory (resolved relative to the template file itself, so a bundled template and a user override both work the same way). For example, the tide clock's moon phase icon uses:
 
 ```
-path=environment.moonPhase.name,assets=../resources/svg/lunar_phases
+path=environment.moon.phaseName,assets=../resources/svg/lunar_phases
 ```
 
 The resolved value (e.g. `"Waning Gibbous"`, as published by the [derived-data](https://www.npmjs.com/package/signalk-derived-data) plugin) is normalized to match a filename - lower-cased, punctuation and spaces collapsed to underscores - so `"Waning Gibbous"` picks `waning_gibbous.svg` out of that directory. If the underlying path has no value at all (e.g. the `derived-data` plugin isn't installed), or the value doesn't normalize to any file in the directory, the `<image>` element is simply omitted from that render - no broken image, no placeholder, nothing shown.

@@ -1,10 +1,12 @@
+# 0.6.1
+- Corrected tide lunar phase path from `environment.moonPhase.name` to `environment.moon.phaseName`
 # 0.6.0
 - Added ability to select images for inclusion in SVG templates based on SignalK path value
   - Pass a directory of assets, and it will pick the SVG file matching the SignalK value
   - Matching will cope with "Waning Gibbous" -> `waning_gibbous.svg`
   - If no match, image will be blank
 - New image selection used to add lunar phase to tide clock example
-  -  Requires a source for `environment.moonPhase.name`, for example the `dervived-data` plugin
+  -  Requires a source for `environment.moon.phaseName`, for example the `dervived-data` plugin
 - New `resources` directory for composable SVG assets
 # 0.5.1
 - Work around `resvg-wasm` font limitations by overriding generic font family with matching font name prior to rendering

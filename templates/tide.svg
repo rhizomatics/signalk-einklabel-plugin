@@ -269,4 +269,4 @@
      id="moon_phase"
      x="340.3974"
      y="90.153488"><desc
-       id="desc22">path=environment.moonPhase.name,assets=../resources/svg/lunar_phases</desc></image></svg>
+       id="desc22">path=environment.moon.phaseName,assets=../resources/svg/lunar_phases</desc></image></svg>
