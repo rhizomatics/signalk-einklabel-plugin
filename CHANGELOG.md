@@ -3,6 +3,7 @@
 - Standardize all log output to show a `signalk-einklabel-plugin` prefix
 - Include image fields on CLI `fields` command output
 - Better logging diagnostics if asset image resolution fails
+- Improved use of override template files
 
 # 0.6.4
 
