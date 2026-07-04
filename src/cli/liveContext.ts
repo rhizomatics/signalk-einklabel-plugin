@@ -6,6 +6,7 @@ import { TemplateContext } from '../render/types';
 import { fetchJson } from '../httpJson';
 import { fetchCategoryDisplayUnits } from '../unitCategories';
 import { fetchPathMeta } from '../pathMeta';
+import { PLUGIN_VERSION } from '../pluginVersion';
 import { logDebug } from './log';
 
 const RESOURCES_API_PATH = '/signalk/v2/api/resources';
@@ -80,7 +81,11 @@ export async function assembleLiveContext(signalkUrl: string, bindings: Binding[
 
   // Matches `considerRepaint` in repaintScheduler.ts - the CLI has no real device repaint to time, so
   // a `source=einklabel,path=repainted` binding just resolves to "now", same as a live render would.
-  const meta = { repainted: new Date().toISOString(), local_zone: resolveLocalZoneAbbreviation({ signalk }) };
+  const meta = {
+    repainted: new Date().toISOString(),
+    local_zone: resolveLocalZoneAbbreviation({ signalk }),
+    plugin_version: PLUGIN_VERSION,
+  };
 
   return { signalk, resources, pathMeta, categories, meta };
 }
@@ -154,7 +159,11 @@ export async function assembleExampleContext(examplesDir: string, bindings: Bind
     }
   }
 
-  const meta = { repainted: new Date().toISOString(), local_zone: resolveLocalZoneAbbreviation({ signalk }) };
+  const meta = {
+    repainted: new Date().toISOString(),
+    local_zone: resolveLocalZoneAbbreviation({ signalk }),
+    plugin_version: PLUGIN_VERSION,
+  };
 
   return { signalk, resources, pathMeta: {}, categories, meta };
 }

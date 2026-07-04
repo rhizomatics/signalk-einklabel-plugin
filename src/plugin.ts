@@ -29,7 +29,8 @@ async function runStartupScan(app: ServerAPI, discovered: DiscoveredDevice[], du
         }
         discovered.push(found);
         const pid = found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, '0')}` : 'unknown';
-        app.debug(`discovered ${driver.vendor} device "${found.name ?? ''}" [${found.address}] pid=${pid}`);
+        const hwid = found.hwVersion ?? 'unknown';
+        app.debug(`discovered ${driver.vendor} device "${found.name ?? ''}" [${found.address}] pid=${pid} hwid=${hwid}`);
       });
     });
   } catch (err) {

@@ -12,6 +12,7 @@ import { TemplateContext } from './render/types';
 import { fetchCategoryDisplayUnits } from './unitCategories';
 import { fetchPathMeta } from './pathMeta';
 import { createApiUrlResolver } from './resolveApiUrl';
+import { PLUGIN_VERSION } from './pluginVersion';
 
 const INTERVAL_POLL_MS = 60_000;
 const SUBSCRIPTION_DEBOUNCE_MS = 2_000;
@@ -166,7 +167,11 @@ async function considerRepaint(
 
   const renderContext: TemplateContext = {
     ...rawContext,
-    meta: { repainted: new Date().toISOString(), local_zone: resolveLocalZoneAbbreviation(rawContext) },
+    meta: {
+      repainted: new Date().toISOString(),
+      local_zone: resolveLocalZoneAbbreviation(rawContext),
+      plugin_version: PLUGIN_VERSION,
+    },
   };
   const renderer = new SvgRenderer();
   const bitmap = await renderer.render(templatePath, renderContext, metadata.width, metadata.height - metadata.voffset);
