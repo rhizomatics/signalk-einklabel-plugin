@@ -73,10 +73,7 @@ function stableStringify(value: unknown): string {
 
 /** Hashes both the live data context and the template's mtime, so editing a template (even with no data change) triggers a repaint. */
 function hashContext(context: TemplateContext, templateMtimeMs: number): string {
-  return createHash("sha1")
-    .update(stableStringify(context))
-    .update(String(templateMtimeMs))
-    .digest("hex");
+  return createHash("sha1").update(stableStringify(context)).update(String(templateMtimeMs)).digest("hex");
 }
 
 /** Merges `value` into `target` at the nested location described by a dotted SignalK path. */
