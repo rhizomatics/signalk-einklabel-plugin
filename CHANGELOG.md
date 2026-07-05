@@ -6,7 +6,6 @@
 - Path based subscriptions ignore temporarily missing paths, so displays don't waste their tiny batteries on flapping values
 - Documentation now has a FAQ plus lots of other ESL/eInk hacking links.
 
-
 # 0.7.1
 
 - Fix path value retrieved for Image Fields when running in live plugin

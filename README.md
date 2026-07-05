@@ -174,7 +174,6 @@ Three font types are loaded by default, use the generic font family, or exact fo
 - `sans-serif` - `Roboto`
 - `monospace` - `Roboto Mono`
 
-
 ## Vendors
 
 ### Zhsunyco
@@ -253,7 +252,6 @@ Inkscape adds its own metadata to images, which can be stripped off by exporting
 
 Due to a limitation in the `resvg-wasm` library used to turn SVGs into images, the `font-family` is limited to `serif`,`sans-serif`,`monospace` or the exact name of one of the installed fonts - `Roboto` (sans serif), `Roboto Serif` or `Roboto Mono`. Inkscape has its own fonts, which won't match what's available in the SignalK plugin, so for more precise design, install [Roboto from Google](https://fonts.google.com/specimen/Roboto) via the web page, `brew` on MacOS or similar.
 
-
 ### Debugging Templates
 
 The `esl-cli` can be used to debug and validate templates quickly:
@@ -309,7 +307,7 @@ For example, `npx esl-cli fields -t templates/tide.svg -e examples` will show al
 
 If the plugin repaints a display at server startup, then the plugin that provides the data may not have started ( or in the case of `derived-data` the plugin that the plugin depends on! ) and unlike Home Assistant, there's no good way of sequencing the start of plugins.
 
-Use the *settle* time, to impose a minimum wait between the eInk Label plugin being initialized, and it attempting to paint any displays, and increase this value if its still missing data.
+Use the _settle_ time, to impose a minimum wait between the eInk Label plugin being initialized, and it attempting to paint any displays, and increase this value if its still missing data.
 
 ### Times are showing incorrectly {#faq-timezone}
 
@@ -329,7 +327,7 @@ Try a BLE proxy device, ESP32 is popular for this.
 - [eInk Dashboard Modern SK](https://github.com/VladimirKalachikhin/e-inkDashboardModernSK) - SignalK dashboard for non-ESL eInk display.
 - [esp32-esl-system](https://github.com/giobauermeister/esp32-esl-system) - Docker and ESP32 based system for updating ESLs.
 - [hass-gicisky](https://github.com/eigger/hass-gicisky) - Home Assistant integration for Gicisky ESLs ( a similar vendor to Zhsunyco). Uses [imagespec](https://github.com/eigger/imagespec) for templating.
-- [ha-panda](https://github.com/moryoav/ha-panda) -  Home Assistant integration for Panda ESLs ( a similar vendor to Zhsunyco).
+- [ha-panda](https://github.com/moryoav/ha-panda) - Home Assistant integration for Panda ESLs ( a similar vendor to Zhsunyco).
 - [Dmitry.gr](https://dmitry.gr/?r=05.Projects&proj=29.%20eInk%20Price%20Tags) - Personal site of an ESL hacker
 - [Aaron Christobel](https://www.youtube.com/@atc1441) - YouTube channel of an ESL hacker.
 - [rbaron.net](https://rbaron.net/blog/2022/07/29/Daisy-chaining-multiple-electronic-shelf-labels) - Blog of an early ESL hacker.
