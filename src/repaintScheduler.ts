@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { join } from "path";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, statSync, writeFileSync } from "fs";
 import { ServerAPI, Path, SignalKResourceType } from "@signalk/server-api";
 import { BUNDLED_TEMPLATES_DIR, DeviceConfig, PluginConfig, parseDevice, resolveTemplatePath, resolveTemplatesDir } from "./config";
 import { withRetries } from "./devices/bleDiscovery";
@@ -71,8 +71,12 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function hashContext(context: TemplateContext): string {
-  return createHash("sha1").update(stableStringify(context)).digest("hex");
+/** Hashes both the live data context and the template's mtime, so editing a template (even with no data change) triggers a repaint. */
+function hashContext(context: TemplateContext, templateMtimeMs: number): string {
+  return createHash("sha1")
+    .update(stableStringify(context))
+    .update(String(templateMtimeMs))
+    .digest("hex");
 }
 
 /** Merges `value` into `target` at the nested location described by a dotted SignalK path. */
@@ -181,6 +185,7 @@ async function considerRepaint(
   }
   const templatesDir = resolveTemplatesDir(config.templatesDir);
   const templatePath = resolveTemplatePath(templatesDir, device.templateName);
+  const templateMtimeMs = statSync(templatePath).mtimeMs;
   const bindings = findBindings(readFileSync(templatePath, "utf-8"));
 
   const apiUrl = await getApiUrl().catch((err) => {
@@ -188,7 +193,7 @@ async function considerRepaint(
     return undefined;
   });
   const rawContext = await assembleRawContext(app, apiUrl, bindings);
-  const hash = hashContext(rawContext);
+  const hash = hashContext(rawContext, templateMtimeMs);
   if (state[device.friendlyName]?.hash === hash && !device.forceRepaint) {
     app.debug(`"${device.friendlyName}": data unchanged, skipping repaint`);
     return;

@@ -232,7 +232,7 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         title: "Settle time after plugin start (seconds)",
         description:
           "Holds off every repaint (startup check, interval, and subscription alike) until this long after the plugin starts - " +
-          "the first minute or two of SignalK startup is a chaos of plugin dependency sequencing, so data a template needs " +
+          "the first minute or two of SignalK startup often has many errors as plugins start before the paths they depend on are ready, so data a template needs " +
           "(e.g. from the derived-data plugin) may not be published yet.",
         minimum: 0,
         default: defaults.settleSeconds,
