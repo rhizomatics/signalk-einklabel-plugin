@@ -1,3 +1,7 @@
+# 0.8.1
+
+- Devices will repaint at startup even if no schedule slot has been missed prior to startup, if the template itself has subsequently changed
+
 # 0.8.0
 
 - New `settle` time, configurable and defaulting to 120 seconds, to wait after plugin startup before attempting to access paths
