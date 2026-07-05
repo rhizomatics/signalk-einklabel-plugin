@@ -7,7 +7,7 @@
 [![code style: oxfmt](https://img.shields.io/badge/code_style-oxfmt-blue.svg)](https://github.com)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/LICENSE)
 
-** Fully working but limited vendor/product support and requires Linux for device access **
+    Fully working but limited vendor/product support and requires Linux for device access.
 
 A SignalK plugin to display data from SignalK paths, APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates.
 
@@ -48,7 +48,7 @@ Most of these requirements are about making SignalK work with Bluetooth Low Ener
 
 5. Correct time zone set on server if local time is to be shown on display
 
-- Use `raspi-config` on a Raspberry Pi, or `timedatectl` on a Linux server
+- See [FAQ](#faq-timezone)
 - If not set, everything will work, but you may see the wrong zone or not have daylight savings applied
 
 Once you have all of that, it may be worth also installing [signalk-victron-ble](https://github.com/stefanor/signalk-victron-ble) or [bt-sensors-plugin](https://github.com/naugehyde/bt-sensors-plugin-sk) to pull in data from other sensors and equipment.
@@ -83,7 +83,7 @@ Use the standard configuration option in the SignalK menu for the plugin.
 
 ![Plugin Configuration](docs/assets/screenshots/plugin_config.png)
 
-## Scanning for Devices
+### Scanning for Devices
 
 Since these are ultra-low power devices, they don't respond instantly to either identify themselves or accept a new image. By default, both scanning and painting have time-outs to wait for a response, which can be altered in the plugin configuration or CLI argument.
 
@@ -91,14 +91,17 @@ One other quirk is that some devices respond with a different name at different 
 
 The plugin will optionally re-scan whenever it starts up, although this isn't essential once a label has been configured.
 
-### Scans from CLI
+### Scheduling
 
-The command line tools, run from inside the `.signalk` directory, can be used to help troubleshoot
+There are two ways of scheduling scans:
 
-- Scan for longer, in this example 90 seconds
-  - `npx esl-cli scan -d 90`
-- Scan for all BLE devices, whatever they are
-  - `npx esl-cli scan -a`
+#### Time Based
+
+This will schedule at fixed hours of the day, for example 00:00/08:00/16:00 for an 8h schedule, and at a selected minutes past the hour. At plugin startup/restart, the devices will be repainted if they missed their last slot.
+
+#### Path Subscription
+
+The devices will be painted when the plugin starts, and then every time the selected SignalK path changes.
 
 ## Templating
 
@@ -171,21 +174,6 @@ Three font types are loaded by default, use the generic font family, or exact fo
 - `sans-serif` - `Roboto`
 - `monospace` - `Roboto Mono`
 
-## Command Line Interface
-
-To get fast feedback on templates and shelf devices without updating and configuring SignalK, a CLI call `esl-cli` is provided when the module is manually installed that has these commands. Use `--help` to get all the options.
-
-- `vendors` - list supported vendors
-- `scan` - report supported devices found from a BLE scan
-
-See also the commands useful for debugging under [Developing Templates]
-
-- `render` - transform an SVG template and data into a PNG
-- `paint` - render an SVG template and data to a selected ESL
-
-The width, height, vertical offset and colour palette for the device is taken from the internal register of devices, however can be overridden on the command line. This could be used to help you choose what size of label to buy, or to get an unsupported label working.
-
-( The CLI can also be run from a checked out module, or by opening a terminal shell at `~/.signalk/node_modules/@rhizomatics/signalk-einklabel-plugin`, as `npx esl-cli command --args` )
 
 ## Vendors
 
@@ -214,6 +202,31 @@ The primary things managed and provided by the plugin are:
   - Optional: left blank, the plugin probes the probable values in likelihood order at startup - `http://localhost:3000`, `http://localhost`, `https://localhost`. Set it explicitly to skip probing
   - Either way, errors clearly if nothing responds (wrong port) or the probe is rejected (anonymous read access not enabled) - these endpoints must allow anonymous read access, since the plugin has no login flow
 
+## Command Line Interface
+
+To get fast feedback on templates and shelf devices without updating and configuring SignalK, a CLI call `esl-cli` is provided when the module is manually installed that has these commands. Use `--help` to get all the options.
+
+- `vendors` - list supported vendors
+- `scan` - report supported devices found from a BLE scan
+
+See also the commands useful for debugging under [Developing Templates]
+
+- `render` - transform an SVG template and data into a PNG
+- `paint` - render an SVG template and data to a selected ESL
+
+The width, height, vertical offset and colour palette for the device is taken from the internal register of devices, however can be overridden on the command line. This could be used to help you choose what size of label to buy, or to get an unsupported label working.
+
+( The CLI can also be run from a checked out module, or by opening a terminal shell at `~/.signalk/node_modules/@rhizomatics/signalk-einklabel-plugin`, as `npx esl-cli command --args` )
+
+### Scans from CLI
+
+The command line tools, run from inside the `.signalk` directory, can be used to help troubleshoot
+
+- Scan for longer, in this example 90 seconds
+  - `npx esl-cli scan -d 90`
+- Scan for all BLE devices, whatever they are
+  - `npx esl-cli scan -a`
+
 ## Extending
 
 ### Hardware
@@ -226,6 +239,8 @@ Additional vendors and devices can be added by a separate npm package that imple
 
 ### Developing Templates
 
+See the [Templating] section for more details.
+
 Templates can be added to the configurable directory. [Inkscape](https://inkscape.org) free, open source, and recommended for editing templates, or your own favourite editor, or by hand in a text editor for hard core (or just tidying up the template side).
 
 ![Example Field Definition](docs/assets/screenshots/inkscape_desc.png)
@@ -237,6 +252,7 @@ Placeholder text isn't necessary, and is ignored by the plugin, but makes it muc
 Inkscape adds its own metadata to images, which can be stripped off by exporting a simple SVG, although can be left in place with no harm; main reason to simplify the SVG is manual changes in a text editor.
 
 Due to a limitation in the `resvg-wasm` library used to turn SVGs into images, the `font-family` is limited to `serif`,`sans-serif`,`monospace` or the exact name of one of the installed fonts - `Roboto` (sans serif), `Roboto Serif` or `Roboto Mono`. Inkscape has its own fonts, which won't match what's available in the SignalK plugin, so for more precise design, install [Roboto from Google](https://fonts.google.com/specimen/Roboto) via the web page, `brew` on MacOS or similar.
+
 
 ### Debugging Templates
 
@@ -286,3 +302,38 @@ extremes.0.level         source=resources,resource=tides,path=extremes[0].level,
 - `categories.json` - SignalK unit categories needed for `category=depth` type formatting
 
 For example, `npx esl-cli fields -t templates/tide.svg -e examples` will show all the field data that will be populated from the example API, vessel and category data in the `examples` local directory.
+
+## Frequently Asked Questions
+
+### Sometimes values are missing on the display
+
+If the plugin repaints a display at server startup, then the plugin that provides the data may not have started ( or in the case of `derived-data` the plugin that the plugin depends on! ) and unlike Home Assistant, there's no good way of sequencing the start of plugins.
+
+Use the *settle* time, to impose a minimum wait between the eInk Label plugin being initialized, and it attempting to paint any displays, and increase this value if its still missing data.
+
+### Times are showing incorrectly {#faq-timezone}
+
+If times are in the wrong timezone, or don't have daylight savings applied correctly,
+then check that the server itself (at the Linux level, not SignalK, which doesn't know)is configured for your timezone, assuming of course that you're a coastal sailor. Use `raspi-config` on a Raspberry Pi, or `timedatectl` on a Linux server.
+
+If you're a global cruiser, then use something like [signalk-set-gps-timezone](https://github.com/hoeken/signalk-set-gps-timezone) to set the value in the operating system.
+
+### The ESL signal is too weak from my SignalK server
+
+Try a BLE proxy device, ESP32 is popular for this.
+
+## Other ESL and General eInk Resources
+
+- [Open ePaper Link](https://openepaperlink.de) - Alternative open source firmware to flash onto eInk shelf labels, with Home Assistant integration.
+- [e-ink dashboard for Signal K](https://github.com/meri-imperiumi/dashboard) - Waveshare display based multi instrument display.
+- [eInk Dashboard Modern SK](https://github.com/VladimirKalachikhin/e-inkDashboardModernSK) - SignalK dashboard for non-ESL eInk display.
+- [esp32-esl-system](https://github.com/giobauermeister/esp32-esl-system) - Docker and ESP32 based system for updating ESLs.
+- [hass-gicisky](https://github.com/eigger/hass-gicisky) - Home Assistant integration for Gicisky ESLs ( a similar vendor to Zhsunyco). Uses [imagespec](https://github.com/eigger/imagespec) for templating.
+- [ha-panda](https://github.com/moryoav/ha-panda) -  Home Assistant integration for Panda ESLs ( a similar vendor to Zhsunyco).
+- [Dmitry.gr](https://dmitry.gr/?r=05.Projects&proj=29.%20eInk%20Price%20Tags) - Personal site of an ESL hacker
+- [Aaron Christobel](https://www.youtube.com/@atc1441) - YouTube channel of an ESL hacker.
+- [rbaron.net](https://rbaron.net/blog/2022/07/29/Daisy-chaining-multiple-electronic-shelf-labels) - Blog of an early ESL hacker.
+- [Pimoroni](https://shop.pimoroni.com/collections/displays?tags=e-ink%20Displays) - All shapes and sizes of eInk displays, aimed at hackers, and with an [inky](https://github.com/pimoroni/inky) GitHub project to support them.
+- [WaveShare](https://www.waveshare.com/product/displays/e-paper.htm) - Wide range of eInk displays for hardware projects, not limited to ESLs.
+
+See also the [Boat Tech Directory](https://boat-tech-directory.rhizomatics.org.uk).

@@ -43,6 +43,15 @@ export interface PluginConfig {
   /** How many times to attempt a repaint (including the first try) before giving up and reporting failure. */
   paintRetries: number;
   /**
+   * How long after plugin start to hold off on every repaint trigger (startup check, interval, and
+   * subscription alike) - the first minute or two of a SignalK server's life is a chaos of plugin
+   * dependency sequencing (e.g. `derived-data` may not have published `environment.moon.phaseName`
+   * yet), so a repaint attempted immediately at startup can render with missing/wrong data, and hash
+   * dedup (see `considerRepaint`) then means it silently stays that way until the underlying data
+   * happens to change again. Defaults to 120s - see `startRepaintScheduler`.
+   */
+  settleSeconds: number;
+  /**
    * Base URL of this SignalK server, used for: (1) a `signalk`-sourced numeric value's automatic unit
    * conversion (`GET .../vessels/<context>/meta`, see `../pathMeta.ts`) unless `format=raw`, and (2) an
    * explicit `category=` binding (e.g. `category=depth` on a resource-sourced value with no path
@@ -81,6 +90,7 @@ export function defaultConfig(): PluginConfig {
     scanDurationSeconds: 20,
     paintConnectTimeoutSeconds: 30,
     paintRetries: 3,
+    settleSeconds: 120,
     devices: [],
   };
 }
@@ -216,6 +226,16 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         description: "How many times to attempt a repaint (including the first try) before giving up and reporting failure.",
         minimum: 1,
         default: defaults.paintRetries,
+      },
+      settleSeconds: {
+        type: "number",
+        title: "Settle time after plugin start (seconds)",
+        description:
+          "Holds off every repaint (startup check, interval, and subscription alike) until this long after the plugin starts - " +
+          "the first minute or two of SignalK startup is a chaos of plugin dependency sequencing, so data a template needs " +
+          "(e.g. from the derived-data plugin) may not be published yet.",
+        minimum: 0,
+        default: defaults.settleSeconds,
       },
       signalkApiUrl: {
         type: "string",

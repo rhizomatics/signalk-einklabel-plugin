@@ -151,11 +151,9 @@ export class SvgRenderer implements Renderer {
           console.error(
             key
               ? `${PLUGIN_NAME}: image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
-              : `${PLUGIN_NAME}: image "${descElement.textContent}" resolved to no usable value to pick an asset file with`,
+              : `${PLUGIN_NAME}: image "${descElement.textContent}" resolved to empty value to select asset`,
           );
-          console.error(
-            `${PLUGIN_NAME}: ${dirProblem ?? `assets directory for "${binding.assets}" checked out fine - the miss is just this value's`}`,
-          );
+          console.error(`${PLUGIN_NAME}: ${dirProblem ?? `assets directory for "${binding.assets}" is present`}`);
           element.parentNode?.removeChild(element);
           continue;
         }

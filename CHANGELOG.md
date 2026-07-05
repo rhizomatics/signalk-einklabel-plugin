@@ -1,6 +1,15 @@
+# 0.8.0
+
+- New `settle` time, configurable and defaulting to 120 seconds, to wait after plugin startup before attempting to access paths
+  - First few minutes of a SignalK server startup can be a mess of plugins missing their dependencies and logging errors.
+- Schedule correctly picks up on previous schedule at startup, only repainting if the last scheduled time was overdue
+- Path based subscriptions ignore temporarily missing paths, so displays don't waste their tiny batteries on flapping values
+- Documentation now has a FAQ plus lots of other ESL/eInk hacking links.
+
+
 # 0.7.1
 
-
+- Fix path value retrieved for Image Fields when running in live plugin
 
 # 0.7.0
 

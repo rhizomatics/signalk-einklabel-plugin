@@ -22,7 +22,26 @@ export interface RepaintScheduler {
   stop(): void;
 }
 
-type RepaintState = Record<string, { hash: string }>;
+/** `repaintedAt` - epoch ms of the last successful `driver.paint()`, used by the startup catch-up check (see `mostRecentScheduledSlot`) to tell an interval device that's already been painted for its current slot from one that's overdue. */
+type RepaintState = Record<string, { hash: string; repaintedAt?: number }>;
+
+/**
+ * The most recent wall-clock instant at or before `now` that an `interval`-triggered device's own
+ * periodic check (below, in `startRepaintScheduler`) would fire at - every `intervalHours` hours,
+ * at `intervalMinute` minutes past the hour (e.g. hours=8,minute=0 -> 00:00, 08:00, 16:00 each day).
+ * Used only by the deferred startup catch-up check to tell an interval device that's already been
+ * painted for its current slot (skip - the regular periodic check will catch the *next* slot in due
+ * course) from one that's overdue (e.g. the plugin was down across a scheduled slot - paint now
+ * rather than waiting up to `intervalHours` for the next one).
+ */
+export function mostRecentScheduledSlot(now: Date, intervalHours: number, intervalMinute: number): Date {
+  const slot = new Date(now);
+  slot.setHours(Math.floor(now.getHours() / intervalHours) * intervalHours, intervalMinute, 0, 0);
+  if (slot.getTime() > now.getTime()) {
+    slot.setHours(slot.getHours() - intervalHours);
+  }
+  return slot;
+}
 
 function statePath(app: ServerAPI): string {
   return join(app.getDataDirPath(), "repaint-state.json");
@@ -203,7 +222,7 @@ async function considerRepaint(
     paintDurationMs = Date.now() - startedAt;
   });
 
-  state[device.friendlyName] = { hash };
+  state[device.friendlyName] = { hash, repaintedAt: Date.now() };
   saveState(app, state);
   if (device.forceRepaint) {
     clearForceRepaint(app, device.friendlyName);
@@ -216,10 +235,26 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   const unsubscribes: Array<() => void> = [];
   const getApiUrl = createApiUrlResolver(config.signalkApiUrl);
 
-  const repaint = (device: DeviceConfig) =>
-    considerRepaint(app, config, device, state, getApiUrl).catch((err) =>
+  // The first minute or two of a SignalK server's life is a chaos of plugin dependency sequencing -
+  // a repaint attempted before other plugins (e.g. derived-data) have published the data a template
+  // needs renders with missing/wrong values, and hash dedup (see `considerRepaint`) then means it
+  // silently stays that way until the underlying data happens to change again. So every trigger
+  // (startup check, interval, subscription alike) funnels through this one gate.
+  const startedAt = Date.now();
+  const settleMs = (config.settleSeconds ?? 120) * 1000;
+
+  const repaint = (device: DeviceConfig) => {
+    const elapsedMs = Date.now() - startedAt;
+    if (elapsedMs < settleMs) {
+      app.debug(
+        `"${device.friendlyName}": still settling (${Math.round(elapsedMs / 1000)}s/${Math.round(settleMs / 1000)}s) - skipping repaint`,
+      );
+      return Promise.resolve();
+    }
+    return considerRepaint(app, config, device, state, getApiUrl).catch((err) =>
       app.debug(`"${device.friendlyName}": repaint failed: ${err.message}`),
     );
+  };
 
   const intervalDevices = config.devices.filter((device) => device.repaintTrigger === "interval");
   if (intervalDevices.length > 0) {
@@ -239,16 +274,43 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   for (const device of config.devices) {
     if (device.repaintTrigger === "subscription" && device.triggerPath) {
       const stream = app.streambundle.getSelfStream(device.triggerPath as Path).debounce(SUBSCRIPTION_DEBOUNCE_MS);
-      const unsub = stream.onValue(() => repaint(device));
+      // A path can report a transient `null`/missing value (e.g. a sensor briefly drops out) then go
+      // right back to what it was before - e.g. 1111, then missing, then 1111 again. Ignoring the
+      // missing emission entirely (rather than repainting for it) means it's never actually painted,
+      // so when the value comes back the same as before, `considerRepaint`'s hash dedup sees nothing
+      // changed since the last real paint and skips too - net effect: no repaint at all for this
+      // blip, instead of one flickering the display blank/wrong and a second restoring it.
+      const unsub = stream.onValue((value) => {
+        if (value !== null && value !== undefined) void repaint(device);
+      });
       unsubscribes.push(unsub);
     }
   }
 
-  // Check every device once at startup - harmless given hash dedup, and covers newly-added
-  // devices or a forceRepaint left set from before a restart.
-  for (const device of config.devices) {
-    void repaint(device);
-  }
+  // Check every device once, after the settle window. Deferred (rather than run immediately) so a
+  // subscription-triggered device whose path is slow-changing (e.g. tide/moon data that might not
+  // change again for hours) still gets its first real paint promptly once settled, instead of
+  // waiting on that path's next unrelated update - it's then left alone until the path changes
+  // again, same as always. An interval-triggered device, though, only gets this catch-up paint if
+  // it's actually overdue - already painted for the current scheduled slot (e.g. plugin restarted
+  // mid-way through its interval) just waits for the regular periodic check above to hit the *next*
+  // slot, rather than jumping the gun with an extra unscheduled paint every time the plugin restarts.
+  const startupCheckTimer = setTimeout(() => {
+    for (const device of config.devices) {
+      if (device.repaintTrigger === "interval" && !device.forceRepaint) {
+        const hours = device.intervalHours ?? 1;
+        const minute = device.intervalMinute ?? 0;
+        const dueSlot = mostRecentScheduledSlot(new Date(), hours, minute);
+        const repaintedAt = state[device.friendlyName]?.repaintedAt;
+        if (repaintedAt !== undefined && repaintedAt >= dueSlot.getTime()) {
+          app.debug(`"${device.friendlyName}": already painted for the current ${hours}h schedule slot - skipping startup catch-up`);
+          continue;
+        }
+      }
+      void repaint(device);
+    }
+  }, settleMs);
+  unsubscribes.push(() => clearTimeout(startupCheckTimer));
 
   return {
     stop() {
