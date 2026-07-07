@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findBindings, parseBinding, renderBinding, resolveBinding } from "./binding";
+import { findBindings, parseBinding, renderBinding, resolveBinding, resourceContextKey } from "./binding";
 import { TemplateContext } from "./types";
 
 test("parseBinding", async (t) => {
@@ -17,12 +17,21 @@ test("parseBinding", async (t) => {
       source: "resources",
       context: "self",
       resource: "tides",
+      provider: undefined,
       path: "extremes[0].level",
       format: undefined,
       category: "depth",
       round: 2,
       assets: undefined,
     });
+  });
+
+  await t.test("parses an optional provider key, to pin a specific resource provider", () => {
+    assert.equal(parseBinding("source=resources,resource=tides,provider=tides,path=station.name").provider, "tides");
+  });
+
+  await t.test("rejects a provider key on a non-resources source", () => {
+    assert.throws(() => parseBinding("source=signalk,provider=tides,path=a"), /"provider" is only valid with source=resources/);
   });
 
   await t.test("rejects an unknown key", () => {
@@ -43,6 +52,16 @@ test("parseBinding", async (t) => {
 
   await t.test("requires a path key", () => {
     assert.throws(() => parseBinding("source=signalk"), /missing required "path" key/);
+  });
+});
+
+test("resourceContextKey", async (t) => {
+  await t.test("is the bare resource name when no provider is pinned", () => {
+    assert.equal(resourceContextKey({ resource: "tides", provider: undefined }), "tides");
+  });
+
+  await t.test("incorporates the provider when one is pinned", () => {
+    assert.equal(resourceContextKey({ resource: "tides", provider: "tides" }), "tides@tides");
   });
 });
 
@@ -86,6 +105,25 @@ test("resolveBinding", async (t) => {
     assert.throws(
       () => resolveBinding(parseBinding("source=resources,resource=waypoints,path=a"), context),
       /resource "waypoints" which is not present/,
+    );
+  });
+
+  await t.test("a provider= binding is keyed separately from an unpinned binding for the same resource type", () => {
+    const providerContext: TemplateContext = {
+      ...context,
+      resources: { tides: { extremes: [{ level: 1.2 }] }, "tides@tides": { extremes: [{ level: 9.9 }] } },
+    };
+    assert.equal(resolveBinding(parseBinding("source=resources,resource=tides,path=extremes[0].level"), providerContext), 1.2);
+    assert.equal(
+      resolveBinding(parseBinding("source=resources,resource=tides,provider=tides,path=extremes[0].level"), providerContext),
+      9.9,
+    );
+  });
+
+  await t.test("throws referencing the provider-qualified key when a pinned resource is missing", () => {
+    assert.throws(
+      () => resolveBinding(parseBinding("source=resources,resource=tides,provider=other,path=a"), context),
+      /resource "tides@other" which is not present/,
     );
   });
 

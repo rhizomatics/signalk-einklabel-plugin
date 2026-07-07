@@ -117,7 +117,7 @@ For example, `path=environment.forecast.description` uses the default data sourc
 
 #### SignalK REST APIs
 
-The source can be overridden to use the SignalK server's Resources API instead. Change `source` to `resources` and specify which resource with `resource`. If there are multiple providers for the same resource, and they're not equally useful, then eithe set a default provider in SignalK, or use the `provider` tag to set the name.
+The source can be overridden to use the SignalK server's Resources API instead. Change `source` to `resources` and specify which resource with `resource`. If there are multiple providers for the same resource, and they're not equally useful, then either set a default provider in SignalK, or use the `provider` tag to set the name.
 
 
 For example, `source=resources,resource=tides,path=station.name` picks the `tides` resource and pulls the `station.name` path out of the JSON response - this works for any resource type (`tides`, `waypoints`, `routes`, ...), and needs nothing configured: the plugin reaches the Resources API directly. Where a resource is specified, it will be fetched once for that render, and subsequent fields sourced from the same resource use that cached response.
