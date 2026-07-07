@@ -1,6 +1,6 @@
 import { readFile } from "fs/promises";
 import path from "path";
-import { Binding } from "../render/binding";
+import { Binding, resourceContextKey } from "../render/binding";
 import { DisplayUnits, resolveLocalZoneAbbreviation } from "../render/formatters";
 import { TemplateContext } from "../render/types";
 import { unwrapSignalkTree } from "../render/unwrapSignalkTree";
@@ -48,11 +48,18 @@ export async function assembleLiveContext(signalkUrl: string, bindings: Binding[
   }
 
   const resources: Record<string, unknown> = {};
-  const resourceNames = new Set(bindings.filter((binding) => binding.source === "resources").map((binding) => binding.resource as string));
-  for (const name of resourceNames) {
-    const url = `${signalkUrl}${RESOURCES_API_PATH}/${name}`;
+  const resourceBindings = new Map<string, Binding>();
+  for (const binding of bindings) {
+    if (binding.source !== "resources") continue;
+    resourceBindings.set(resourceContextKey(binding), binding);
+  }
+  for (const [key, binding] of resourceBindings) {
+    // A `provider=` binding pins which registered provider plugin answers the request (matches
+    // `checkForProvider`'s `?provider=` query param in signalk-server's resources REST API) rather
+    // than leaving it to whichever provider the server considers the default for that resource type.
+    const url = `${signalkUrl}${RESOURCES_API_PATH}/${binding.resource}${binding.provider ? `?provider=${encodeURIComponent(binding.provider)}` : ""}`;
     logDebug(`GET ${url}`);
-    resources[name] = await fetchJson(url);
+    resources[key] = await fetchJson(url);
   }
 
   const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));
@@ -118,11 +125,17 @@ export async function assembleExampleContext(examplesDir: string, bindings: Bind
   }
 
   const resources: Record<string, unknown> = {};
-  const resourceNames = new Set(bindings.filter((binding) => binding.source === "resources").map((binding) => binding.resource as string));
-  for (const name of resourceNames) {
-    const resourcePath = path.join(examplesDir, "resources", `${name}.json`);
+  const resourceBindings = new Map<string, Binding>();
+  for (const binding of bindings) {
+    if (binding.source !== "resources") continue;
+    resourceBindings.set(resourceContextKey(binding), binding);
+  }
+  for (const [key, binding] of resourceBindings) {
+    // Example data has no notion of multiple providers for the same resource type - the file is
+    // still named after the bare `resource=` type regardless of any `provider=` a binding pins.
+    const resourcePath = path.join(examplesDir, "resources", `${binding.resource}.json`);
     logDebug(`reading ${resourcePath}`);
-    resources[name] = await readJsonFile(resourcePath);
+    resources[key] = await readJsonFile(resourcePath);
   }
 
   const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));

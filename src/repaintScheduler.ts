@@ -6,7 +6,7 @@ import { BUNDLED_TEMPLATES_DIR, DeviceConfig, PluginConfig, parseDevice, resolve
 import { withRetries } from "./devices/bleDiscovery";
 import { getDriver } from "./devices/registry";
 import { SvgRenderer } from "./render/svgRenderer";
-import { Binding, findBindings } from "./render/binding";
+import { Binding, findBindings, resourceContextKey } from "./render/binding";
 import { resolveLocalZoneAbbreviation } from "./render/formatters";
 import { TemplateContext } from "./render/types";
 import { unwrapSignalkTree } from "./render/unwrapSignalkTree";
@@ -136,13 +136,19 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
   }
 
   const resources: Record<string, unknown> = {};
-  const resourceNames = new Set(bindings.filter((binding) => binding.source === "resources").map((binding) => binding.resource as string));
-  for (const name of resourceNames) {
+  const resourceBindings = new Map<string, Binding>();
+  for (const binding of bindings) {
+    if (binding.source !== "resources") continue;
+    resourceBindings.set(resourceContextKey(binding), binding);
+  }
+  for (const [key, binding] of resourceBindings) {
     // `listResources`'s type only allows the standard SignalKResourceType union, but the underlying
     // Resources API (and a custom provider like signalk-tides, registered under the non-standard
     // "tides" type) accepts any registered resource type string - this cast matches `getResource`'s
-    // wider, accurate signature.
-    resources[name] = await app.resourcesApi.listResources(name as SignalKResourceType, {});
+    // wider, accurate signature. An explicit `provider=` pins which registered provider plugin
+    // answers the request (SignalK's `listResources(resType, params, providerId)`) rather than
+    // leaving it to whichever provider the server considers the default for that resource type.
+    resources[key] = await app.resourcesApi.listResources(binding.resource as SignalKResourceType, {}, binding.provider);
   }
 
   const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));

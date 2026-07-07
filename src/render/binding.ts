@@ -14,6 +14,15 @@ export interface Binding {
   context: string;
   /** Required when `source === 'resources'` - the Resources API resource type, e.g. `tides`, `waypoints`. */
   resource?: string;
+  /**
+   * Only meaningful when `source === 'resources'` - the plugin id of the Resource Provider to query
+   * (SignalK's `listResources(resType, params, providerId)`), e.g. `signalk-tides`. Optional - when
+   * omitted, the server picks whichever provider is registered for `resource` (its "default"), which is
+   * ambiguous/unpredictable when more than one plugin provides the same resource type (e.g. installing
+   * a second tides plugin can silently make it the one used instead of the one the template was authored
+   * for). Set this to pin a template to one provider regardless of what else is installed.
+   */
+  provider?: string;
   /** For `source === 'einklabel'`, a dotted path into the plugin's own injected `meta` (e.g. `repainted`), rather than into vessel/resource data. */
   path: string;
   /** A named formatter (see `./formatters.ts`), or `'raw'` to suppress automatic unit conversion (see `renderBinding`). */
@@ -32,7 +41,7 @@ export interface Binding {
   assets?: string;
 }
 
-const KNOWN_KEYS = new Set(["source", "context", "resource", "path", "format", "category", "round", "assets"]);
+const KNOWN_KEYS = new Set(["source", "context", "resource", "provider", "path", "format", "category", "round", "assets"]);
 
 /**
  * Parses a `<desc>` element's text content into a `Binding`, e.g.
@@ -72,6 +81,9 @@ export function parseBinding(desc: string): Binding {
   if (source === "resources" && !fields.resource) {
     throw new Error(`invalid binding "${desc}" - source=resources requires a "resource" key`);
   }
+  if (fields.provider && source !== "resources") {
+    throw new Error(`invalid binding "${desc}" - "provider" is only valid with source=resources`);
+  }
   if (!fields.path) {
     throw new Error(`invalid binding "${desc}" - missing required "path" key`);
   }
@@ -80,12 +92,24 @@ export function parseBinding(desc: string): Binding {
     source,
     context,
     resource: fields.resource,
+    provider: fields.provider,
     path: fields.path,
     format: fields.format,
     category: fields.category,
     round: fields.round !== undefined ? Number(fields.round) : undefined,
     assets: fields.assets,
   };
+}
+
+/**
+ * Key under which a `source=resources` binding's data is stored in `context.resources` (see
+ * `assembleRawContext` in repaintScheduler.ts and `cli/liveContext.ts`'s equivalent) - incorporates
+ * `provider` so two bindings naming the same `resource` type but different providers (e.g. pinning one
+ * template's `tides` binding to `provider=signalk-tides` while another is left to the server's default)
+ * don't collide on a single cache entry.
+ */
+export function resourceContextKey(binding: Pick<Binding, "resource" | "provider">): string {
+  return binding.provider ? `${binding.resource}@${binding.provider}` : (binding.resource as string);
 }
 
 /**
@@ -144,9 +168,10 @@ export function resolveBinding(binding: Binding, context: TemplateContext): unkn
   }
 
   const resources = context.resources as Record<string, unknown> | undefined;
-  const resource = resources?.[binding.resource as string];
+  const resourceKey = resourceContextKey(binding);
+  const resource = resources?.[resourceKey];
   if (resource === undefined) {
-    throw new Error(`binding references resource "${binding.resource}" which is not present in the render context`);
+    throw new Error(`binding references resource "${resourceKey}" which is not present in the render context`);
   }
   return getAtPath(resource, binding.path);
 }

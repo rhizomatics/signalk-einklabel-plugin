@@ -1,5 +1,7 @@
 # 0.8.1
 
+- A preferred `provider` can now be set for `resources`.
+  - The example `tide.svg` sets this to `provider=tides` to ignore other providers, (such as `mareas-ihm`)
 - Devices will repaint at startup even if no schedule slot has been missed prior to startup, if the template itself has subsequently changed
 
 # 0.8.0

@@ -13,11 +13,11 @@ A SignalK plugin to display data from SignalK paths, APIs and plugins on Electro
 
 ## What is an ESL?
 
-Electronic Shelf Labels are [eInk](https://en.wikipedia.org/wiki/E_Ink) devices that consume very little battery energy, presuming they are not constantly updated - the battery is used only when the display changes, and a periodic BLE check for incoming changes. Perfect for info that changes only once or twice a day, like tidal information.
+Electronic Shelf Labels are [eInk](https://en.wikipedia.org/wiki/E_Ink) devices that consume very little battery energy, presuming they are not constantly updated - the battery is used only when the display changes (which can take 5-10 seconds) and a periodic BLE check for incoming changes. Perfect for info that changes only once or twice a day, like tidal information.
 
 Since they are designed to be used in large quantity in small shops, they are cheap and simple devices. Earlier models required dedicated controllers, or updates over Wifi or NFC, whereas many modern ones are standalone BLE devices that can be updated from a phone or server.
 
-Being battery operated, they can be stuck on anywhere without wiring - the only constraints are bluetooth range, visibility (they need ambient light since the display is more like paper than a traditional lit-up electronic display) and out of the weather since the devices are intended for indoor use.
+Being battery operated, they can be stuck on anywhere without wiring - the only location constraints are bluetooth range, visibility (they need ambient light since the display is more like paper than a traditional lit-up electronic display) and out of the weather since the devices are intended for indoor use.
 
 ## Pre-requisites
 
@@ -72,7 +72,7 @@ npm install @rhizomatics/signalk-einklabel-plugin
 
 ![Tide Clock](docs/assets/screenshots/example_tidal_clock.png)
 
-The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. The [tide.svg](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tide.svg) can be customized to run with other APIs or take data only from SignalK data paths.
+The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. The [tide.svg](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tide.svg) can be customized to run with other APIs or take data only from SignalK data paths. For example, `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` gets the first tide time, ensures its the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date time.
 
 To show the lunar phase, the `environment.moon.phaseName` path is required, which can
 be easily achieved by installing and configuring the `derived-data` plugin.
@@ -117,7 +117,10 @@ For example, `path=environment.forecast.description` uses the default data sourc
 
 #### SignalK REST APIs
 
-The source can be overridden to use the SignalK server's Resources API instead. For example, `source=resources,resource=tides,path=station.name` picks the `tides` resource and pulls the `station.name` path out of the JSON response - this works for any resource type (`tides`, `waypoints`, `routes`, ...), and needs nothing configured: the plugin reaches the Resources API directly. Where a resource is specified, it will be fetched once for that render, and subsequent fields sourced from the same resource use that cached response.
+The source can be overridden to use the SignalK server's Resources API instead. Change `source` to `resources` and specify which resource with `resource`. If there are multiple providers for the same resource, and they're not equally useful, then eithe set a default provider in SignalK, or use the `provider` tag to set the name.
+
+
+For example, `source=resources,resource=tides,path=station.name` picks the `tides` resource and pulls the `station.name` path out of the JSON response - this works for any resource type (`tides`, `waypoints`, `routes`, ...), and needs nothing configured: the plugin reaches the Resources API directly. Where a resource is specified, it will be fetched once for that render, and subsequent fields sourced from the same resource use that cached response.
 
 #### Plugin Data
 
