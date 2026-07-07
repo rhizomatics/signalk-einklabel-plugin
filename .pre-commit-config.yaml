@@ -15,8 +15,15 @@ repos:
     hooks:
       - id: oxlint
         verbose: false
+        args: ["--node-plugin"]
   - repo: https://github.com/oxc-project/mirrors-oxfmt
     rev: v0.56.0
     hooks:
       - id: oxfmt
         verbose: true
+        # The hook's own default `types_or` is `[javascript, jsx, ts, tsx]`, so it silently skips
+        # markdown/json/yaml/etc - files `npm run fmt:check` (plain `oxfmt --check`, CI's format-check-command)
+        # still covers, since oxfmt formats those by default too. `types` (unset here) still defaults to
+        # `[file]`, so overriding just `types_or` to `[text]` is what actually lifts the JS/TS-only
+        # restriction and keeps pre-commit and CI checking the same set of files.
+        types_or: [text]
