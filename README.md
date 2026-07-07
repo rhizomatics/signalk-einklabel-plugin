@@ -119,7 +119,6 @@ For example, `path=environment.forecast.description` uses the default data sourc
 
 The source can be overridden to use the SignalK server's Resources API instead. Change `source` to `resources` and specify which resource with `resource`. If there are multiple providers for the same resource, and they're not equally useful, then either set a default provider in SignalK, or use the `provider` tag to set the name.
 
-
 For example, `source=resources,resource=tides,provider=tides,path=station.name` picks the `tides` resource and pulls the `station.name` path out of the JSON response - this works for any resource type (`tides`, `waypoints`, `routes`, ...), and needs nothing configured: the plugin reaches the Resources API directly. Where a resource is specified, it will be fetched once for that render, and subsequent fields sourced from the same resource use that cached response. `provider` is optional, the default provider will be used if not specified.
 
 #### Plugin Data
@@ -273,25 +272,25 @@ npx esl-cli fields -t templates/tide.svg -u http://localhost
 ```
 
 ```
-id                       spec                                                                     value
-station.name             source=resources,resource=tides,provider=tides,path=station.name                        Tobermory
-source.name.             source=resources,resource=tides,provider=tides,path=station.source.name                 TICON-4
-last_repaint             source=einklabel,path=repainted,format=local_datetime_short              30 Jun 26 00:08
-extremes.0               source=resources,resource=tides,provider=tides,path=extremes[0].label                   Low
-extremes.1               source=resources,resource=tides,provider=tides,path=extremes[1].label                   High
-extremes.2               source=resources,resource=tides,provider=tides,path=extremes[2].label                   Low
-timezoneRegion           source=einklabel,path=local_zone                                         BST
-lat                      source=resources,resource=tides,provider=tides,path=station.datums.LAT,category=depth   0.2m
-hat                      source=resources,resource=tides,provider=tides,path=station.datums.HAT,category=depth   5.2m
-extremes.2.level         source=resources,resource=tides,provider=tides,path=extremes[2].level,category=depth    1.1m
-extremes.2.time          source=resources,resource=tides,provider=tides,path=extremes[2].time,format=local_time  13:15
-extremes.1.level         source=resources,resource=tides,provider=tides,path=extremes[1].level,category=depth    3.8m
-extremes.1.time          source=resources,resource=tides,provider=tides,path=extremes[1].time,format=local_time  07:05
-extremes.0.time          source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time  01:21
-extremes.0.time-8        source=resources,resource=tides,provider=tides,path=extremes[0].time,format=day_mon     30 Jun
-extremes.0.time-8-5      source=resources,resource=tides,provider=tides,path=extremes[1].time,format=day_mon     30 Jun
-extremes.0.time-8-9      source=resources,resource=tides,provider=tides,path=extremes[2].time,format=day_mon     30 Jun
-extremes.0.level         source=resources,resource=tides,provider=tides,path=extremes[0].level,category=depth    1.3m
+id                   spec                                                                                    value
+station.name         source=resources,resource=tides,provider=tides,path=station.name                        Tobermory
+source.name.         source=resources,resource=tides,provider=tides,path=station.source.name                 TICON-4
+last_repaint         source=einklabel,path=repainted,format=local_datetime_short                             30 Jun 26 00:08
+extremes.0           source=resources,resource=tides,provider=tides,path=extremes[0].label                   Low
+extremes.1           source=resources,resource=tides,provider=tides,path=extremes[1].label                   High
+extremes.2           source=resources,resource=tides,provider=tides,path=extremes[2].label                   Low
+timezoneRegion       source=einklabel,path=local_zone                                                        BST
+lat                  source=resources,resource=tides,provider=tides,path=station.datums.LAT,category=depth   0.2m
+hat                  source=resources,resource=tides,provider=tides,path=station.datums.HAT,category=depth   5.2m
+extremes.2.level     source=resources,resource=tides,provider=tides,path=extremes[2].level,category=depth    1.1m
+extremes.2.time      source=resources,resource=tides,provider=tides,path=extremes[2].time,format=local_time  13:15
+extremes.1.level     source=resources,resource=tides,provider=tides,path=extremes[1].level,category=depth    3.8m
+extremes.1.time      source=resources,resource=tides,provider=tides,path=extremes[1].time,format=local_time  07:05
+extremes.0.time      source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time  01:21
+extremes.0.time-8    source=resources,resource=tides,provider=tides,path=extremes[0].time,format=day_mon     30 Jun
+extremes.0.time-8-5  source=resources,resource=tides,provider=tides,path=extremes[1].time,format=day_mon     30 Jun
+extremes.0.time-8-9  source=resources,resource=tides,provider=tides,path=extremes[2].time,format=day_mon     30 Jun
+extremes.0.level     source=resources,resource=tides,provider=tides,path=extremes[0].level,category=depth    1.3m
 ```
 
 ### Offline Working
