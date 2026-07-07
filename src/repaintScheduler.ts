@@ -14,9 +14,11 @@ import { fetchCategoryDisplayUnits } from "./unitCategories";
 import { fetchPathMeta } from "./pathMeta";
 import { createApiUrlResolver } from "./resolveApiUrl";
 import { PLUGIN_VERSION } from "./pluginVersion";
+import { fetchJson } from "./httpJson";
 
 const INTERVAL_POLL_MS = 60_000;
 const SUBSCRIPTION_DEBOUNCE_MS = 2_000;
+const RESOURCES_API_PATH = "/signalk/v2/api/resources";
 
 export interface RepaintScheduler {
   stop(): void;
@@ -98,13 +100,16 @@ function setAtPath(target: Record<string, unknown>, path: string, value: unknown
  * CLI's HTTP-fetched equivalent (`assembleLiveContext` in `cli/liveContext.ts`), so a `path=` binding
  * resolves to the same value either way - without it, `resolveBinding` would hand back the whole
  * wrapper object instead of e.g. a plain string, breaking any binding that expects one (a `<image>`'s
- * `assets=`, a `format=` formatter, etc). `resources`-sourced bindings go through `app.resourcesApi`,
- * in-process too, with no such wrapper. Per-path unit-conversion metadata (`pathMeta`, for automatic
- * conversion - see `renderBinding`) and an explicit `category=` binding's resolved conversion both
- * have no in-process equivalent (confirmed against the signalk-server source - that resolution only
- * happens in its REST layer), so both need `apiUrl` - fetching `pathMeta` is best-effort (a
- * missing/unreachable server just means no automatic conversion), but a `category=` binding is a
- * declared dependency, so a missing `apiUrl` is a hard error there.
+ * `assets=`, a `format=` formatter, etc). `resources`-sourced bindings with no `provider=` pin go
+ * through `app.resourcesApi` in-process too, with no such wrapper - but a `provider=`-pinned binding
+ * goes over HTTP instead (see the resources loop below), since the in-process API doesn't actually
+ * honor `providerId` on signalk-server 2.30.0. Per-path unit-conversion metadata (`pathMeta`, for
+ * automatic conversion - see `renderBinding`) and an explicit `category=` binding's resolved
+ * conversion both have no in-process equivalent (confirmed against the signalk-server source - that
+ * resolution only happens in its REST layer), so both need `apiUrl` - fetching `pathMeta` is
+ * best-effort (a missing/unreachable server just means no automatic conversion), but a `category=`
+ * binding (and now a `provider=`-pinned resource binding) is a declared dependency, so a missing
+ * `apiUrl` is a hard error there.
  */
 async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bindings: Binding[]): Promise<TemplateContext> {
   const signalk: Record<string, unknown> = {};
@@ -142,13 +147,29 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
     resourceBindings.set(resourceContextKey(binding), binding);
   }
   for (const [key, binding] of resourceBindings) {
-    // `listResources`'s type only allows the standard SignalKResourceType union, but the underlying
-    // Resources API (and a custom provider like signalk-tides, registered under the non-standard
-    // "tides" type) accepts any registered resource type string - this cast matches `getResource`'s
-    // wider, accurate signature. An explicit `provider=` pins which registered provider plugin
-    // answers the request (SignalK's `listResources(resType, params, providerId)`) rather than
-    // leaving it to whichever provider the server considers the default for that resource type.
-    resources[key] = await app.resourcesApi.listResources(binding.resource as SignalKResourceType, {}, binding.provider);
+    if (binding.provider) {
+      // `app.resourcesApi.listResources(resType, params, providerId)` validates providerId against the
+      // registered providers but then - confirmed against signalk-server 2.30.0's own source - ignores
+      // it and merges every registered provider's results together (its internal `listFromAll`), so a
+      // second provider for the same resource type can silently clobber the one a binding pinned. The
+      // REST API's own `?provider=` query param doesn't have this bug (it queries only that provider),
+      // so a pinned binding goes over HTTP instead of the in-process API to actually get what it asked for.
+      if (!apiUrl) {
+        throw new Error(
+          `binding pins resource "${binding.resource}" to provider "${binding.provider}" but no SignalK API base URL is configured`,
+        );
+      }
+      resources[key] = await fetchJson(
+        `${apiUrl}${RESOURCES_API_PATH}/${binding.resource}?provider=${encodeURIComponent(binding.provider)}`,
+      );
+    } else {
+      // `listResources`'s type only allows the standard SignalKResourceType union, but the underlying
+      // Resources API (and a custom provider like signalk-tides, registered under the non-standard
+      // "tides" type) accepts any registered resource type string - this cast matches `getResource`'s
+      // wider, accurate signature. No `provider=` pin here, so the in-process call's default-provider
+      // behavior (whichever the server picks) is fine - and cheaper than a redundant HTTP round trip.
+      resources[key] = await app.resourcesApi.listResources(binding.resource as SignalKResourceType, {}, undefined);
+    }
   }
 
   const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));

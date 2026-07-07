@@ -1,3 +1,7 @@
+# 0.8.2
+
+- Work around a SignalK bug in Server API where `ResourcesApi.listResources()` merges provider values in undetermined order and ignores specified provider.
+
 # 0.8.1
 
 - A preferred `provider` can now be set for `resources`.

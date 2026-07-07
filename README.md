@@ -324,7 +324,7 @@ Try a BLE proxy device, ESP32 is popular for this.
 
 ### Can't edit the text contents of SVG template in VSCode
 
-If you have an SVG viewer extension, this wll show the image rather than allowing editing of text. To solve, right click on the file in VSCode *Explorer* view and choose to edit with *Text Editor*.
+If you have an SVG viewer extension, this wll show the image rather than allowing editing of text. To solve, right click on the file in VSCode _Explorer_ view and choose to edit with _Text Editor_.
 
 ## Other ESL and General eInk Resources
 

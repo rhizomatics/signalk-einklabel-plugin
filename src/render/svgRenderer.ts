@@ -4,7 +4,7 @@ import { DOMParser, Element as XmlElement, XMLSerializer } from "@xmldom/xmldom"
 import { Resvg, initWasm } from "@resvg/resvg-wasm";
 import { Bitmap, Renderer, TemplateContext } from "./types";
 import { parseBinding, renderBinding, resolveBinding } from "./binding";
-import { describeAssetsDirProblem, normalizeAssetKey, resolveAssetPath } from "./assets";
+import { countAssets, describeAssetsDirProblem, normalizeAssetKey, resolveAssetPath } from "./assets";
 import { DEFAULT_FONT_PATHS, GENERIC_FONT_FAMILY_MAP } from "./fonts";
 import { PLUGIN_NAME } from "../pluginVersion";
 import { BUNDLED_TEMPLATES_DIR } from "../config";
@@ -153,7 +153,9 @@ export class SvgRenderer implements Renderer {
               ? `${PLUGIN_NAME}: image "${descElement.textContent}" has no asset file for value "${key}" in "${binding.assets}"`
               : `${PLUGIN_NAME}: image "${descElement.textContent}" resolved to empty value to select asset`,
           );
-          console.error(`${PLUGIN_NAME}: ${dirProblem ?? `assets directory for "${binding.assets}" is present`}`);
+          console.error(
+            `${PLUGIN_NAME}: ${dirProblem ?? `directory "${binding.assets}" found with ${countAssets(templatesDir, bundledTemplatesDir, binding.assets)} assets`}`,
+          );
           element.parentNode?.removeChild(element);
           continue;
         }

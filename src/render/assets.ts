@@ -1,4 +1,4 @@
-import { accessSync, constants, existsSync, statSync } from "fs";
+import { accessSync, constants, existsSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 
 /**
@@ -78,4 +78,17 @@ function describeDir(dir: string): string | undefined {
 export function describeAssetsDirProblem(templatesDir: string, bundledTemplatesDir: string, assetsName: string): string | undefined {
   const problem = describeDir(selectAssetsDir(templatesDir, bundledTemplatesDir, assetsName));
   return problem && `assets directory ${problem}`;
+}
+
+/**
+ * Counts the `.svg` files in whichever `assets/<assetsName>` directory `selectAssetsDir` would read
+ * from, for a caller to report alongside a resolved-but-empty-key miss - confirms which directory is in
+ * play and how populated it is, which "the directory exists" alone doesn't convey.
+ */
+export function countAssets(templatesDir: string, bundledTemplatesDir: string, assetsName: string): number {
+  try {
+    return readdirSync(selectAssetsDir(templatesDir, bundledTemplatesDir, assetsName)).filter((name) => name.endsWith(".svg")).length;
+  } catch {
+    return 0;
+  }
 }

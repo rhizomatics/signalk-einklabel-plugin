@@ -181,7 +181,7 @@ async function readDeviceDetails(
   // which otherwise stays set forever and silently skips every later scan).
   return Promise.race([
     read(),
-    sleep(SCAN_CONNECT_TIMEOUT_MS * 2).then(() => {
+    sleep(SCAN_CONNECT_TIMEOUT_MS * 3).then(() => {
       console.error(`${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read timed out after ${SCAN_CONNECT_TIMEOUT_MS * 2}ms`);
       return fallback;
     }),
