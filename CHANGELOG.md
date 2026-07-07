@@ -1,3 +1,7 @@
+# 0.8.3
+
+- Rename `third_quarter` to `last_quarter` for moon phase icons in `templates/assets/lunar_phases` to match Derived Data plugin
+
 # 0.8.2
 
 - Work around a SignalK bug in Server API where `ResourcesApi.listResources()` merges provider values in undetermined order and ignores specified provider.
