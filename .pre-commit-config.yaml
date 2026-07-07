@@ -20,7 +20,7 @@ repos:
     rev: v0.56.0
     hooks:
       - id: oxfmt
-        verbose: true
+        verbose: false
         # The hook's own default `types_or` is `[javascript, jsx, ts, tsx]`, so it silently skips
         # markdown/json/yaml/etc - files `npm run fmt:check` (plain `oxfmt --check`, CI's format-check-command)
         # still covers, since oxfmt formats those by default too. `types` (unset here) still defaults to
