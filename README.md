@@ -322,6 +322,10 @@ If you're a global cruiser, then use something like [signalk-set-gps-timezone](h
 
 Try a BLE proxy device, ESP32 is popular for this.
 
+### Can't edit the text contents of SVG template in VSCode
+
+If you have an SVG viewer extension, this wll show the image rather than allowing editing of text. To solve, right click on the file in VSCode *Explorer* view and choose to edit with *Text Editor*.
+
 ## Other ESL and General eInk Resources
 
 - [Open ePaper Link](https://openepaperlink.de) - Alternative open source firmware to flash onto eInk shelf labels, with Home Assistant integration.
