@@ -56,7 +56,7 @@ test("parseDevice", async (t) => {
 test("defaultConfig has sane defaults", () => {
   const defaults = defaultConfig();
   assert.equal(defaults.templatesDir, "");
-  assert.equal(defaults.scanOnStart, true);
+  assert.equal(defaults.scanOnStart, false);
   assert.equal(defaults.scanDurationSeconds, 20);
   assert.equal(defaults.paintConnectTimeoutSeconds, 30);
   assert.equal(defaults.paintRetries, 3);
@@ -117,8 +117,9 @@ test("configSchema", async (t) => {
     ];
     const schema = configSchema(fakeApp(), discovered) as any;
     const deviceSchema = schema.properties.devices.items.properties.device;
-    assert.deepEqual(deviceSchema.enum, ["zhsunyco:14@AA:AA:AA:AA:AA:AA", "zhsunyco:153:v2@BB:BB:BB:BB:BB:BB"]);
+    assert.deepEqual(deviceSchema.enum, ["ALL", "zhsunyco:14@AA:AA:AA:AA:AA:AA", "zhsunyco:153:v2@BB:BB:BB:BB:BB:BB"]);
     assert.deepEqual(deviceSchema.enumNames, [
+      "All discovered devices",
       "zhsunyco 2.9in BWR (AA:AA:AA:AA:AA:AA)",
       "zhsunyco unrecognised PID 0x0099 (BB:BB:BB:BB:BB:BB)",
     ]);
@@ -136,19 +137,19 @@ test("configSchema", async (t) => {
       ],
     });
     const deviceSchema = (configSchema(app, []) as any).properties.devices.items.properties.device;
-    assert.deepEqual(deviceSchema.enum, ["zhsunyco:14@AA:AA:AA:AA:AA:AA"]);
-    assert.deepEqual(deviceSchema.enumNames, ["zhsunyco:14@AA:AA:AA:AA:AA:AA (not seen in last scan)"]);
+    assert.deepEqual(deviceSchema.enum, ["ALL", "zhsunyco:14@AA:AA:AA:AA:AA:AA"]);
+    assert.deepEqual(deviceSchema.enumNames, ["All discovered devices", "zhsunyco:14@AA:AA:AA:AA:AA:AA (not seen in last scan)"]);
   });
 
-  await t.test("omits enum/enumNames entirely when there are no device options, since JSON Schema forbids an empty enum", () => {
+  await t.test("always offers ALL_DEVICES even with no scanned or configured devices", () => {
     const deviceSchema = (configSchema(fakeApp(), []) as any).properties.devices.items.properties.device;
-    assert.equal("enum" in deviceSchema, false);
-    assert.equal("enumNames" in deviceSchema, false);
+    assert.deepEqual(deviceSchema.enum, ["ALL"]);
+    assert.deepEqual(deviceSchema.enumNames, ["All discovered devices"]);
   });
 
   await t.test("carries defaultConfig() values through as JSON Schema defaults", () => {
     const schema = configSchema(fakeApp(), []) as any;
-    assert.equal(schema.properties.scanOnStart.default, true);
+    assert.equal(schema.properties.scanOnStart.default, false);
     assert.equal(schema.properties.paintRetries.default, 3);
   });
 });

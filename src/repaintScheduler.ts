@@ -2,9 +2,21 @@ import { createHash } from "crypto";
 import { join } from "path";
 import { readFileSync, statSync, writeFileSync } from "fs";
 import { ServerAPI, Path, SignalKResourceType } from "@signalk/server-api";
-import { BUNDLED_TEMPLATES_DIR, DeviceConfig, PluginConfig, parseDevice, resolveTemplatePath, resolveTemplatesDir } from "./config";
+import {
+  ALL_DEVICES,
+  BUNDLED_TEMPLATES_DIR,
+  DeviceConfig,
+  PluginConfig,
+  parseDevice,
+  readCurrentConfig,
+  resolveTemplatePath,
+  resolveTemplatesDir,
+} from "./config";
 import { withRetries } from "./devices/bleDiscovery";
+import { loadDiscoveredDevices, touchDiscoveredDevice } from "./devices/discoveredDevicesStore";
+import { ensureScan } from "./devices/discoveryCoordinator";
 import { getDriver } from "./devices/registry";
+import { DeviceMetadata, VendorDriver } from "./devices/types";
 import { SvgRenderer } from "./render/svgRenderer";
 import { Binding, findBindings, resourceContextKey } from "./render/binding";
 import { resolveLocalZoneAbbreviation } from "./render/formatters";
@@ -24,8 +36,15 @@ export interface RepaintScheduler {
   stop(): void;
 }
 
-/** `repaintedAt` - epoch ms of the last successful `driver.paint()`, used by the startup catch-up check (see `mostRecentScheduledSlot`) to tell an interval device that's already been painted for its current slot from one that's overdue. */
-type RepaintState = Record<string, { hash: string; repaintedAt?: number }>;
+/**
+ * `templateHash`/`dataHash` tracked separately (rather than one combined hash) so a repaint can
+ * report *which* of the two actually changed - e.g. distinguishing "template edited, data
+ * unchanged" from "data changed" in the debug log, instead of an opaque single hash flip.
+ * `repaintedAt` - epoch ms of the last successful `driver.paint()`, used by the startup catch-up check
+ * (see `mostRecentScheduledSlot`) to tell an interval device that's already been painted for its
+ * current slot from one that's overdue.
+ */
+type RepaintState = Record<string, { templateHash: string; dataHash: string; repaintedAt?: number }>;
 
 /**
  * The most recent wall-clock instant at or before `now` that an `interval`-triggered device's own
@@ -73,9 +92,14 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
-/** Hashes both the live data context and the template's mtime, so editing a template (even with no data change) triggers a repaint. */
-function hashContext(context: TemplateContext, templateMtimeMs: number): string {
-  return createHash("sha1").update(stableStringify(context)).update(String(templateMtimeMs)).digest("hex");
+/** Hashes the template's mtime, so editing a template (even with no data change) triggers a repaint. */
+function hashTemplate(templateMtimeMs: number): string {
+  return createHash("sha1").update(String(templateMtimeMs)).digest("hex");
+}
+
+/** Hashes the live data context, so a data change triggers a repaint even with the template untouched. */
+function hashData(context: TemplateContext): string {
+  return createHash("sha1").update(stableStringify(context)).digest("hex");
 }
 
 /** Merges `value` into `target` at the nested location described by a dotted SignalK path. */
@@ -184,7 +208,7 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
 }
 
 function clearForceRepaint(app: ServerAPI, friendlyName: string): void {
-  const current = { ...(app.readPluginOptions() as Partial<PluginConfig>) };
+  const current = readCurrentConfig(app);
   const devices = (current.devices ?? []).map((device) =>
     device.friendlyName === friendlyName ? { ...device, forceRepaint: false } : device,
   );
@@ -193,33 +217,89 @@ function clearForceRepaint(app: ServerAPI, friendlyName: string): void {
   });
 }
 
+/** One physical device to paint - either the one `device.device` names, or (for `ALL_DEVICES`) one of possibly several. */
+interface RepaintTarget {
+  address: string;
+  vendor: string;
+  pid: number;
+  hwVersion?: string;
+  metadata: DeviceMetadata;
+  driver: VendorDriver;
+}
+
+/** `RepaintState` key for one physical device under a given `DeviceConfig` entry - see `RepaintState`'s doc comment on why address is part of the key. */
+function stateKeyFor(friendlyName: string, address: string): string {
+  return `${friendlyName}:${address}`;
+}
+
+function resolveTarget(vendor: string, pid: number | undefined, hwVersion: string | undefined, address: string): RepaintTarget | undefined {
+  const driver = getDriver(vendor);
+  const metadata = pid !== undefined ? driver?.metadataForPid(pid, hwVersion) : undefined;
+  return driver && pid !== undefined && metadata ? { address, vendor, pid, hwVersion, metadata, driver } : undefined;
+}
+
+/**
+ * Resolves a `DeviceConfig` entry to the physical device(s) it should paint. A specific
+ * `"<vendor>:<pid>[:<hwVersion>]@<address>"` resolves to exactly that one device (or none, if its
+ * driver/model can't be found). `ALL_DEVICES` resolves to every currently-known discovered device
+ * (see `discoveredDevicesStore.ts`) - if none are known yet, it triggers an on-demand scan first
+ * (bounded by `config.scanDurationSeconds`, same as the startup scan), so a first-time "ALL" setup
+ * doesn't require `scanOnStart` or a manual `esl-cli scan`.
+ */
+async function resolveTargets(app: ServerAPI, config: PluginConfig, device: DeviceConfig): Promise<RepaintTarget[]> {
+  if (device.device === ALL_DEVICES) {
+    let records = loadDiscoveredDevices(app);
+    if (Object.keys(records).length === 0) {
+      app.debug(
+        `"${device.friendlyName}": device is "${ALL_DEVICES}" and nothing discovered yet - scanning for ${config.scanDurationSeconds}s`,
+      );
+      records = (await ensureScan(app, config.scanDurationSeconds)).merged;
+    }
+    const targets: RepaintTarget[] = [];
+    for (const record of Object.values(records)) {
+      const target = resolveTarget(record.vendor, record.pid, record.hwVersion, record.address);
+      if (target) targets.push(target);
+    }
+    return targets;
+  }
+
+  const model = parseDevice(device.device);
+  const target = model && resolveTarget(model.vendor, model.pid, model.hwVersion, model.address);
+  if (!target) {
+    app.debug(`"${device.friendlyName}": no driver/metadata for device "${device.device}", skipping`);
+    return [];
+  }
+  return [target];
+}
+
 async function considerRepaint(
   app: ServerAPI,
   config: PluginConfig,
   device: DeviceConfig,
+  target: RepaintTarget,
   state: RepaintState,
   getApiUrl: () => Promise<string>,
 ): Promise<void> {
-  const model = parseDevice(device.device);
-  const driver = model && getDriver(model.vendor);
-  const metadata = model && driver?.metadataForPid(model.pid, model.hwVersion);
-  if (!model || !driver || !metadata) {
-    app.debug(`"${device.friendlyName}": no driver/metadata for device "${device.device}", skipping`);
-    return;
-  }
+  const { address, metadata, driver } = target;
+  const label = `"${device.friendlyName}" [${address}]`;
   const templatesDir = resolveTemplatesDir(config.templatesDir);
   const templatePath = resolveTemplatePath(templatesDir, device.templateName);
   const templateMtimeMs = statSync(templatePath).mtimeMs;
   const bindings = findBindings(readFileSync(templatePath, "utf-8"));
 
   const apiUrl = await getApiUrl().catch((err) => {
-    app.debug(`"${device.friendlyName}": ${err.message}`);
+    app.debug(`${label}: ${err.message}`);
     return undefined;
   });
   const rawContext = await assembleRawContext(app, apiUrl, bindings);
-  const hash = hashContext(rawContext, templateMtimeMs);
-  if (state[device.friendlyName]?.hash === hash && !device.forceRepaint) {
-    app.debug(`"${device.friendlyName}": data unchanged, skipping repaint`);
+  const templateHash = hashTemplate(templateMtimeMs);
+  const dataHash = hashData(rawContext);
+  const stateKey = stateKeyFor(device.friendlyName, address);
+  const previous = state[stateKey];
+  const templateChanged = previous?.templateHash !== templateHash;
+  const dataChanged = previous?.dataHash !== dataHash;
+  if (!templateChanged && !dataChanged && !device.forceRepaint) {
+    app.debug(`${label}: data unchanged, skipping repaint`);
     return;
   }
 
@@ -244,19 +324,24 @@ async function considerRepaint(
   let paintDurationMs = 0;
   await withRetries(config.paintRetries, async (attempt) => {
     if (attempt > 1) {
-      app.debug(`"${device.friendlyName}": attempting paint ${attempt}/${config.paintRetries}`);
+      app.debug(`${label}: attempting paint ${attempt}/${config.paintRetries}`);
     }
     const startedAt = Date.now();
-    await driver.paint(bitmap, { address: model.address, aesKey: device.aesKey, connectTimeoutMs });
+    await driver.paint(bitmap, { address, aesKey: device.aesKey, connectTimeoutMs });
     paintDurationMs = Date.now() - startedAt;
   });
 
-  state[device.friendlyName] = { hash, repaintedAt: Date.now() };
+  touchDiscoveredDevice(app, { address, vendor: target.vendor, pid: target.pid, hwVersion: target.hwVersion, metadata });
+  state[stateKey] = { templateHash, dataHash, repaintedAt: Date.now() };
   saveState(app, state);
-  if (device.forceRepaint) {
-    clearForceRepaint(app, device.friendlyName);
-  }
-  app.debug(`"${device.friendlyName}": repainted (paint took ${paintDurationMs}ms)`);
+  const reason = device.forceRepaint
+    ? "forced"
+    : templateChanged && dataChanged
+      ? "template and data changed"
+      : templateChanged
+        ? "template changed"
+        : "data changed";
+  app.debug(`${label}: repainted (${reason}, paint took ${paintDurationMs}ms)`);
 }
 
 export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): RepaintScheduler {
@@ -272,17 +357,30 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   const startedAt = Date.now();
   const settleMs = (config.settleSeconds ?? 120) * 1000;
 
-  const repaint = (device: DeviceConfig) => {
+  const repaint = async (device: DeviceConfig) => {
     const elapsedMs = Date.now() - startedAt;
     if (elapsedMs < settleMs) {
       app.debug(
         `"${device.friendlyName}": still settling (${Math.round(elapsedMs / 1000)}s/${Math.round(settleMs / 1000)}s) - skipping repaint`,
       );
-      return Promise.resolve();
+      return;
     }
-    return considerRepaint(app, config, device, state, getApiUrl).catch((err) =>
-      app.debug(`"${device.friendlyName}": repaint failed: ${err.message}`),
-    );
+    const targets = await resolveTargets(app, config, device);
+    if (targets.length === 0) {
+      return;
+    }
+    const results = await Promise.allSettled(targets.map((target) => considerRepaint(app, config, device, target, state, getApiUrl)));
+    results.forEach((result, i) => {
+      if (result.status === "rejected") {
+        app.debug(`"${device.friendlyName}" [${targets[i].address}]: repaint failed: ${(result.reason as Error).message}`);
+      }
+    });
+    // A single `forceRepaint` flag covers every target under `ALL_DEVICES` too - only clear it once
+    // every target has actually succeeded, so a target that failed still gets forced again next time
+    // instead of quietly reverting to ordinary hash-based dedup.
+    if (device.forceRepaint && results.every((result) => result.status === "fulfilled")) {
+      clearForceRepaint(app, device.friendlyName);
+    }
   };
 
   const intervalDevices = config.devices.filter((device) => device.repaintTrigger === "interval");
@@ -324,13 +422,17 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   // it's actually overdue - already painted for the current scheduled slot (e.g. plugin restarted
   // mid-way through its interval) just waits for the regular periodic check above to hit the *next*
   // slot, rather than jumping the gun with an extra unscheduled paint every time the plugin restarts.
+  // `ALL_DEVICES` can't be cheaply pre-checked this way without resolving targets first (which may
+  // itself trigger a scan) - it always falls through to `repaint()`, whose own per-target hash dedup
+  // still avoids a redundant paint once targets are resolved.
   const startupCheckTimer = setTimeout(() => {
     for (const device of config.devices) {
-      if (device.repaintTrigger === "interval" && !device.forceRepaint) {
+      if (device.repaintTrigger === "interval" && !device.forceRepaint && device.device !== ALL_DEVICES) {
         const hours = device.intervalHours ?? 1;
         const minute = device.intervalMinute ?? 0;
         const dueSlot = mostRecentScheduledSlot(new Date(), hours, minute);
-        const repaintedAt = state[device.friendlyName]?.repaintedAt;
+        const address = parseDevice(device.device)?.address;
+        const repaintedAt = address !== undefined ? state[stateKeyFor(device.friendlyName, address)]?.repaintedAt : undefined;
         if (repaintedAt !== undefined && repaintedAt >= dueSlot.getTime()) {
           app.debug(`"${device.friendlyName}": already painted for the current ${hours}h schedule slot - skipping startup catch-up`);
           continue;

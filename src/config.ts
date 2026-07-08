@@ -5,12 +5,22 @@ import { ServerAPI } from "@signalk/server-api";
 import { DiscoveredDevice } from "./devices/types";
 import { SIGNALK_API_URL_OPTIONS } from "./resolveApiUrl";
 
+/**
+ * Special `device` value meaning "every currently-known discovered device" instead of one specific
+ * BLE address - lets a single `DeviceConfig` entry (one template, one trigger) broadcast to every
+ * physical label without picking each one out of the scan dropdown individually, e.g. several
+ * identical labels on a boat, or just to skip the scan-then-select step for the common single-label
+ * case. Resolved lazily at repaint time (see `resolveTargets` in `repaintScheduler.ts`), triggering
+ * an on-demand scan itself if nothing's been discovered yet.
+ */
+export const ALL_DEVICES = "ALL";
+
 export interface DeviceConfig {
   friendlyName: string;
   /**
-   * `"<vendor>:<pid>[:<hwVersion>]@<address>"`, picked from a combined enum of recently
-   * scanned devices so one selection sets both the model (width/height/colours, known
-   * without a live BLE read) and the BLE address.
+   * Either `"<vendor>:<pid>[:<hwVersion>]@<address>"`, picked from a combined enum of recently
+   * scanned devices so one selection sets both the model (width/height/colours, known without a
+   * live BLE read) and the BLE address, or the special value `ALL_DEVICES` (see above).
    */
   device: string;
   /** Per-device override; if omitted, the vendor driver may fall back to a stock/manufacturer-default key. */
@@ -34,7 +44,12 @@ export interface PluginConfig {
    * `~/.signalk`, or an absolute path. Use `resolveTemplatesDir` to turn this into an actual path.
    */
   templatesDir: string;
-  /** Run a short BLE scan on plugin start and report discoveries via plugin status, like signalk-bluetti-plugin does. */
+  /**
+   * Run a short BLE scan on plugin start and report discoveries via plugin status, like
+   * signalk-bluetti-plugin does. Off by default - a `device: ALL_DEVICES` entry scans on demand the
+   * first time it has nothing discovered yet (see `resolveTargets` in `repaintScheduler.ts`), and an
+   * explicit device selection only ever needed this to populate the dropdown once at initial setup.
+   */
   scanOnStart: boolean;
   /** How long the startup scan runs, in seconds. */
   scanDurationSeconds: number;
@@ -86,13 +101,57 @@ const DEFAULT_TEMPLATES_DIR = join(SIGNALK_HOME_DIR, "einklabel", "templates");
 export function defaultConfig(): PluginConfig {
   return {
     templatesDir: "",
-    scanOnStart: true,
+    scanOnStart: false,
     scanDurationSeconds: 20,
     paintConnectTimeoutSeconds: 30,
     paintRetries: 3,
     settleSeconds: 120,
     devices: [],
   };
+}
+
+const PLUGIN_CONFIG_KEYS = [
+  "templatesDir",
+  "scanOnStart",
+  "scanDurationSeconds",
+  "paintConnectTimeoutSeconds",
+  "paintRetries",
+  "settleSeconds",
+  "signalkApiUrl",
+  "devices",
+] as const;
+
+/**
+ * `app.readPluginOptions()`/`savePluginOptions()` aren't actually symmetric despite what their doc
+ * comments imply: signalk-server's `readPluginOptions()` returns the *whole* on-disk file
+ * (`{ configuration, enabled, enableDebug, enableLogging }`), not just the `configuration` object
+ * `savePluginOptions()` writes into - see signalk-server's `interfaces/plugins.ts`
+ * (`appCopy.readPluginOptions = () => getPluginOptions(plugin.id)` vs.
+ * `appCopy.savePluginOptions = (configuration, cb) => savePluginOptions(id, { ...getPluginOptions(id), configuration }, cb)`).
+ * Spreading that return value straight back into a save call therefore nests the whole file one level
+ * deeper inside its own `configuration` key every time (see `support/signalk-einklabel-plugin.json` and
+ * `clearForceRepaint` in `./repaintScheduler.ts`). Unwrapping any such nesting and keeping only recognised
+ * fields here means every save collapses back down instead of growing, self-healing an already-corrupted file.
+ */
+export function readCurrentConfig(app: ServerAPI): Partial<PluginConfig> {
+  let raw: unknown = app.readPluginOptions();
+  while (
+    raw &&
+    typeof raw === "object" &&
+    "configuration" in raw &&
+    typeof (raw as { configuration: unknown }).configuration === "object"
+  ) {
+    raw = (raw as { configuration: unknown }).configuration;
+  }
+  const result: Partial<PluginConfig> = {};
+  if (raw && typeof raw === "object") {
+    for (const key of PLUGIN_CONFIG_KEYS) {
+      if (key in raw) {
+        (result as Record<string, unknown>)[key] = (raw as Record<string, unknown>)[key];
+      }
+    }
+  }
+  return result;
 }
 
 /**
@@ -115,12 +174,13 @@ export function resolveTemplatesDir(templatesDir: string | undefined): string {
  * so the user can at least see what was found and report the PID; repainting such a device still
  * does nothing without a model override, since there's no width/height to render with) - plus, as a
  * fallback, whatever's already saved so an existing selection doesn't vanish from the dropdown just
- * because this particular run hasn't re-scanned it yet.
+ * because this particular run hasn't re-scanned it yet. `ALL_DEVICES` is always offered first,
+ * regardless of what's been scanned - see its own doc comment.
  */
 function deviceOptions(discovered: DiscoveredDevice[], current: PluginConfig): { values: string[]; labels: string[] } {
-  const values: string[] = [];
-  const labels: string[] = [];
-  const seen = new Set<string>();
+  const values: string[] = [ALL_DEVICES];
+  const labels: string[] = ["All discovered devices"];
+  const seen = new Set<string>([ALL_DEVICES]);
 
   for (const found of discovered) {
     if (found.pid === undefined) {
@@ -185,7 +245,7 @@ function withEnum<T extends object>(schema: T, values: string[], names?: string[
 
 export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []): object {
   const defaults = defaultConfig();
-  const current = { ...defaults, ...(app.readPluginOptions() as Partial<PluginConfig>) };
+  const current = { ...defaults, ...readCurrentConfig(app) };
   const { values: deviceValues, labels: deviceLabels } = deviceOptions(discovered, current);
 
   return {
@@ -203,7 +263,9 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
       scanOnStart: {
         type: "boolean",
         title: "Scan for devices on plugin start",
-        description: 'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below.',
+        description:
+          'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below. ' +
+          'Not needed if every device uses "All discovered devices" - that scans on demand instead.',
         default: defaults.scanOnStart,
       },
       scanDurationSeconds: {
@@ -256,7 +318,10 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               {
                 type: "string",
                 title: "Device",
-                description: "Picked from devices found by a scan (plugin start, or `esl-cli scan`) - sets both the model and BLE address.",
+                description:
+                  "Either a specific device found by a scan (plugin start, or `esl-cli scan`), setting both the model and BLE " +
+                  'address, or "All discovered devices" to paint this same template/trigger to every device the plugin currently ' +
+                  "knows about - simplest for a single label, and also covers several identical labels without listing each one.",
               },
               deviceValues,
               deviceLabels,

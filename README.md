@@ -156,17 +156,17 @@ These can all be combined as in `source=resources,resource=tides,provider=tides,
 
 ### Non-Textual Fields (Images)
 
-The same `<desc>` mechanism works on an `<image>` element instead of a `<text>` element, for a value that's better shown as a picture than as text - a moon phase icon, a wind direction arrow, a weather condition glyph, and so on. Rather than substituting text, the resolved value picks one of a directory of `.svg` files to embed, by an extra required `assets=` key naming that directory - an `assets/<name>` sub-directory looked up in your configured `templates` directory first, and the bundled `templates` directory otherwise. For example, the tide clock's moon phase icon uses:
+The same `<desc>` mechanism works on an `<image>` element instead of a `<text>` element, for a value that's better shown as a picture than as text - a moon phase icon, a wind direction arrow, a weather condition glyph, and so on. Rather than substituting text, the resolved value picks one of a directory of `.svg` files to embed, by an extra required `assets=` key naming that directory - an `.assets/<name>` sub-directory looked up in your configured `templates` directory first, and the bundled `templates` directory otherwise. For example, the tide clock's moon phase icon uses:
 
 ```
 path=environment.moon.phaseName,assets=lunar_phases
 ```
 
-which resolves against `templates/assets/lunar_phases/` (bundled, or your own configured `templates` directory's `assets/lunar_phases/` if you have one). The resolved value (e.g. `"Waning Gibbous"`, as published by the [derived-data](https://www.npmjs.com/package/signalk-derived-data) plugin) is normalized to match a filename - lower-cased, punctuation and spaces collapsed to underscores - so `"Waning Gibbous"` picks `waning_gibbous.svg` out of that directory. If the underlying path has no value at all (e.g. the `derived-data` plugin isn't installed), or the value doesn't normalize to any file in the directory, the `<image>` element is omitted from that render - no broken image, no placeholder, nothing shown - and a line is logged to the console so a missing/unmatched value isn't silently invisible.
+which resolves against `templates/.assets/lunar_phases/` (bundled, or your own configured `templates` directory's `.assets/lunar_phases/` if you have one). The resolved value (e.g. `"Waning Gibbous"`, as published by the [derived-data](https://www.npmjs.com/package/signalk-derived-data) plugin) is normalized to match a filename - lower-cased, punctuation and spaces collapsed to underscores - so `"Waning Gibbous"` picks `waning_gibbous.svg` out of that directory. If the underlying path has no value at all (e.g. the `derived-data` plugin isn't installed), or the value doesn't normalize to any file in the directory, the `<image>` element is omitted from that render - no broken image, no placeholder, nothing shown - and a line is logged to the console so a missing/unmatched value isn't silently invisible.
 
-If you don't like the bundled moon phase icons, save your own `<value>.svg` files in the `assets/lunar_phases` sub-directory of your configured `templates` directory - the whole directory is used in place of the bundled one, so add all 8 phases you want to keep, not just the ones you're changing.
+If you don't like the bundled moon phase icons, save your own `<value>.svg` files in the `.assets/lunar_phases` sub-directory of your configured `templates` directory - the whole directory is used in place of the bundled one, so add all 8 phases you want to keep, not just the ones you're changing.
 
-This is a general mechanism, not specific to moon phases - any `source`/`context`/`path`/`format` combination valid for a `<text>` binding works here too (a `source=resources` value, an explicit `category=`, etc.), the only difference is the required `assets=` directory and the "no match -> no image" behaviour instead of substituted text. To add your own, put a directory of `<value>.svg` files under an `assets/<name>` sub-directory of your `templates` directory, add an `<image>` element in your SVG editor at the size/position you want, and give it a `<desc>` the same way you would a text field - overriding just the template, just its assets, or both together, all work independently.
+This is a general mechanism, not specific to moon phases - any `source`/`context`/`path`/`format` combination valid for a `<text>` binding works here too (a `source=resources` value, an explicit `category=`, etc.), the only difference is the required `assets=` directory and the "no match -> no image" behaviour instead of substituted text. To add your own, put a directory of `<value>.svg` files under an `.assets/<name>` sub-directory of your `templates` directory, add an `<image>` element in your SVG editor at the size/position you want, and give it a `<desc>` the same way you would a text field - overriding just the template, just its assets, or both together, all work independently.
 
 ### Fonts
 
@@ -305,6 +305,10 @@ For example, `npx esl-cli fields -t templates/tide.svg -e examples` will show al
 
 ## Frequently Asked Questions
 
+### I can't see my device as a choice on the drop-down list after scan
+
+SignalK plugins lack ability to self-update after something like a scan, so first time round you may have to close the config and reload it to see this. Subsequently the plugin will remember all scanned devices, and only drop previously seen ones if it goes 24 hours without a positive scan or with failed paint attempts.
+
 ### Sometimes values are missing on the display
 
 If the plugin repaints a display at server startup, then the plugin that provides the data may not have started ( or in the case of `derived-data` the plugin that the plugin depends on! ) and unlike Home Assistant, there's no good way of sequencing the start of plugins.
@@ -329,6 +333,8 @@ If you have an SVG viewer extension, this wll show the image rather than allowin
 ## Other ESL and General eInk Resources
 
 - [Open ePaper Link](https://openepaperlink.de) - Alternative open source firmware to flash onto eInk shelf labels, with Home Assistant integration.
+- [zhsynyco-esl](https://github.com/roxburghm/zhsunyco-esl) - Python interface
+- [WoLink](https://github.com/NickWaterton/Wolink) - Python interface and protocol analysis
 - [e-ink dashboard for Signal K](https://github.com/meri-imperiumi/dashboard) - Waveshare display based multi instrument display.
 - [eInk Dashboard Modern SK](https://github.com/VladimirKalachikhin/e-inkDashboardModernSK) - SignalK dashboard for non-ESL eInk display.
 - [esp32-esl-system](https://github.com/giobauermeister/esp32-esl-system) - Docker and ESP32 based system for updating ESLs.

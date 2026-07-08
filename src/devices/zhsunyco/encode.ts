@@ -1,5 +1,5 @@
 import { Bitmap } from "../../render/types";
-import { DeviceMetadata } from "../types";
+import { Colour, DeviceMetadata } from "../types";
 
 /** 2-bit colour codes used by the Wolink wire format. */
 const enum WolinkColour {
@@ -9,12 +9,36 @@ const enum WolinkColour {
   Red = 0b11,
 }
 
-/** Mirrors the reference driver's `from_pillow` nearest-colour decision tree. */
-function nearestColour(r: number, g: number, b: number): WolinkColour {
-  if (r > 150 && g > 150 && b > 150) return WolinkColour.White;
-  if (r > 150 && g > 100 && b < 80) return WolinkColour.Yellow;
-  if (r > 150 && g < 80 && b < 80) return WolinkColour.Red;
-  return WolinkColour.Black;
+const WOLINK_CODE: Record<Colour, WolinkColour> = {
+  black: WolinkColour.Black,
+  white: WolinkColour.White,
+  yellow: WolinkColour.Yellow,
+  red: WolinkColour.Red,
+};
+
+/**
+ * Where a classified colour isn't in a device's own palette, the nearest one that's actually
+ * supported - e.g. a BWR-only panel (no yellow layer) gets the yellow bucket's pixels sent as red,
+ * the closest available warm/accent colour, rather than a wire code the hardware doesn't render.
+ */
+const FALLBACK: Partial<Record<Colour, Colour>> = {
+  yellow: "red",
+  red: "black",
+};
+
+/** Mirrors the reference driver's `from_pillow` nearest-colour decision tree, then maps the result down onto whatever colours this particular device's panel actually supports (see `DeviceMetadata.colours`). */
+function nearestColour(r: number, g: number, b: number, supported: Colour[]): WolinkColour {
+  let colour: Colour = "black";
+  if (r > 150 && g > 150 && b > 150) colour = "white";
+  else if (r > 150 && g > 100 && b < 80) colour = "yellow";
+  else if (r > 150 && g < 80 && b < 80) colour = "red";
+
+  while (!supported.includes(colour)) {
+    const fallback = FALLBACK[colour];
+    if (!fallback) break;
+    colour = fallback;
+  }
+  return WOLINK_CODE[colour];
 }
 
 /**
@@ -42,7 +66,7 @@ export function encodeBitmap(bitmap: Bitmap, metadata: DeviceMetadata): Buffer {
     const physX = width - 1 - x;
     for (let y = 0; y < height; y++) {
       const srcY = y - voffset;
-      const colour = srcY >= 0 && srcY < bitmap.height ? samplePixel(bitmap, x, srcY) : WolinkColour.Black;
+      const colour = srcY >= 0 && srcY < bitmap.height ? samplePixel(bitmap, x, srcY, metadata.colours) : WolinkColour.Black;
       const physY = height - 1 - y;
       const byteIdx = physX * bytesPerColumn + Math.floor(physY / 4);
       const bitShift = 6 - (physY % 4) * 2;
@@ -52,7 +76,7 @@ export function encodeBitmap(bitmap: Bitmap, metadata: DeviceMetadata): Buffer {
   return data;
 }
 
-function samplePixel(bitmap: Bitmap, x: number, y: number): WolinkColour {
+function samplePixel(bitmap: Bitmap, x: number, y: number, supported: Colour[]): WolinkColour {
   const offset = (y * bitmap.width + x) * 4;
-  return nearestColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2]);
+  return nearestColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], supported);
 }

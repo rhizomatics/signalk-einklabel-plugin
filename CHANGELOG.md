@@ -1,6 +1,17 @@
-# 0.8.3
+# 0.9.0
 
 - Rename `third_quarter` to `last_quarter` for moon phase icons in `templates/assets/lunar_phases` to match Derived Data plugin
+- `tide.svg` renamed to `tides\416x240-BWRY.svg`. Original maintained but labelled as deprecated
+- Added a simpler 250x128 version of tide clock for 2.13" labels
+- Fix configuration JSON holding older versions of itself as subentries
+- Repaint state used to track which labels to repaint separately tracks the template and data changes
+- Fix most cases of scanned devices not appearing in device dropdown choice
+- `nearestColour` algorithm in Zhsunyco driver supports ESLs that only have BWR or BW
+- New 'ALL' as device option, and by default disable initial scan, to optimize support for single devices
+  - Scan and explicit device selection only required then for boats with multiple devices
+- Now support a directory of templates, where each is named like `416-240-BWRY.svg` to support same functions on different devices.
+- Picks the template within the directory that most closely matches the tide clock height/width/colour-set, if not matched then height/width, and then best h/w ratio for nearest width
+- `template/assets` is now `template/.assets`
 
 # 0.8.2
 
