@@ -18,29 +18,31 @@ export function normalizeAssetKey(value: unknown): string | undefined {
 }
 
 /**
- * Picks which `assets/<assetsName>` directory an `assets=` binding should read from - the user's own
- * `templatesDir/assets/<assetsName>` if it exists as a directory at all, otherwise
- * `bundledTemplatesDir/assets/<assetsName>` (see `BUNDLED_TEMPLATES_DIR` in `../config.ts`). This is a
- * whole-directory choice, not a per-file merge: a user who provides their own `assets/lunar_phases`
- * directory (even a partial one, missing some phases) gets exactly that directory and nothing from the
- * bundled set, so it's always clear which files are in play - see the module's "overrides only work at
- * directory level" design note. This choice is independent of which template file (bundled or a user
- * override) ended up being rendered, so a user can override just a template, just its resources, or
- * both, in any combination.
+ * Picks which `.assets/<assetsName>` directory an `assets=` binding should read from - the user's own
+ * `templatesDir/.assets/<assetsName>` if it exists as a directory at all, otherwise
+ * `bundledTemplatesDir/.assets/<assetsName>` (see `BUNDLED_TEMPLATES_DIR` in `../config.ts`). Dot-prefixed
+ * so it reads as internal machinery rather than a selectable item - it lives alongside template-family
+ * directories like `tides/` (see `pickBestVariant` in `../config.ts`), which are offered in the "Template"
+ * dropdown, and `.assets` plainly isn't one of those. This is a whole-directory choice, not a per-file
+ * merge: a user who provides their own `.assets/lunar_phases` directory (even a partial one, missing some
+ * phases) gets exactly that directory and nothing from the bundled set, so it's always clear which files
+ * are in play - see the module's "overrides only work at directory level" design note. This choice is
+ * independent of which template file (bundled or a user override) ended up being rendered, so a user can
+ * override just a template, just its resources, or both, in any combination.
  */
 function selectAssetsDir(templatesDir: string, bundledTemplatesDir: string, assetsName: string): string {
-  const userDir = join(templatesDir, "assets", assetsName);
+  const userDir = join(templatesDir, ".assets", assetsName);
   try {
     if (statSync(userDir).isDirectory()) return userDir;
   } catch {
     // doesn't exist (or isn't readable) - fall through to the bundled directory
   }
-  return join(bundledTemplatesDir, "assets", assetsName);
+  return join(bundledTemplatesDir, ".assets", assetsName);
 }
 
 /**
  * Resolves an `assets=` binding to an actual `.svg` file, looked up as `<key>.svg` inside whichever
- * `assets/<assetsName>` directory `selectAssetsDir` picks. `undefined` if that directory has no
+ * `.assets/<assetsName>` directory `selectAssetsDir` picks. `undefined` if that directory has no
  * matching file, which callers treat as "no image" rather than an error, since an unmapped value
  * (e.g. a phase name the asset set doesn't cover) is an expected, not exceptional, case.
  */
