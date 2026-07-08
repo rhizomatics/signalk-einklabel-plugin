@@ -297,6 +297,12 @@ async function considerRepaint(
   });
   const rawContext = await assembleRawContext(app, apiUrl, bindings);
   const templateHash = hashTemplate(templateMtimeMs);
+  // Hashed from `rawContext`, not `renderContext` below - `meta.repainted` (and the rest of `meta`)
+  // is only added after this point, deliberately, so a template merely *displaying* the repaint
+  // timestamp doesn't perpetually invalidate its own dedup and force a repaint every check. A full
+  // paint flashes the whole panel several times, and there's no confirmed partial-refresh path on
+  // these devices - so a bound value simply being unchanged is worth trusting over any staleness in
+  // a displayed clock.
   const dataHash = hashData(rawContext);
   const stateKey = stateKeyFor(device.friendlyName, address);
   const previous = state[stateKey];
