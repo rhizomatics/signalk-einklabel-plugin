@@ -89,7 +89,11 @@ Since these are ultra-low power devices, they don't respond instantly to either 
 
 One other quirk is that some devices respond with a different name at different times, for example the genric `WOESL` sometimes and model specific `WL17500C74` other times. However, the MAC address, e.g. `66:66:17:50:0D:2B` is constant, and this is what's tracked by the plugin.
 
-The plugin will optionally re-scan whenever it starts up, although this isn't essential once a label has been configured.
+The plugin can optionally re-scan whenever it starts up (off by default), although this isn't essential once a label has been configured. Devices found by any scan are remembered across restarts - see the FAQ below.
+
+#### Selecting a Device
+
+A device's "Device" field can either be a specific device picked from the scan dropdown, or **"All discovered devices"**, which paints that same template/trigger to every device the plugin currently knows about. This is the simplest option for a boat with just one label - there's no need to scan first and pick it out, and if nothing's been discovered yet, selecting it triggers a scan itself the first time it's needed. It also covers several identical labels with one config entry, without listing each one out.
 
 ### Scheduling
 
