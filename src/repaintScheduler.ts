@@ -279,7 +279,6 @@ async function considerRepaint(
   target: RepaintTarget,
   state: RepaintState,
   getApiUrl: () => Promise<string>,
-  isStartupCatchUp: boolean,
 ): Promise<void> {
   const { address, metadata, driver } = target;
   const label = `"${device.friendlyName}" [${address}]`;
@@ -303,16 +302,12 @@ async function considerRepaint(
   const previous = state[stateKey];
   const templateChanged = previous?.templateHash !== templateHash;
   const dataChanged = previous?.dataHash !== dataHash;
-  // `interval`-triggered devices are already throttled by their own schedule (see
-  // `startRepaintScheduler`) - that's the entire reason to pick `interval` over `subscription`,
-  // often for slow-changing bound data (e.g. this template's tide `extremes`, which can be
-  // identical across two checks on the same day) where hash dedup would otherwise silently skip
-  // every scheduled repaint. Content-hash dedup below only makes sense for `subscription`, where
-  // it exists to avoid repainting on every irrelevant delta of a frequently-updating path - and for
-  // the startup catch-up of a slot that was merely *missed* (see `startupCheckTimer`): that's not
-  // the schedule actually firing, just a defensive check for a restart that happened to straddle a
-  // slot, so it should still skip a repaint whose content wouldn't actually be any different.
-  if ((device.repaintTrigger !== "interval" || isStartupCatchUp) && !templateChanged && !dataChanged && !device.forceRepaint) {
+  // The devices are battery-constrained, so a repaint is skipped whenever neither the template nor
+  // the bound data has changed since the last successful paint - regardless of what triggered this
+  // check (interval or subscription) or whether it's a regular scheduled tick vs. the deferred
+  // startup catch-up (see `startupCheckTimer`). `forceRepaint` is the explicit, one-shot override
+  // for "repaint anyway".
+  if (!templateChanged && !dataChanged && !device.forceRepaint) {
     app.debug(`${label}: data unchanged, skipping repaint`);
     return;
   }
@@ -354,9 +349,7 @@ async function considerRepaint(
       ? "template and data changed"
       : templateChanged
         ? "template changed"
-        : dataChanged
-          ? "data changed"
-          : "scheduled interval";
+        : "data changed";
   app.debug(`${label}: repainted (${reason}, paint took ${paintDurationMs}ms)`);
 }
 
@@ -373,7 +366,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   const startedAt = Date.now();
   const settleMs = (config.settleSeconds ?? 120) * 1000;
 
-  const repaint = async (device: DeviceConfig, isStartupCatchUp = false) => {
+  const repaint = async (device: DeviceConfig) => {
     const elapsedMs = Date.now() - startedAt;
     if (elapsedMs < settleMs) {
       app.debug(
@@ -385,9 +378,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
     if (targets.length === 0) {
       return;
     }
-    const results = await Promise.allSettled(
-      targets.map((target) => considerRepaint(app, config, device, target, state, getApiUrl, isStartupCatchUp)),
-    );
+    const results = await Promise.allSettled(targets.map((target) => considerRepaint(app, config, device, target, state, getApiUrl)));
     results.forEach((result, i) => {
       if (result.status === "rejected") {
         app.debug(`"${device.friendlyName}" [${targets[i].address}]: repaint failed: ${(result.reason as Error).message}`);
@@ -456,7 +447,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
           continue;
         }
       }
-      void repaint(device, true);
+      void repaint(device);
     }
   }, settleMs);
   unsubscribes.push(() => clearTimeout(startupCheckTimer));
