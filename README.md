@@ -76,11 +76,11 @@ Template available as 416x240-BWRY for 3.7" ESLs and a simpler template, sized 2
 
 #### Pre-requisites
 
-* [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. 
-  - The [tides](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tides/) templates can be customized to run with other APIs or take data only from SignalK data paths. 
+- [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API.
+  - The [tides](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tides/) templates can be customized to run with other APIs or take data only from SignalK data paths.
   - In the template it uses paths like `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` to get the first tide time, ensures its the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date time.
-* To show the lunar phase, the `environment.moon.phaseName` path is required, which can
-be easily achieved by installing and configuring the `derived-data` plugin.
+- To show the lunar phase, the `environment.moon.phaseName` path is required, which can
+  be easily achieved by installing and configuring the `derived-data` plugin.
 
 ## Configuration
 
