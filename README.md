@@ -111,6 +111,16 @@ The devices will be painted when the plugin starts, and then every time the sele
 
 Templates are simply SVG files, to which expressions can be added to use SignalK data, with options to make it easier to read, like rounding or simplifying dates and times. The template can have sample data in the placeholder, so is easy to layout and visualize.
 
+### Template Families (multiple panel sizes/colours)
+
+A "Template" selection can either be one specific `.svg` file, or a _directory_ holding several same-purpose templates for different panel sizes/colour-sets, e.g. `templates/tides/416x240-BWRY.svg` and `templates/tides/250x128-BWRY.svg` both implement the tide clock, just at different sizes. Each file is named `<width>x<height>-<colours>.svg`, where `<colours>` is one letter per supported colour: `B`(lack)/`W`(hite)/`R`(ed)/`Y`(ellow) - e.g. `BWRY` for a 4-colour panel, `BWR` for a 3-colour one.
+
+Selecting the directory (e.g. `tides`) instead of one file lets one `DeviceConfig` entry - especially a `device: "All discovered devices"` entry covering several different physical panels - automatically pick the best-fitting file for each device's actual size/colours, trying in order:
+
+1. An exact width/height/colour-set match.
+2. Failing that, width/height alone (any colour-set).
+3. Failing that too, the nearest width, tie-broken by whichever file's own height/width ratio is closest to the device's.
+
 ### Template Source Specification
 
 In the `description` of the SVG text box, use a comma separated set of key value pairs to define the data source and formatting.

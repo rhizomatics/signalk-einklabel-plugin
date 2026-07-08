@@ -250,7 +250,7 @@ interface TemplateVariant {
 function parseTemplateVariant(fileName: string): TemplateVariant | undefined {
   const match = VARIANT_FILENAME.exec(fileName);
   if (!match) return undefined;
-  const colours = [...match[3]].map((letter) => VARIANT_COLOUR_LETTERS[letter]);
+  const colours = match[3].split("").map((letter) => VARIANT_COLOUR_LETTERS[letter]);
   return { fileName, width: Number(match[1]), height: Number(match[2]), colours };
 }
 
@@ -268,7 +268,9 @@ function listTemplateFamilies(dir: string): string[] {
   } catch {
     return [];
   }
-  return entries.filter((entry) => entry.isDirectory() && listTemplateVariants(join(dir, entry.name)).length > 0).map((entry) => entry.name);
+  return entries
+    .filter((entry) => entry.isDirectory() && listTemplateVariants(join(dir, entry.name)).length > 0)
+    .map((entry) => entry.name);
 }
 
 /** Local templates (files or template-family directories) take priority over a same-named bundled one; both show up as options. */
@@ -293,7 +295,10 @@ function sameColours(a: Colour[], b: Colour[]): boolean {
  * tie-broken by whichever candidate's own height/width ratio is closest to the target's, so a
  * differently-proportioned panel doesn't just get an arbitrarily stretched/cropped near-width match.
  */
-function pickBestVariant(variants: TemplateVariant[], target: { width: number; height: number; colours: Colour[] }): TemplateVariant | undefined {
+function pickBestVariant(
+  variants: TemplateVariant[],
+  target: { width: number; height: number; colours: Colour[] },
+): TemplateVariant | undefined {
   if (variants.length === 0) return undefined;
 
   const exact = variants.find((v) => v.width === target.width && v.height === target.height && sameColours(v.colours, target.colours));

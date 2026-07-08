@@ -1,6 +1,6 @@
 # 0.9.0
 
-- Rename `third_quarter` to `last_quarter` for moon phase icons in `templates/assets/lunar_phases` to match Derived Data plugin
+- Rename `third_quarter` to `last_quarter` for moon phase icons in `templates/.assets/lunar_phases` to match Derived Data plugin
 - `tide.svg` renamed to `tides\416x240-BWRY.svg`. Original maintained but labelled as deprecated
 - Added a simpler 250x128 version of tide clock for 2.13" labels
 - Fix configuration JSON holding older versions of itself as subentries

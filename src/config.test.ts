@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { homedir, tmpdir } from "os";
 import { join } from "path";
 import { ServerAPI } from "@signalk/server-api";
-import { DiscoveredDevice } from "./devices/types";
+import { Colour, DiscoveredDevice } from "./devices/types";
 import { configSchema, configUiSchema, defaultConfig, parseDevice, PluginConfig, resolveTemplatePath, resolveTemplatesDir } from "./config";
 
 function fakeApp(options: Partial<PluginConfig> = {}): ServerAPI {
@@ -83,6 +83,57 @@ test("resolveTemplatePath", async (t) => {
     withTempDir((dir) => {
       writeFileSync(join(dir, "tide.svg"), "<svg/>");
       assert.equal(resolveTemplatePath(dir, "tide.svg"), join(dir, "tide.svg"));
+    });
+  });
+});
+
+test("resolveTemplatePath - template-family directories", async (t) => {
+  function withVariants(files: string[], fn: (dir: string) => void): void {
+    withTempDir((templatesDir) => {
+      const familyDir = join(templatesDir, "family");
+      mkdirSync(familyDir);
+      for (const file of files) writeFileSync(join(familyDir, file), "<svg/>");
+      fn(templatesDir);
+    });
+  }
+
+  function target(width: number, height: number, colours: Colour[]): { width: number; height: number; colours: Colour[] } {
+    return { width, height, colours };
+  }
+
+  await t.test("without a target, a directory name resolves like any other path (no picking)", () => {
+    withVariants(["416x240-BWRY.svg"], (dir) => {
+      assert.equal(resolveTemplatePath(dir, "family"), join(dir, "family"));
+    });
+  });
+
+  await t.test("picks an exact width/height/colour-set match", () => {
+    withVariants(["416x240-BWRY.svg", "416x240-BWR.svg", "250x128-BWRY.svg"], (dir) => {
+      assert.equal(resolveTemplatePath(dir, "family", target(416, 240, ["black", "white", "red"])), join(dir, "family", "416x240-BWR.svg"));
+    });
+  });
+
+  await t.test("falls back to a width/height match when no colour-set matches exactly", () => {
+    withVariants(["416x240-BWRY.svg", "250x128-BWRY.svg"], (dir) => {
+      assert.equal(resolveTemplatePath(dir, "family", target(416, 240, ["black", "white"])), join(dir, "family", "416x240-BWRY.svg"));
+    });
+  });
+
+  await t.test("falls back to nearest width, tie-broken by closest height/width ratio", () => {
+    withVariants(["400x300-BWRY.svg", "300x100-BWRY.svg"], (dir) => {
+      // Target width 350 is equidistant (50) from both 400 and 300, so it's a genuine width tie.
+      // Ratios: 400x300 is 0.75, 300x100 is 0.333, target (350x175) is 0.5 - |0.75-0.5|=0.25 vs
+      // |0.333-0.5|=0.167, so 300x100's ratio is closer and wins the tie-break.
+      assert.equal(
+        resolveTemplatePath(dir, "family", target(350, 175, ["black", "white", "red", "yellow"])),
+        join(dir, "family", "300x100-BWRY.svg"),
+      );
+    });
+  });
+
+  await t.test("throws when a target is given but the directory has no parseable variant files", () => {
+    withVariants(["not-a-variant.svg"], (dir) => {
+      assert.throws(() => resolveTemplatePath(dir, "family", target(416, 240, ["black"])), /no valid.*files/);
     });
   });
 });

@@ -15,7 +15,12 @@ repos:
     hooks:
       - id: oxlint
         verbose: true
-        args: ["--node-plugin"]
+        # `--no-error-on-unmatched-pattern`: pre-commit passes whichever staged files match its own
+        # `types_or: [ts, tsx, ...]` filter, but `.oxlintrc.json`'s `ignorePatterns` separately excludes
+        # `**/*.test.ts` - a commit touching *only* test files (e.g. a test-only fixup) then hands oxlint
+        # a file list it filters down to zero, which it treats as an error ("No files found to lint")
+        # rather than a no-op. This flag makes that case a clean pass instead of a spurious failure.
+        args: ["--node-plugin", "--no-error-on-unmatched-pattern"]
   - repo: https://github.com/oxc-project/mirrors-oxfmt
     rev: v0.56.0
     hooks:
