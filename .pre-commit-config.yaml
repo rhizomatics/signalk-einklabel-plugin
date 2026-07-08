@@ -14,7 +14,7 @@ repos:
     rev: v1.71.0
     hooks:
       - id: oxlint
-        verbose: false
+        verbose: true
         args: ["--node-plugin"]
   - repo: https://github.com/oxc-project/mirrors-oxfmt
     rev: v0.56.0

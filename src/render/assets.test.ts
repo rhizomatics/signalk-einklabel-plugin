@@ -28,7 +28,7 @@ test("normalizeAssetKey", async (t) => {
 test("resolveAssetPath", async (t) => {
   const templatesDir = mkdtempSync(join(tmpdir(), "einklabel-assets-user-"));
   const bundledTemplatesDir = mkdtempSync(join(tmpdir(), "einklabel-assets-bundled-"));
-  const bundledAssetsDir = join(bundledTemplatesDir, "assets", "lunar_phases");
+  const bundledAssetsDir = join(bundledTemplatesDir, ".assets", "lunar_phases");
   mkdirSync(bundledAssetsDir, { recursive: true });
   writeFileSync(join(bundledAssetsDir, "full_moon.svg"), "<svg />");
 
@@ -41,7 +41,7 @@ test("resolveAssetPath", async (t) => {
   });
 
   await t.test("prefers the user's own assets directory wholesale, without merging in bundled files", () => {
-    const userAssetsDir = join(templatesDir, "assets", "lunar_phases");
+    const userAssetsDir = join(templatesDir, ".assets", "lunar_phases");
     mkdirSync(userAssetsDir, { recursive: true });
     writeFileSync(join(userAssetsDir, "new_moon.svg"), "<svg />");
 
@@ -58,7 +58,7 @@ test("describeAssetsDirProblem", async (t) => {
   const bundledTemplatesDir = mkdtempSync(join(tmpdir(), "einklabel-assets-bundled-"));
 
   await t.test("undefined when the selected (bundled) directory is fine", () => {
-    mkdirSync(join(bundledTemplatesDir, "assets", "lunar_phases"), { recursive: true });
+    mkdirSync(join(bundledTemplatesDir, ".assets", "lunar_phases"), { recursive: true });
     assert.equal(describeAssetsDirProblem(templatesDir, bundledTemplatesDir, "lunar_phases"), undefined);
   });
 

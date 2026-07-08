@@ -93,7 +93,9 @@ test("configSchema", async (t) => {
       writeFileSync(join(dir, "custom.svg"), "<svg/>");
       writeFileSync(join(dir, "tide.svg"), "<svg/>");
       const schema = configSchema(fakeApp({ templatesDir: dir }), []) as any;
-      assert.deepEqual(schema.properties.devices.items.properties.templateName.enum, ["custom.svg", "tide.svg"]);
+      // "tides" is the bundled template-family directory (templates/tides/*x*-*.svg) - always offered
+      // alongside flat files, see the "template-family directories" tests below.
+      assert.deepEqual(schema.properties.devices.items.properties.templateName.enum, ["custom.svg", "tide.svg", "tides"]);
     });
   });
 

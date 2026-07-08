@@ -83,7 +83,7 @@ export function describeAssetsDirProblem(templatesDir: string, bundledTemplatesD
 }
 
 /**
- * Counts the `.svg` files in whichever `assets/<assetsName>` directory `selectAssetsDir` would read
+ * Counts the `.svg` files in whichever `.assets/<assetsName>` directory `selectAssetsDir` would read
  * from, for a caller to report alongside a resolved-but-empty-key miss - confirms which directory is in
  * play and how populated it is, which "the directory exists" alone doesn't convey.
  */

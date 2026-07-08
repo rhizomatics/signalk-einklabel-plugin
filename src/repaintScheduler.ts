@@ -283,7 +283,11 @@ async function considerRepaint(
   const { address, metadata, driver } = target;
   const label = `"${device.friendlyName}" [${address}]`;
   const templatesDir = resolveTemplatesDir(config.templatesDir);
-  const templatePath = resolveTemplatePath(templatesDir, device.templateName);
+  const templatePath = resolveTemplatePath(templatesDir, device.templateName, {
+    width: metadata.width,
+    height: metadata.height,
+    colours: metadata.colours,
+  });
   const templateMtimeMs = statSync(templatePath).mtimeMs;
   const bindings = findBindings(readFileSync(templatePath, "utf-8"));
 

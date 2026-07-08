@@ -1,8 +1,8 @@
-import { existsSync, readdirSync } from "fs";
+import { existsSync, readdirSync, statSync } from "fs";
 import { homedir } from "os";
 import { isAbsolute, join } from "path";
 import { ServerAPI } from "@signalk/server-api";
-import { DiscoveredDevice } from "./devices/types";
+import { Colour, DiscoveredDevice } from "./devices/types";
 import { SIGNALK_API_URL_OPTIONS } from "./resolveApiUrl";
 
 /**
@@ -25,6 +25,13 @@ export interface DeviceConfig {
   device: string;
   /** Per-device override; if omitted, the vendor driver may fall back to a stock/manufacturer-default key. */
   aesKey?: string;
+  /**
+   * Either one specific `.svg` file, or the name of a *template-family* directory holding several
+   * same-purpose templates for different panel sizes/colour-sets, named `<width>x<height>-<colours>.svg`
+   * (e.g. `templates/tides/416x240-BWRY.svg`) - `pickBestVariant` then picks whichever file inside it
+   * best matches this entry's actual device(s), so one `DeviceConfig` (and one `ALL_DEVICES` entry in
+   * particular) works across different panel sizes without the user picking a file for each.
+   */
   templateName: string;
   repaintTrigger: "subscription" | "interval";
   /** SignalK path to subscribe to when `repaintTrigger` is `subscription` - a repaint is considered on every delta. */
@@ -91,7 +98,7 @@ export interface PluginConfig {
  * user's `templatesDir` takes priority. Exported so `SvgRenderer` can fall back to it when resolving
  * an `assets=` binding's directory (see `resolveAssetPath` in `./render/assets.ts`) - overriding a
  * bundled template shouldn't also require duplicating its bundled asset sets (e.g.
- * `templates/assets/lunar_phases`) just to keep a binding the override never touched working.
+ * `templates/.assets/lunar_phases`) just to keep a binding the override never touched working.
  */
 export const BUNDLED_TEMPLATES_DIR = join(__dirname, "..", "templates");
 
@@ -225,15 +232,108 @@ function listSvgFiles(dir: string): string[] {
   }
 }
 
-/** Local templates take priority over a same-named bundled one; both show up as options. */
+const VARIANT_COLOUR_LETTERS: Record<string, Colour> = { B: "black", W: "white", R: "red", Y: "yellow" };
+const VARIANT_FILENAME = /^(\d+)x(\d+)-([BWRY]+)\.svg$/;
+
+interface TemplateVariant {
+  fileName: string;
+  width: number;
+  height: number;
+  colours: Colour[];
+}
+
+/**
+ * Parses a template-family file name, e.g. `416x240-BWRY.svg` -> width 416, height 240, colours
+ * black/white/red/yellow (one letter per supported colour: B/W/R/Y). `undefined` for anything that
+ * doesn't match this convention, e.g. a plain, non-family template file.
+ */
+function parseTemplateVariant(fileName: string): TemplateVariant | undefined {
+  const match = VARIANT_FILENAME.exec(fileName);
+  if (!match) return undefined;
+  const colours = [...match[3]].map((letter) => VARIANT_COLOUR_LETTERS[letter]);
+  return { fileName, width: Number(match[1]), height: Number(match[2]), colours };
+}
+
+function listTemplateVariants(dir: string): TemplateVariant[] {
+  return listSvgFiles(dir)
+    .map(parseTemplateVariant)
+    .filter((variant): variant is TemplateVariant => variant !== undefined);
+}
+
+/** A directory only counts as a template-family option if it actually has at least one parseable variant file in it - otherwise it's something else entirely, e.g. `.assets`. */
+function listTemplateFamilies(dir: string): string[] {
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  return entries.filter((entry) => entry.isDirectory() && listTemplateVariants(join(dir, entry.name)).length > 0).map((entry) => entry.name);
+}
+
+/** Local templates (files or template-family directories) take priority over a same-named bundled one; both show up as options. */
 function templateNameOptions(templatesDir: string): string[] {
-  const local = listSvgFiles(templatesDir);
-  const bundled = listSvgFiles(BUNDLED_TEMPLATES_DIR).filter((name) => !local.includes(name));
+  const local = [...listSvgFiles(templatesDir), ...listTemplateFamilies(templatesDir)];
+  const bundled = [...listSvgFiles(BUNDLED_TEMPLATES_DIR), ...listTemplateFamilies(BUNDLED_TEMPLATES_DIR)].filter(
+    (name) => !local.includes(name),
+  );
   return [...local, ...bundled];
 }
 
-/** Resolves a template name to an actual file path - a local template overrides the bundled one of the same name. */
-export function resolveTemplatePath(templatesDir: string, templateName: string): string {
+function sameColours(a: Colour[], b: Colour[]): boolean {
+  if (a.length !== b.length) return false;
+  const setA = new Set(a);
+  return b.every((colour) => setA.has(colour));
+}
+
+/**
+ * Picks the best-fitting file within a template-family directory (see `parseTemplateVariant`) for a
+ * device's actual panel, trying each of these in turn: (1) an exact width/height/colour-set match,
+ * (2) width/height alone (ignoring colour-set) next, and (3) failing either, the nearest width -
+ * tie-broken by whichever candidate's own height/width ratio is closest to the target's, so a
+ * differently-proportioned panel doesn't just get an arbitrarily stretched/cropped near-width match.
+ */
+function pickBestVariant(variants: TemplateVariant[], target: { width: number; height: number; colours: Colour[] }): TemplateVariant | undefined {
+  if (variants.length === 0) return undefined;
+
+  const exact = variants.find((v) => v.width === target.width && v.height === target.height && sameColours(v.colours, target.colours));
+  if (exact) return exact;
+
+  const sizeMatch = variants.find((v) => v.width === target.width && v.height === target.height);
+  if (sizeMatch) return sizeMatch;
+
+  const targetRatio = target.height / target.width;
+  const nearestWidth = Math.min(...variants.map((v) => Math.abs(v.width - target.width)));
+  const nearestWidthCandidates = variants.filter((v) => Math.abs(v.width - target.width) === nearestWidth);
+  return nearestWidthCandidates.reduce((best, candidate) =>
+    Math.abs(candidate.height / candidate.width - targetRatio) < Math.abs(best.height / best.width - targetRatio) ? candidate : best,
+  );
+}
+
+/**
+ * Resolves a template name to an actual file path - a local template overrides the bundled one of the
+ * same name. `templateName` can also name a template-family *directory* (see `pickBestVariant`), in
+ * which case `target` (the device's actual width/height/colours) picks the best file inside it. A
+ * `target`-less call, or one where `templateName` just isn't a directory, falls through to the plain
+ * flat-file behaviour - the only kind the CLI (which always names an exact file) ever uses.
+ */
+export function resolveTemplatePath(
+  templatesDir: string,
+  templateName: string,
+  target?: { width: number; height: number; colours: Colour[] },
+): string {
+  if (target) {
+    const dir = [join(templatesDir, templateName), join(BUNDLED_TEMPLATES_DIR, templateName)].find(
+      (candidate) => existsSync(candidate) && statSync(candidate).isDirectory(),
+    );
+    if (dir) {
+      const best = pickBestVariant(listTemplateVariants(dir), target);
+      if (!best) {
+        throw new Error(`template directory "${templateName}" has no valid "<width>x<height>-<colours>.svg" files`);
+      }
+      return join(dir, best.fileName);
+    }
+  }
   const localPath = join(templatesDir, templateName);
   return existsSync(localPath) ? localPath : join(BUNDLED_TEMPLATES_DIR, templateName);
 }
