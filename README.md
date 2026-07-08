@@ -72,12 +72,17 @@ npm install @rhizomatics/signalk-einklabel-plugin
 
 ![Tide Clock](docs/assets/screenshots/example_tidal_clock.png)
 
-The tide clock needs the [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. The [tide.svg](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tide.svg) can be customized to run with other APIs or take data only from SignalK data paths. For example, `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` gets the first tide time, ensures its the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date time.
+Template available as 416x240-BWRY for 3.7" ESLs and a simpler template, sized 250x128, also BWRY, for the cheapest 2.13" labels.
 
-To show the lunar phase, the `environment.moon.phaseName` path is required, which can
+#### Pre-requisites
+
+* [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API. 
+  - The [tides](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tides/) templates can be customized to run with other APIs or take data only from SignalK data paths. 
+  - In the template it uses paths like `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` to get the first tide time, ensures its the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date time.
+* To show the lunar phase, the `environment.moon.phaseName` path is required, which can
 be easily achieved by installing and configuring the `derived-data` plugin.
 
-## Configuration
+## Configuration
 
 Use the standard configuration option in the SignalK menu for the plugin.
 
@@ -95,7 +100,7 @@ The plugin can optionally re-scan whenever it starts up (off by default), althou
 
 A device's "Device" field can either be a specific device picked from the scan dropdown, or **"All discovered devices"**, which paints that same template/trigger to every device the plugin currently knows about. This is the simplest option for a boat with just one label - there's no need to scan first and pick it out, and if nothing's been discovered yet, selecting it triggers a scan itself the first time it's needed. It also covers several identical labels with one config entry, without listing each one out.
 
-### Scheduling
+### Scheduling
 
 There are two ways of scheduling scans:
 
@@ -322,6 +327,8 @@ For example, `npx esl-cli fields -t templates/tide.svg -e examples` will show al
 ### I can't see my device as a choice on the drop-down list after scan
 
 SignalK plugins lack ability to self-update after something like a scan, so first time round you may have to close the config and reload it to see this. Subsequently the plugin will remember all scanned devices, and only drop previously seen ones if it goes 24 hours without a positive scan or with failed paint attempts.
+
+Easiest way to solve this is to choose 'All Discovered Devices' in the device configuration, and it will paint any compatible devices it finds on future scans.
 
 ### Sometimes values are missing on the display
 
