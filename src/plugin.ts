@@ -1,5 +1,5 @@
 import { Plugin, ServerAPI } from "@signalk/server-api";
-import { configSchema, configUiSchema, defaultConfig, PluginConfig } from "./config";
+import { configSchema, configUiSchema, defaultConfig, healNestedConfig, PluginConfig } from "./config";
 import { registerDriver } from "./devices/registry";
 import { ZhsunycoDriver } from "./devices/zhsunyco";
 import { ensureScan, scanInProgressSince } from "./devices/discoveryCoordinator";
@@ -56,6 +56,7 @@ export function createPlugin(app: ServerAPI): Plugin {
         ...(config as Partial<PluginConfig>),
       };
       app.debug(`starting with ${pluginConfig.devices.length} configured device(s)`);
+      healNestedConfig(app);
 
       if (pluginConfig.scanOnStart) {
         void runStartupScan(app, pluginConfig.scanDurationSeconds);

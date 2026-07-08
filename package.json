@@ -1,6 +1,6 @@
 {
   "name": "@rhizomatics/signalk-einklabel-plugin",
-  "version": "0.9.0-beta1",
+  "version": "0.9.0-beta2",
   "description": "Display SignalK data on eInk Electronic Shelf Labels",
   "keywords": [
     "ble",

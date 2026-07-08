@@ -5,10 +5,32 @@ import { homedir, tmpdir } from "os";
 import { join } from "path";
 import { ServerAPI } from "@signalk/server-api";
 import { Colour, DiscoveredDevice } from "./devices/types";
-import { configSchema, configUiSchema, defaultConfig, parseDevice, PluginConfig, resolveTemplatePath, resolveTemplatesDir } from "./config";
+import {
+  configSchema,
+  configUiSchema,
+  defaultConfig,
+  healNestedConfig,
+  parseDevice,
+  PluginConfig,
+  resolveTemplatePath,
+  resolveTemplatesDir,
+} from "./config";
 
 function fakeApp(options: Partial<PluginConfig> = {}): ServerAPI {
   return { readPluginOptions: () => options } as unknown as ServerAPI;
+}
+
+function fakeAppWithSave(raw: unknown): { app: ServerAPI; saved: unknown[] } {
+  const saved: unknown[] = [];
+  const app = {
+    readPluginOptions: () => raw,
+    savePluginOptions: (configuration: unknown, cb: (err?: Error) => void) => {
+      saved.push(configuration);
+      cb();
+    },
+    debug: () => {},
+  } as unknown as ServerAPI;
+  return { app, saved };
 }
 
 test("resolveTemplatesDir", async (t) => {
@@ -204,6 +226,44 @@ test("configSchema", async (t) => {
     const schema = configSchema(fakeApp(), []) as any;
     assert.equal(schema.properties.scanOnStart.default, false);
     assert.equal(schema.properties.paintRetries.default, 3);
+  });
+});
+
+test("healNestedConfig", async (t) => {
+  await t.test("does nothing when the on-disk file isn't nested", () => {
+    const { app, saved } = fakeAppWithSave({ configuration: { templatesDir: "", devices: [] }, enabled: true });
+    healNestedConfig(app);
+    assert.deepEqual(saved, []);
+  });
+
+  await t.test("flattens a legacy multiply-nested file down to just its recognised, innermost fields", () => {
+    // Mirrors the real corruption in support/signalk-einklabel-plugin.json: a live top-level
+    // `configuration` plus a dead `configuration.configuration...` blob riding along inside it,
+    // which nothing else ever strips since the admin UI round-trips unknown keys verbatim.
+    const raw = {
+      configuration: {
+        templatesDir: "",
+        devices: [{ friendlyName: "Tide Clock", device: "ALL", templateName: "tides", repaintTrigger: "interval" }],
+        configuration: {
+          configuration: {
+            templatesDir: "stale",
+            devices: [
+              { friendlyName: "old", device: "zhsunyco:14@AA:AA:AA:AA:AA:AA", templateName: "tide.svg", repaintTrigger: "interval" },
+            ],
+            enabled: true,
+          },
+          enabled: true,
+        },
+      },
+      enabled: true,
+    };
+    const { app, saved } = fakeAppWithSave(raw);
+    healNestedConfig(app);
+    assert.equal(saved.length, 1);
+    assert.deepEqual(saved[0], {
+      templatesDir: "stale",
+      devices: [{ friendlyName: "old", device: "zhsunyco:14@AA:AA:AA:AA:AA:AA", templateName: "tide.svg", repaintTrigger: "interval" }],
+    });
   });
 });
 

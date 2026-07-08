@@ -140,8 +140,8 @@ const PLUGIN_CONFIG_KEYS = [
  * `clearForceRepaint` in `./repaintScheduler.ts`). Unwrapping any such nesting and keeping only recognised
  * fields here means every save collapses back down instead of growing, self-healing an already-corrupted file.
  */
-export function readCurrentConfig(app: ServerAPI): Partial<PluginConfig> {
-  let raw: unknown = app.readPluginOptions();
+function unwrapNestedConfiguration(raw: unknown): { unwrapped: unknown; wasNested: boolean } {
+  let levels = 0;
   while (
     raw &&
     typeof raw === "object" &&
@@ -149,7 +149,15 @@ export function readCurrentConfig(app: ServerAPI): Partial<PluginConfig> {
     typeof (raw as { configuration: unknown }).configuration === "object"
   ) {
     raw = (raw as { configuration: unknown }).configuration;
+    levels++;
   }
+  // One level is the normal, expected shape signalk-server itself stores on disk (see the doc
+  // comment above) - only a *second* nested `configuration` key onwards is the corruption this
+  // guards against.
+  return { unwrapped: raw, wasNested: levels > 1 };
+}
+
+function pickKnownKeys(raw: unknown): Partial<PluginConfig> {
   const result: Partial<PluginConfig> = {};
   if (raw && typeof raw === "object") {
     for (const key of PLUGIN_CONFIG_KEYS) {
@@ -159,6 +167,30 @@ export function readCurrentConfig(app: ServerAPI): Partial<PluginConfig> {
     }
   }
   return result;
+}
+
+export function readCurrentConfig(app: ServerAPI): Partial<PluginConfig> {
+  const { unwrapped } = unwrapNestedConfiguration(app.readPluginOptions());
+  return pickKnownKeys(unwrapped);
+}
+
+/**
+ * Actively rewrites the on-disk file once it's nested (see `readCurrentConfig`'s doc comment) -
+ * `readCurrentConfig` alone only self-heals in memory for callers that go through it, but the admin
+ * UI's own config-editing form round-trips whatever raw JSON it was handed verbatim, including a
+ * stray nested `configuration` key it never touches (no schema field maps to it) - so left alone,
+ * every future save from the UI keeps re-persisting that dead weight forever (see
+ * `support/signalk-einklabel-plugin.json`). Called once at plugin start, which - unlike
+ * `clearForceRepaint` - isn't gated on any device having `forceRepaint` set, so a nested file gets
+ * flattened even if nothing ever triggers that path.
+ */
+export function healNestedConfig(app: ServerAPI): void {
+  const { unwrapped, wasNested } = unwrapNestedConfiguration(app.readPluginOptions());
+  if (!wasNested) return;
+  app.savePluginOptions(pickKnownKeys(unwrapped), (err) => {
+    if (err) app.debug(`failed to clean up legacy nested plugin config: ${err.message}`);
+    else app.debug("cleaned up a legacy nested plugin config file on disk");
+  });
 }
 
 /**

@@ -302,7 +302,13 @@ async function considerRepaint(
   const previous = state[stateKey];
   const templateChanged = previous?.templateHash !== templateHash;
   const dataChanged = previous?.dataHash !== dataHash;
-  if (!templateChanged && !dataChanged && !device.forceRepaint) {
+  // `interval`-triggered devices are already throttled by their own schedule (see
+  // `startRepaintScheduler`) - that's the entire reason to pick `interval` over `subscription`,
+  // often for slow-changing bound data (e.g. this template's tide `extremes`, which can be
+  // identical across two checks on the same day) where hash dedup would otherwise silently skip
+  // every scheduled repaint. Content-hash dedup below only makes sense for `subscription`, where
+  // it exists to avoid repainting on every irrelevant delta of a frequently-updating path.
+  if (device.repaintTrigger !== "interval" && !templateChanged && !dataChanged && !device.forceRepaint) {
     app.debug(`${label}: data unchanged, skipping repaint`);
     return;
   }
@@ -344,7 +350,9 @@ async function considerRepaint(
       ? "template and data changed"
       : templateChanged
         ? "template changed"
-        : "data changed";
+        : dataChanged
+          ? "data changed"
+          : "scheduled interval";
   app.debug(`${label}: repainted (${reason}, paint took ${paintDurationMs}ms)`);
 }
 
