@@ -9,7 +9,7 @@
 
     Fully working but limited vendor/product support and requires Linux for device access.
 
-A SignalK plugin to display data from SignalK paths, APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates.
+A SignalK plugin to display data from SignalK paths, Resource APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates.
 
 ## What is an ESL?
 
@@ -23,18 +23,18 @@ Being battery operated, they can be stuck on anywhere without wiring - the only 
 
 Unlike some eInk projects, this plugin doesn't require any physical modification to the labels, or loading any new firmware. It can send an image to a supported shelf label fresh out of the box.
 
-Most of these requirements are about making SignalK work with Bluetooth Low Energy, which is good thing to have anyway, since vendors like Victron, Switchbot, Ruuvi and others have BLE enabled hardware that's useful to have on a boat. [Direct BLE support](https://github.com/SignalK/signalk-server/issues/2411) in SignalK is being planned in 2026.
+Most of requirements below are to make SignalK work with Bluetooth Low Energy, which is good thing to have anyway, since vendors like Victron, Switchbot, Ruuvi and others have BLE enabled hardware that's useful to have on a boat. [Direct BLE support](https://github.com/SignalK/signalk-server/issues/2411) in SignalK is being planned in 2026 and this plugin will support that when it comes.
 
 1. A SignalK server, **running Linux**
 
 - MacOS and Windows aren't supported by the [BLE interface layer](https://www.npmjs.com/package/@naugehyde/node-ble), however can be used for template development and
   debugging (everything except `scan` and `paint`)
 
-2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy), which is Bluetooth v4.0 or higher
+2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy).
 
 - Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
 - Some Raspberry Pi models come with suitable Bluetooth it built-in
-- Don't worry about the very latest Bluetooth versions, 4.0 is basic, 5.0 is nice
+- Don't worry about the very latest Bluetooth versions, 4.0 is minimum for BLE, 5.0 is nice
 - Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
 
 3. `bluez` package installed in Linux
@@ -44,18 +44,18 @@ Most of these requirements are about making SignalK work with Bluetooth Low Ener
 
 4. One or more supported Electronic Shelf Labels
 
-- The label used for testing this is the [ZhunyCo 3.7 BRWY](https://www.aliexpress.com/item/1005010050104435.html)
+- The label used for testing this is the [ZhunyCo 3.7" BRWY](https://www.aliexpress.com/item/1005010050104435.html)
 
 5. Correct time zone set on server if local time is to be shown on display
 
 - See [FAQ](#faq-timezone)
 - If not set, everything will work, but you may see the wrong zone or not have daylight savings applied
 
-Once you have all of that, it may be worth also installing [signalk-victron-ble](https://github.com/stefanor/signalk-victron-ble) or [bt-sensors-plugin](https://github.com/naugehyde/bt-sensors-plugin-sk) to pull in data from other sensors and equipment.
+Once you have all of that, it may be worth also installing [signalk-victron-ble](https://github.com/stefanor/signalk-victron-ble),[signalk-ruuvitag-plugin](https://github.com/vokkim/signalk-ruuvitag-plugin) or [bt-sensors-plugin](https://github.com/naugehyde/bt-sensors-plugin-sk) to pull in data from other sensors and equipment.
 
 ## Installation
 
-Look for **eInk Label Instrument** in the [SignalK AppStore]() on your
+Look for **eInk Label Displays** in the **SignalK AppStore** on your
 server ( under _Apps & Plugins_ on the latest version).
 
 ### Using Outside of SignalK
@@ -65,6 +65,12 @@ The plugin can also be installed as a stand-alone module, which can be useful fo
 ```bash
 npm install @rhizomatics/signalk-einklabel-plugin
 ```
+
+## Configuration
+
+Use the standard configuration option in the SignalK menu for the plugin.
+
+![Plugin Configuration](docs/assets/screenshots/plugin_config.png)
 
 ## Examples
 
@@ -76,17 +82,37 @@ Template available as 416x240-BWRY for 3.7" ESLs and a simpler template, sized 2
 
 #### Pre-requisites
 
-- [signalk-tides](https://github.com/openwatersio/signalk-tides) plugin to be installed and publishing tides to the Resources API.
-  - The [tides](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tides/) templates can be customized to run with other APIs or take data only from SignalK data paths.
-  - In the template it uses paths like `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` to get the first tide time, ensures its the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date time.
-- To show the lunar phase, the `environment.moon.phaseName` path is required, which can
-  be easily achieved by installing and configuring the `derived-data` plugin.
+A _tides_ provider plugin for the Resources API installed and enabled, currently one of:
 
-## Configuration
+- [signalk-tides](https://github.com/openwatersio/signalk-tides) - uses [neaps](https://github.com/openwatersio/neaps) library for international off-line coverage
+- [signalk-mareas-ihm](https://github.com/Aitonos/signalk-mareas-ihm) - interfaces with official Spanish IHM tidal predictions, or falls back to Open Meteo and _signalk-tides_
 
-Use the standard configuration option in the SignalK menu for the plugin.
+The [tides](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tides/) templates can be customized to run with any tide provider, a specific one, or switch to other APIs or SignalK data paths.
 
-![Plugin Configuration](docs/assets/screenshots/plugin_config.png)
+- In the template it uses a SVG description like `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` to get the first tide time, ensures its the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date time.
+
+To show the lunar phase, the `environment.moon.phaseName` path is required, which can
+be easily achieved by installing and configuring the `derived-data` plugin.
+
+## Setting up a Label
+
+Enable the plugin, and use the large **+** sign to add a label, which open up these fields.
+
+![Label Config](docs/assets/screenshots/label_config.png)
+
+- _Friendly Name_ - Give the label any name (word or phrase) you like, for example 'Tide Clock'
+- _Device_ - Unless you have multiple labels, don't bother with pre-scanning or selecting a specifig device, instead pick **"All discovered devices"** and it will paint any compatible labels it finds. If you want to pick a specific device, you'll need to wait for a device scan to complete.
+- _Template_ - Choose a built in template, or one you've added to the local templates directory
+- _Repaint Trigger_- Do you want this to repaint every few hours (at a chosen minutes past hour), or when a SignalK path changes?
+  - If its a SignalK path, enter it next, for example `environment.tide.state`
+  - If its time based, enter how many hours between repaints, for example 00:00/08:00/16:00 for an 8h schedule, and if you want a specific number of minutes after the hour.
+
+There are also two more advanced options, which can usually be ignored.
+
+- _BLE AES key_ - Only needed if the default key doesn't work and you have a better alternative, otherwise ignore
+- _Force Repaint_ - Next time the label is due to be painted, update even if the data or template hasn't changed (this flag will automatically be cleared after this.)
+
+When the plugin starts, it will automatically re-paint the label if its new, or the last timed slot was missed and the data has changed.
 
 ### Scanning for Devices
 
@@ -96,21 +122,18 @@ One other quirk is that some devices respond with a different name at different 
 
 The plugin can optionally re-scan whenever it starts up (off by default), although this isn't essential once a label has been configured. Devices found by any scan are remembered across restarts - see the FAQ below.
 
-#### Selecting a Device
+## Vendors
 
-A device's "Device" field can either be a specific device picked from the scan dropdown, or **"All discovered devices"**, which paints that same template/trigger to every device the plugin currently knows about. This is the simplest option for a boat with just one label - there's no need to scan first and pick it out, and if nothing's been discovered yet, selecting it triggers a scan itself the first time it's needed. It also covers several identical labels with one config entry, without listing each one out.
+### Zhsunyco
 
-### Scheduling
+Also known as 'Suny' and 'WOLink'.
 
-There are two ways of scheduling scans:
+- [BLE ESLs](https://www.zhsunyco.com/digital-display-solution-for-small-retail-business/ble-esl-solution/)
+  - The range of labels available on retail sites like AliExpress may be larger than on their corporate site
+  - In mid 2026, a 4 colour (BWRY) 3.7" label retailed for about $35, with quantity discounts for bulk sets
+  - Cheapest units are 2 colour 1.54", and they go up to 7.5"
 
-#### Time Based
-
-This will schedule at fixed hours of the day, for example 00:00/08:00/16:00 for an 8h schedule, and at a selected minutes past the hour. At plugin startup/restart, the devices will be repainted if they missed their last slot.
-
-#### Path Subscription
-
-The devices will be painted when the plugin starts, and then every time the selected SignalK path changes.
+Python code for a variety of their labels at https://github.com/roxburghm/zhsunyco-esl and https://github.com/NickWaterton/Wolink
 
 ## Templating
 
@@ -118,7 +141,9 @@ Templates are simply SVG files, to which expressions can be added to use SignalK
 
 ### Template Families (multiple panel sizes/colours)
 
-A "Template" selection can either be one specific `.svg` file, or a _directory_ holding several same-purpose templates for different panel sizes/colour-sets, e.g. `templates/tides/416x240-BWRY.svg` and `templates/tides/250x128-BWRY.svg` both implement the tide clock, just at different sizes. Each file is named `<width>x<height>-<colours>.svg`, where `<colours>` is one letter per supported colour: `B`(lack)/`W`(hite)/`R`(ed)/`Y`(ellow) - e.g. `BWRY` for a 4-colour panel, `BWR` for a 3-colour one.
+A "Template" selection can either be one specific `.svg` file, or a _directory_ holding several versions of the same template for different panel sizes/colour-sets, e.g. `templates/tides/416x240-BWRY.svg` and `templates/tides/250x128-BWRY.svg` both implement the tide clock, just at different sizes.
+
+Each template is named `<width>x<height>-<colours>.svg`, where `<colours>` is one letter per supported colour: `B`(lack)/`W`(hite)/`R`(ed)/`Y`(ellow) - e.g. `BWRY` for a 4-colour panel, `BWR` for a 3-colour one.
 
 Selecting the directory (e.g. `tides`) instead of one file lets one `DeviceConfig` entry - especially a `device: "All discovered devices"` entry covering several different physical panels - automatically pick the best-fitting file for each device's actual size/colours, trying in order:
 
@@ -140,7 +165,7 @@ The source can be overridden to use the SignalK server's Resources API instead. 
 
 For example, `source=resources,resource=tides,provider=tides,path=station.name` picks the `tides` resource and pulls the `station.name` path out of the JSON response - this works for any resource type (`tides`, `waypoints`, `routes`, ...), and needs nothing configured: the plugin reaches the Resources API directly. Where a resource is specified, it will be fetched once for that render, and subsequent fields sourced from the same resource use that cached response. `provider` is optional, the default provider will be used if not specified.
 
-#### Plugin Data
+#### Plugin Derived Data
 
 `source=einklabel` reads data injected by the plugin itself, rather than from SignalK. Available paths:
 
@@ -163,7 +188,7 @@ SignalK's unit preferences are used to automatically convert a `signalk`-sourced
 
 Note that for dates and times, the server timezone must be set correctly, for example `Europe/London` rather than the default `Etc/UTC`. This can be done on Linux using `timedatectl` or `raspi-config` if using a Raspberry Pi with Raspian.
 
-Common categories:
+##### Common categories
 
 - `depth` - Use the SignalK preferred depth unit, make the conversion if needed, and tack on the unit name as a suffix
 - `speed` - Use the SignalK preferred speed unit, make the conversion if needed, and tack on the unit name as a suffix
@@ -183,7 +208,7 @@ path=environment.moon.phaseName,assets=lunar_phases
 
 which resolves against `templates/.assets/lunar_phases/` (bundled, or your own configured `templates` directory's `.assets/lunar_phases/` if you have one). The resolved value (e.g. `"Waning Gibbous"`, as published by the [derived-data](https://www.npmjs.com/package/signalk-derived-data) plugin) is normalized to match a filename - lower-cased, punctuation and spaces collapsed to underscores - so `"Waning Gibbous"` picks `waning_gibbous.svg` out of that directory. If the underlying path has no value at all (e.g. the `derived-data` plugin isn't installed), or the value doesn't normalize to any file in the directory, the `<image>` element is omitted from that render - no broken image, no placeholder, nothing shown - and a line is logged to the console so a missing/unmatched value isn't silently invisible.
 
-If you don't like the bundled moon phase icons, save your own `<value>.svg` files in the `.assets/lunar_phases` sub-directory of your configured `templates` directory - the whole directory is used in place of the bundled one, so add all 8 phases you want to keep, not just the ones you're changing.
+If you don't like the bundled moon phase icons, save your own `<value>.svg` files in the `.assets/lunar_phases` sub-directory of your configured `templates` directory - the whole directory is used in place of the bundled one, so add all 8 phases you want to keep, not just the ones you're changing. These moon phases can be re-used in any other label.
 
 This is a general mechanism, not specific to moon phases - any `source`/`context`/`path`/`format` combination valid for a `<text>` binding works here too (a `source=resources` value, an explicit `category=`, etc.), the only difference is the required `assets=` directory and the "no match -> no image" behaviour instead of substituted text. To add your own, put a directory of `<value>.svg` files under an `.assets/<name>` sub-directory of your `templates` directory, add an `<image>` element in your SVG editor at the size/position you want, and give it a `<desc>` the same way you would a text field - overriding just the template, just its assets, or both together, all work independently.
 
@@ -194,19 +219,6 @@ Three font types are loaded by default, use the generic font family, or exact fo
 - `serif` - `Roboto Serif`
 - `sans-serif` - `Roboto`
 - `monospace` - `Roboto Mono`
-
-## Vendors
-
-### Zhsunyco
-
-Also known as 'Suny' and 'WOLink'.
-
-- [BLE ESLs](https://www.zhsunyco.com/digital-display-solution-for-small-retail-business/ble-esl-solution/)
-  - The range of labels available on retail sites like AliExpress may be larger than on their corporate site
-  - In mid 2026, a 4 colour (BWRY) 3.7" label retailed for about $35, with quantity discounts for bulk sets
-  - Cheapest units are 2 colour 1.54", and they go up to 7.5"
-
-Python code for a variety of their labels at https://github.com/roxburghm/zhsunyco-esl and https://github.com/NickWaterton/Wolink
 
 ## Architecture
 
@@ -271,7 +283,9 @@ Placeholder text isn't necessary, and is ignored by the plugin, but makes it muc
 
 Inkscape adds its own metadata to images, which can be stripped off by exporting a simple SVG, although can be left in place with no harm; main reason to simplify the SVG is manual changes in a text editor.
 
-Due to a limitation in the `resvg-wasm` library used to turn SVGs into images, the `font-family` is limited to `serif`,`sans-serif`,`monospace` or the exact name of one of the installed fonts - `Roboto` (sans serif), `Roboto Serif` or `Roboto Mono`. Inkscape has its own fonts, which won't match what's available in the SignalK plugin, so for more precise design, install [Roboto from Google](https://fonts.google.com/specimen/Roboto) via the web page, `brew` on MacOS or similar.
+Due to a limitation in the `resvg-wasm` library used to turn SVGs into images, the `font-family` is limited to `serif`,`sans-serif`,`monospace` or the exact name of one of the installed fonts - `Roboto` (sans serif), `Roboto Serif` or `Roboto Mono`.
+
+Inkscape has its own fonts, which won't match what's available in the SignalK plugin, so for more precise design, install [Roboto from Google](https://fonts.google.com/specimen/Roboto) via the web page, `brew` on MacOS or similar.
 
 ### Debugging Templates
 
