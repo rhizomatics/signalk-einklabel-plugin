@@ -119,9 +119,7 @@ export async function withDiscovery<T>(durationMs: number, fn: (adapter: Adapter
  * (github.com/naugehyde/node-ble — fix proposed upstream, not yet released.)
  */
 function clearStaleConnectListener(device: Device): void {
-  (device as unknown as { helper?: { removeAllListeners?: (event: string) => void } }).helper?.removeAllListeners?.(
-    "PropertiesChanged",
-  );
+  (device as unknown as { helper?: { removeAllListeners?: (event: string) => void } }).helper?.removeAllListeners?.("PropertiesChanged");
 }
 
 /**
