@@ -108,6 +108,23 @@ export async function withDiscovery<T>(durationMs: number, fn: (adapter: Adapter
 }
 
 /**
+ * node-ble's `Device#connect()` adds a fresh D-Bus `PropertiesChanged` listener on every call
+ * and only removes it via a *successful* `Device#disconnect()` - a connect that times out or
+ * rejects (exactly the case this function exists to bound, for a device that's out of range or
+ * stuck mid-handshake) never reaches that cleanup, so each failed attempt leaks one listener on
+ * the underlying Device object. A flaky device polled on every scan/repaint cycle eventually
+ * trips Node's MaxListenersExceededWarning. Reach into node-ble's internal BusHelper (not part
+ * of its public API, but the only thing that actually holds the listener) and clear it directly
+ * regardless of how the attempt ended, so at most one listener is ever outstanding.
+ * (github.com/naugehyde/node-ble — fix proposed upstream, not yet released.)
+ */
+function clearStaleConnectListener(device: Device): void {
+  (device as unknown as { helper?: { removeAllListeners?: (event: string) => void } }).helper?.removeAllListeners?.(
+    "PropertiesChanged",
+  );
+}
+
+/**
  * `device.connect()` has no timeout of its own - BlueZ's underlying D-Bus `Connect` call can hang
  * indefinitely for a device that's out of range or stuck mid-handshake, which would otherwise
  * block a scan (or `paint()`) on that one device forever. Throws once `timeoutMs` elapses; if the
@@ -117,7 +134,11 @@ export async function withDiscovery<T>(durationMs: number, fn: (adapter: Adapter
 export async function connectWithTimeout(device: Device, timeoutMs: number): Promise<void> {
   const connecting = device.connect();
   let timedOut = false;
-  await Promise.race([connecting, sleep(timeoutMs).then(() => void (timedOut = true))]);
+  try {
+    await Promise.race([connecting, sleep(timeoutMs).then(() => void (timedOut = true))]);
+  } finally {
+    clearStaleConnectListener(device);
+  }
   if (timedOut) {
     connecting.then(() => device.disconnect()).catch(() => {});
     throw new Error(`connecting to device timed out after ${timeoutMs}ms`);

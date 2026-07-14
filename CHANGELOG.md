@@ -1,3 +1,7 @@
+# 0.9.1
+
+- Fix for upstream EventEmitter leak in `@naugehyde/node-ble`
+
 # 0.9.0
 
 ## Tide Clock Example
