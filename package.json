@@ -8,12 +8,12 @@
     "eink",
     "esl",
     "instrument",
-    "watch-schedule",
     "signalk",
     "signalk-category-hardware",
     "signalk-category-instruments",
     "signalk-node-server-plugin",
-    "tides"
+    "tides",
+    "watch-schedule"
   ],
   "homepage": "https://github.com/rhizomatics/signalk-einklabel-plugin#readme",
   "bugs": {

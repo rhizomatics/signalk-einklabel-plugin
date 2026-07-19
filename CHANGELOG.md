@@ -1,9 +1,11 @@
 # 0.10.1
 
 ## Watch Schedule Example
+
 - New template to show current and next crew watch, using `signalk-watch-schedule` plugin
 
 ## CLI / Debugging
+
 - `fields` command now reports where text field definitions can't be interpreted
 - Epoch style timestamps now automatically handled as if proper date time for format options
 
