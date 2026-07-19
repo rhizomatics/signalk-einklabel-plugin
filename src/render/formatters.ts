@@ -69,6 +69,7 @@ export function resolveLocalZoneAbbreviation(context: TemplateContext): string {
 function parseTimestamp(value: unknown): DateTime | undefined {
   if (value instanceof Date) return DateTime.fromJSDate(value, { zone: "utc" });
   if (typeof value === "string") return DateTime.fromISO(value, { zone: "utc" });
+  if (typeof value === "number") return DateTime.fromMillis(value, { zone: "utc" });
   return undefined;
 }
 

@@ -58,6 +58,32 @@
             "timestamp": "2026-06-30T14:45:00.000Z"
           }
         }
+      },
+      "watch": {
+        "current": {
+          "teamIndex": 0,
+          "teamName": "Zeta Team",
+          "startTime": 1784498400000,
+          "endTime": 1784512800000,
+          "durationMin": 240,
+          "color": "#2563eb",
+          "isCurrent": true,
+          "cycleIndex": 1
+        },
+        "next": {
+          "teamIndex": 1,
+          "teamName": "Gamma Team",
+          "startTime": 1784512800000,
+          "endTime": 1784527200000,
+          "durationMin": 240,
+          "color": "#dc2626",
+          "isCurrent": false,
+          "cycleIndex": 1
+        },
+        "system": {
+          "id": "fixed-4-8",
+          "name": "4-on / 8-off"
+        }
       }
     }
   }

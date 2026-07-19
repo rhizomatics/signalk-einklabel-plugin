@@ -94,6 +94,17 @@ The [tides](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/te
 To show the lunar phase, the `environment.moon.phaseName` path is required, which can
 be easily achieved by installing and configuring the `derived-data` plugin.
 
+### Watch Schedule
+
+![Watch Schedule](docs/assets/screenshots/example_watch_schedule.png)
+
+Template available as 416x240-BWRY for 3.7" ESLs.
+
+#### Pre-requisites
+
+- Source of `watch.current` and `watch.next` values
+  - `signalk-watch-schedule` plugin
+
 ## Setting up a Label
 
 Enable the plugin, and use the large **+** sign to add a label, which open up these fields.
@@ -364,6 +375,10 @@ Try a BLE proxy device, ESP32 is popular for this.
 ### Can't edit the text contents of SVG template in VSCode
 
 If you have an SVG viewer extension, this wll show the image rather than allowing editing of text. To solve, right click on the file in VSCode _Explorer_ view and choose to edit with _Text Editor_.
+
+### Description is set in InkScape but doesn't render
+
+Check if the text boxes are normal text or flowed text, and correct to normal text.
 
 ## Other ESL and General eInk Resources
 

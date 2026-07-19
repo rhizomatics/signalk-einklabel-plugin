@@ -321,9 +321,10 @@ program
       const elements = doc.getElementsByTagName(tag);
       for (let i = 0; i < elements.length; i++) {
         const element = elements.item(i);
-        const desc = element?.getElementsByTagName("desc").item(0);
-        if (!element || !desc?.textContent) continue;
+        if (!element) continue;
         const id = element.getAttribute("id") ?? `${tag}#${i}`;
+        const desc = element.getElementsByTagName("desc").item(0);
+        if (!desc?.textContent) continue;
         try {
           rows.push({ id, tag, desc: desc.textContent, binding: parseBinding(desc.textContent) });
         } catch (err) {

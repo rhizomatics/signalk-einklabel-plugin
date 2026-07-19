@@ -39,9 +39,16 @@ test("applyFormat", async (t) => {
     assert.equal(applyFormat("local_time", "2026-06-28T12:00:00Z", {}, undefined), expected);
   });
 
-  await t.test("local_time returns empty string for a non-string, non-Date value", () => {
-    assert.equal(applyFormat("local_time", 42, context, undefined), "");
+  await t.test("local_time returns empty string for a non-string, non-Date, non-number value", () => {
+    assert.equal(applyFormat("local_time", null, context, undefined), "");
   });
+
+  await t.test(
+    "local_time accepts an epoch-milliseconds number - some third-party plugins (e.g. a watch-schedule plugin) publish raw epoch ms rather than an ISO string",
+    () => {
+      assert.equal(applyFormat("local_time", 1784512800000, context, undefined), "03:00");
+    },
+  );
 
   await t.test(
     "local_time accepts a Date instance - an in-process resourcesApi call hands one back unserialised, unlike the HTTP/CLI path which always JSON-serialises it to a string first",
@@ -62,8 +69,12 @@ test("applyFormat", async (t) => {
     assert.equal(applyFormat("local_datetime_short", "2026-06-21T17:05:00Z", context, undefined), "21 Jun 26 18:05");
   });
 
-  await t.test("local_datetime_short returns empty string for a non-string value", () => {
-    assert.equal(applyFormat("local_datetime_short", 42, context, undefined), "");
+  await t.test("local_datetime_short returns empty string for a non-string, non-Date, non-number value", () => {
+    assert.equal(applyFormat("local_datetime_short", null, context, undefined), "");
+  });
+
+  await t.test("local_datetime_short accepts an epoch-milliseconds number", () => {
+    assert.equal(applyFormat("local_datetime_short", 1784512800000, context, undefined), "20 Jul 26 03:00");
   });
 
   await t.test("utc_offset shows a fixed-offset zone's numeric UTC offset", () => {

@@ -1,6 +1,6 @@
 {
   "name": "@rhizomatics/signalk-einklabel-plugin",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Display SignalK data on eInk Electronic Shelf Labels",
   "keywords": [
     "ble",
@@ -79,7 +79,9 @@
     "appIcon": "docs/assets/icons/icon_tmp.png",
     "screenshots": [
       "docs/assets/screenshots/example_tidal_clock.png",
-      "docs/assets/screenshots/plugin_config.png"
+      "docs/assets/screenshots/example_watch_schedule.png",
+      "docs/assets/screenshots/plugin_config.png",
+      "docs/assets/screenshots/label_config.png"
     ]
   }
 }
