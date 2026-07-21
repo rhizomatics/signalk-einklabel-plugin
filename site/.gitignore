@@ -1,0 +1,25 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# generated from ../README.md and ../docs/assets by scripts/sync-readme.mjs
+src/content/docs/index.md
+src/assets/readme/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store
