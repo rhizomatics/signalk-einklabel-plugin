@@ -60,4 +60,6 @@ const frontmatter = [
   "",
 ].join("\n");
 
-writeFileSync(resolve(siteDir, "src/content/docs/index.md"), frontmatter + readme);
+const outDir = resolve(siteDir, "src/content/docs");
+mkdirSync(outDir, { recursive: true });
+writeFileSync(resolve(outDir, "index.md"), frontmatter + readme);
