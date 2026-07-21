@@ -257,7 +257,7 @@ See also the commands useful for debugging under [Developing Templates]
 - `render` - transform an SVG template and data into a PNG
 - `paint` - render an SVG template and data to a selected ESL
 
-The width, height, vertical offset and colour palette for the device is taken from the internal register of devices, however can be overridden on the command line. This could be used to help you choose what size of label to buy, or to get an unsupported label working.
+The width, height, vertical offset and colour palette for the device are taken from the internal register of devices, however can be overridden on the command line. This could be used to help you choose what size of label to buy, or to get an unsupported label working.
 
 ( The CLI can also be run from a checked out module, or by opening a terminal shell at `~/.signalk/node_modules/@rhizomatics/signalk-einklabel-plugin`, as `npx esl-cli command --args` )
 
@@ -351,7 +351,7 @@ For example, `npx esl-cli fields -t templates/tide.svg -e examples` will show al
 
 ### I can't see my device as a choice on the drop-down list after scan
 
-SignalK plugins lack ability to self-update after something like a scan, so first time round you may have to close the config and reload it to see this. Subsequently the plugin will remember all scanned devices, and only drop previously seen ones if it goes 24 hours without a positive scan or with failed paint attempts.
+SignalK plugins lack the ability to self-update after something like a scan, so first time round you may have to close the config and reload it to see this. Subsequently the plugin will remember all scanned devices, and only drop previously seen ones if it goes 24 hours without a positive scan or with failed paint attempts.
 
 Easiest way to solve this is to choose 'All Discovered Devices' in the device configuration, and it will paint any compatible devices it finds on future scans.
 
