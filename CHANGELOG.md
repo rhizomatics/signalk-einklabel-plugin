@@ -29,8 +29,7 @@
 
 ## Fixes
 
-- Fix configuration JSON holding older versions of itself as subentries
-  and data changes
+- Fix configuration JSON holding older versions of itself as subentries and data changes
 - Fix most cases of scanned devices not appearing in device dropdown choice
 
 ## Improvements
