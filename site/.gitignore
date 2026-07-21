@@ -6,6 +6,7 @@ dist/
 # generated from ../README.md and ../docs/assets by scripts/sync-readme.mjs
 src/content/docs/index.md
 src/assets/readme/
+src/generated/
 
 # dependencies
 node_modules/

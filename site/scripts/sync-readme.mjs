@@ -50,6 +50,16 @@ for (const [customId, slug] of customIdSlugs) {
   readme = readme.replaceAll(`(#${customId})`, `(#${slug})`);
 }
 
+// Top-level (##) sections become left-nav anchor links — see astro.config.mjs,
+// which reads this file back in to build the sidebar.
+const sections = [...readme.matchAll(/^##\s+(.+)$/gm)].map((match) => ({
+  text: match[1].trim(),
+  slug: slugify(match[1].trim()),
+}));
+const generatedDir = resolve(siteDir, "src/generated");
+mkdirSync(generatedDir, { recursive: true });
+writeFileSync(resolve(generatedDir, "readme-sections.json"), JSON.stringify(sections, null, 2));
+
 const frontmatter = [
   "---",
   `title: ${JSON.stringify(title)}`,

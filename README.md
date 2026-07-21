@@ -380,7 +380,7 @@ If you have an SVG viewer extension, this will show the image rather than allowi
 
 Check if the text boxes are normal text or flowed text, and correct to normal text.
 
-## Other ESL and General eInk Resources
+## Other ESL and General eInk Resources
 
 - [Open ePaper Link](https://openepaperlink.de) - Alternative open source firmware to flash onto eInk shelf labels, with Home Assistant integration.
 - [zhsunyco-esl](https://github.com/roxburghm/zhsunyco-esl) - Python interface
