@@ -3,5 +3,6 @@
   "nodejs-testing.extensions": [
     { "extensions": ["mjs", "cjs", "js"], "parameters": [] },
     { "extensions": ["ts"], "parameters": ["--require", "ts-node/register"] }
-  ]
+  ],
+  "python.analysis.enablePytestSupport": false
 }
