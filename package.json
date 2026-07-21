@@ -83,6 +83,10 @@
       "docs/assets/screenshots/example_watch_schedule.png",
       "docs/assets/screenshots/plugin_config.png",
       "docs/assets/screenshots/label_config.png"
+    ],
+    "recommends": [
+      "signalk-watch-schedule",
+      "signalk-tides"
     ]
   }
 }
