@@ -27,7 +27,7 @@ Most of requirements below are to make SignalK work with Bluetooth Low Energy, w
 
 1. A SignalK server, **running Linux**
 
-- MacOS and Windows aren't supported by the [BLE interface layer](https://www.npmjs.com/package/@naugehyde/node-ble), however can be used for template development and
+- MacOS and Windows aren't supported by the [BLE interface layer](https://www.npmjs.com/package/@naugehyde/node-ble), however they can be used for template development and
   debugging (everything except `scan` and `paint`)
 
 2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy).
@@ -359,12 +359,12 @@ Easiest way to solve this is to choose 'All Discovered Devices' in the device co
 
 If the plugin repaints a display at server startup, then the plugin that provides the data may not have started ( or in the case of `derived-data` the plugin that the plugin depends on! ) and unlike Home Assistant, there's no good way of sequencing the start of plugins.
 
-Use the _settle_ time, to impose a minimum wait between the eInk Label plugin being initialized, and it attempting to paint any displays, and increase this value if its still missing data.
+Use the _settle_ time, to impose a minimum wait between the eInk Label plugin being initialized, and it attempting to paint any displays, and increase this value if it's still missing data.
 
 ### Times are showing incorrectly {#faq-timezone}
 
 If times are in the wrong timezone, or don't have daylight savings applied correctly,
-then check that the server itself (at the Linux level, not SignalK, which doesn't know)is configured for your timezone, assuming of course that you're a coastal sailor. Use `raspi-config` on a Raspberry Pi, or `timedatectl` on a Linux server.
+then check that the server itself (at the Linux level, not SignalK, which doesn't know) is configured for your timezone, assuming of course that you're a coastal sailor. Use `raspi-config` on a Raspberry Pi, or `timedatectl` on a Linux server.
 
 If you're a global cruiser, then use something like [signalk-set-gps-timezone](https://github.com/hoeken/signalk-set-gps-timezone) to set the value in the operating system.
 
@@ -374,7 +374,7 @@ Try a BLE proxy device, ESP32 is popular for this.
 
 ### Can't edit the text contents of SVG template in VSCode
 
-If you have an SVG viewer extension, this wll show the image rather than allowing editing of text. To solve, right click on the file in VSCode _Explorer_ view and choose to edit with _Text Editor_.
+If you have an SVG viewer extension, this will show the image rather than allowing editing of text. To solve, right click on the file in VSCode _Explorer_ view and choose to edit with _Text Editor_.
 
 ### Description is set in InkScape but doesn't render
 
@@ -383,7 +383,7 @@ Check if the text boxes are normal text or flowed text, and correct to normal te
 ## Other ESL and General eInk Resources
 
 - [Open ePaper Link](https://openepaperlink.de) - Alternative open source firmware to flash onto eInk shelf labels, with Home Assistant integration.
-- [zhsynyco-esl](https://github.com/roxburghm/zhsunyco-esl) - Python interface
+- [zhsunyco-esl](https://github.com/roxburghm/zhsunyco-esl) - Python interface
 - [WoLink](https://github.com/NickWaterton/Wolink) - Python interface and protocol analysis
 - [e-ink dashboard for Signal K](https://github.com/meri-imperiumi/dashboard) - Waveshare display based multi instrument display.
 - [eInk Dashboard Modern SK](https://github.com/VladimirKalachikhin/e-inkDashboardModernSK) - SignalK dashboard for non-ESL eInk display.
