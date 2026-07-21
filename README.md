@@ -107,29 +107,29 @@ Template available as 416x240-BWRY for 3.7" ESLs.
 
 ## Setting up a Label
 
-Enable the plugin, and use the large **+** sign to add a label, which open up these fields.
+Enable the plugin, and use the large **+** sign to add a label, which opens up these fields.
 
 ![Label Config](docs/assets/screenshots/label_config.png)
 
 - _Friendly Name_ - Give the label any name (word or phrase) you like, for example 'Tide Clock'
-- _Device_ - Unless you have multiple labels, don't bother with pre-scanning or selecting a specifig device, instead pick **"All discovered devices"** and it will paint any compatible labels it finds. If you want to pick a specific device, you'll need to wait for a device scan to complete.
+- _Device_ - Unless you have multiple labels, don't bother with pre-scanning or selecting a specific device, instead pick **"All discovered devices"** and it will paint any compatible labels it finds. If you want to pick a specific device, you'll need to wait for a device scan to complete.
 - _Template_ - Choose a built in template, or one you've added to the local templates directory
 - _Repaint Trigger_- Do you want this to repaint every few hours (at a chosen minutes past hour), or when a SignalK path changes?
-  - If its a SignalK path, enter it next, for example `environment.tide.state`
-  - If its time based, enter how many hours between repaints, for example 00:00/08:00/16:00 for an 8h schedule, and if you want a specific number of minutes after the hour.
+  - If it's a SignalK path, enter it next, for example `environment.tide.state`
+  - If it's time based, enter how many hours between repaints, for example 00:00/08:00/16:00 for an 8h schedule, and if you want a specific number of minutes after the hour.
 
 There are also two more advanced options, which can usually be ignored.
 
 - _BLE AES key_ - Only needed if the default key doesn't work and you have a better alternative, otherwise ignore
 - _Force Repaint_ - Next time the label is due to be painted, update even if the data or template hasn't changed (this flag will automatically be cleared after this.)
 
-When the plugin starts, it will automatically re-paint the label if its new, or the last timed slot was missed and the data has changed.
+When the plugin starts, it will automatically re-paint the label if it's new, or the last timed slot was missed and the data has changed.
 
 ### Scanning for Devices
 
 Since these are ultra-low power devices, they don't respond instantly to either identify themselves or accept a new image. By default, both scanning and painting have time-outs to wait for a response, which can be altered in the plugin configuration or CLI argument.
 
-One other quirk is that some devices respond with a different name at different times, for example the genric `WOESL` sometimes and model specific `WL17500C74` other times. However, the MAC address, e.g. `66:66:17:50:0D:2B` is constant, and this is what's tracked by the plugin.
+One other quirk is that some devices respond with a different name at different times, for example the generic `WOESL` sometimes and model specific `WL17500C74` other times. However, the MAC address, e.g. `66:66:17:50:0D:2B` is constant, and this is what's tracked by the plugin.
 
 The plugin can optionally re-scan whenever it starts up (off by default), although this isn't essential once a label has been configured. Devices found by any scan are remembered across restarts - see the FAQ below.
 
