@@ -1,7 +1,7 @@
 {
   "name": "@rhizomatics/signalk-einklabel-plugin",
   "version": "0.10.1",
-  "description": "Display SignalK data on eInk Electronic Shelf Labels",
+  "description": "Display SignalK data on eInk Electronic Shelf Labels, includes working examples for tide clock and watch schedule.",
   "keywords": [
     "ble",
     "display",
