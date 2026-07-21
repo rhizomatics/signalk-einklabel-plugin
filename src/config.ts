@@ -292,7 +292,13 @@ function listTemplateVariants(dir: string): TemplateVariant[] {
     .filter((variant): variant is TemplateVariant => variant !== undefined);
 }
 
-/** A directory only counts as a template-family option if it actually has at least one parseable variant file in it - otherwise it's something else entirely, e.g. `.assets`. */
+/**
+ * A directory only counts as a template-family option if it actually has at least one parseable
+ * variant file in it - otherwise it's something else entirely, e.g. `.assets`. Dot-prefixed
+ * directories (e.g. `.assets`, `.blank`) are always excluded, even if they happen to contain
+ * parseable variant files, since they're reserved for non-template-option use (asset bundles,
+ * work-in-progress templates not ready to appear in the dropdown, etc).
+ */
 function listTemplateFamilies(dir: string): string[] {
   let entries;
   try {
@@ -301,7 +307,7 @@ function listTemplateFamilies(dir: string): string[] {
     return [];
   }
   return entries
-    .filter((entry) => entry.isDirectory() && listTemplateVariants(join(dir, entry.name)).length > 0)
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith(".") && listTemplateVariants(join(dir, entry.name)).length > 0)
     .map((entry) => entry.name);
 }
 

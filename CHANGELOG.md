@@ -1,5 +1,11 @@
 # 0.10.1
 
+- Test fixes
+- Moved blank templates to `.blank` directory and suppressed from drop down selection
+- Added recommendations for `signalk-tides` and `signalk-watch-schedule` plugins
+
+# 0.10.0
+
 ## Watch Schedule Example
 
 - New template to show current and next crew watch, using `signalk-watch-schedule` plugin
