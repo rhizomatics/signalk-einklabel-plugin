@@ -7,9 +7,9 @@
 [![code style: oxfmt](https://img.shields.io/badge/code_style-oxfmt-blue.svg)](https://github.com)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/LICENSE)
 
-    Fully working but limited vendor/product support and requires Linux for device access.
-
 A SignalK plugin to display data from SignalK paths, Resource APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates.
+
+![Companionway Tidal Clock](docs/assets/images/real_tidal_clock.jpg)
 
 ## What is an ESL?
 
@@ -33,7 +33,7 @@ Most of requirements below are to make SignalK work with Bluetooth Low Energy, w
 2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy).
 
 - Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
-- Some Raspberry Pi models come with suitable Bluetooth it built-in
+- Some Raspberry Pi models come with suitable Bluetooth built in
 - Don't worry about the very latest Bluetooth versions, 4.0 is minimum for BLE, 5.0 is nice
 - Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
 
@@ -44,14 +44,14 @@ Most of requirements below are to make SignalK work with Bluetooth Low Energy, w
 
 4. One or more supported Electronic Shelf Labels
 
-- The label used for testing this is the [ZhunyCo 3.7" BRWY](https://www.aliexpress.com/item/1005010050104435.html)
+- The label used for testing this is the [Zhsunyco 3.7" BWRY](https://www.aliexpress.com/item/1005010050104435.html)
 
 5. Correct time zone set on server if local time is to be shown on display
 
 - See [FAQ](#faq-timezone)
 - If not set, everything will work, but you may see the wrong zone or not have daylight savings applied
 
-Once you have all of that, it may be worth also installing [signalk-victron-ble](https://github.com/stefanor/signalk-victron-ble),[signalk-ruuvitag-plugin](https://github.com/vokkim/signalk-ruuvitag-plugin) or [bt-sensors-plugin](https://github.com/naugehyde/bt-sensors-plugin-sk) to pull in data from other sensors and equipment.
+Once you have all of that, it may be worth also installing [signalk-victron-ble](https://github.com/stefanor/signalk-victron-ble), [signalk-ruuvitag-plugin](https://github.com/vokkim/signalk-ruuvitag-plugin) or [bt-sensors-plugin](https://github.com/naugehyde/bt-sensors-plugin-sk) to pull in data from other sensors and equipment.
 
 ## Installation
 
@@ -89,7 +89,7 @@ A _tides_ provider plugin for the Resources API installed and enabled, currently
 
 The [tides](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tides/) templates can be customized to run with any tide provider, a specific one, or switch to other APIs or SignalK data paths.
 
-- In the template it uses a SVG description like `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` to get the first tide time, ensures its the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date time.
+- In the template it uses a SVG description like `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` to get the first tide time, ensures it's the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date-time.
 
 To show the lunar phase, the `environment.moon.phaseName` path is required, which can
 be easily achieved by installing and configuring the `derived-data` plugin.
