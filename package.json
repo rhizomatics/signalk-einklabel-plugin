@@ -66,9 +66,9 @@
     "@types/luxon": "^3.7.1",
     "@types/node": "^20.14.0",
     "@types/pngjs": "^6.0.5",
-    "oxfmt": "^0.56.0",
-    "oxlint": "^1.71.0",
-    "oxlint-tsgolint": "^0.23.0",
+    "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
+    "oxlint-tsgolint": "^7.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.0"
   },
