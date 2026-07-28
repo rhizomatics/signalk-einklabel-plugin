@@ -380,6 +380,33 @@ If you have an SVG viewer extension, this will show the image rather than allowi
 
 Check if the text boxes are normal text or flowed text, and correct to normal text.
 
+### SignalK starts before the Bluetooth daemon — does the plugin need `bluetoothd` running at boot?
+
+The plugin retries BLE adapter initialisation with backoff (starting at 2s, capping at 30s) if `bluetoothd`/D-Bus isn't up yet when the plugin starts, so a slow-starting Bluetooth stack on boot will no longer strand it — it keeps retrying until the adapter appears rather than failing once and giving up. You'll see `BLE adapter not ready … — retrying in Ns …` in the SignalK logs in the meantime.
+
+That said, it's cleaner to fix the boot ordering at the systemd level so the plugin finds the adapter ready on its first attempt. If SignalK runs as a systemd service (`systemctl status signalk`) and its unit file has no `[Unit]` section (check with `systemctl cat signalk`), add one:
+
+```bash
+sudo systemctl edit signalk.service
+```
+
+This opens an override file — add:
+
+```ini
+[Unit]
+After=bluetooth.target
+Wants=bluetooth.target
+```
+
+Save and exit, then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart signalk
+```
+
+This tells systemd to start `bluetoothd` first and wait for it before starting SignalK, rather than relying on both racing to start in parallel at boot.
+
 ## Other ESL and General eInk Resources
 
 - [Open ePaper Link](https://openepaperlink.de) - Alternative open source firmware to flash onto eInk shelf labels, with Home Assistant integration.
