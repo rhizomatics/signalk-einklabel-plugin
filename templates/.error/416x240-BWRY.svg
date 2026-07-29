@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="416" height="240" viewBox="0 0 416 240" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="416" height="240" fill="white" />
+  <polygon points="80,40 18,168 142,168" fill="red" stroke="black" stroke-width="5" stroke-linejoin="round" />
+  <rect x="75" y="85" width="12" height="48" fill="black" />
+  <circle cx="81" cy="150" r="7" fill="black" />
+  <text x="168" y="90" font-size="34" font-family="sans-serif" font-weight="bold" fill="black">CONTENT</text>
+  <text x="168" y="132" font-size="34" font-family="sans-serif" font-weight="bold" fill="black">UNAVAILABLE</text>
+  <text x="168" y="165" font-size="18" font-family="sans-serif" fill="black">Check manually</text>
+  <text id="last_attempt" x="168" y="205" font-size="16" font-family="monospace" fill="black"
+    ><desc>source=einklabel,path=repainted,format=local_datetime_short</desc>last attempt: --</text>
+</svg>

@@ -21,6 +21,7 @@ import { DeviceMetadata } from "../types";
 export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   {
     pid: 0x0008,
+    manufacturer: "Zhsunyco",
     label: '1.54"',
     width: 200,
     height: 200,
@@ -29,6 +30,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   },
   {
     pid: 0x000a,
+    manufacturer: "Zhsunyco",
     label: '2.13"',
     width: 250,
     height: 128,
@@ -37,6 +39,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   },
   {
     pid: 0x000e,
+    manufacturer: "Zhsunyco",
     label: '3.7"',
     width: 416,
     height: 240,
@@ -46,6 +49,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   {
     pid: 0x000e,
     hwVersion: "0103",
+    manufacturer: "Zhsunyco",
     label: '2.13"',
     width: 250,
     height: 128,
@@ -55,6 +59,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   {
     pid: 0x000e,
     hwVersion: "0201",
+    manufacturer: "Zhsunyco",
     label: '3.5"',
     width: 384,
     height: 184,
@@ -64,6 +69,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   {
     pid: 0x000e,
     hwVersion: "0203",
+    manufacturer: "Zhsunyco",
     label: '7.5"',
     width: 800,
     height: 480,
@@ -72,6 +78,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   },
   {
     pid: 0x0012,
+    manufacturer: "Zhsunyco",
     label: '2.9"',
     width: 296,
     height: 128,
@@ -80,6 +87,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   },
   {
     pid: 0x0016,
+    manufacturer: "Zhsunyco",
     label: '4.2"',
     width: 400,
     height: 300,
@@ -88,6 +96,7 @@ export const ZHSUNYCO_PID_METADATA: DeviceMetadata[] = [
   },
   {
     pid: 0x001a,
+    manufacturer: "Zhsunyco",
     label: '5.8"',
     width: 648,
     height: 480,

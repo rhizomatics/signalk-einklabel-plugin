@@ -15,6 +15,14 @@ export interface DeviceMetadata {
    * that should be treated as the default/fallback for that PID.
    */
   hwVersion?: string;
+  /**
+   * Real-world brand name (e.g. "Zhsunyco") - distinct from `VendorDriver.vendor` (e.g. also
+   * "zhsunyco"), which is this codebase's internal BLE-protocol driver key rather than a name meant
+   * for display. Optional since a CLI/config `DeviceModelOverride` for unsupported hardware has no
+   * table entry to source it from - `considerLlmPromptRepaint` (repaintScheduler.ts) falls back to
+   * the driver's own `vendor` key when unset, for a `source=label,path=manufacturer` prompt binding.
+   */
+  manufacturer?: string;
   label: string;
   width: number;
   height: number;

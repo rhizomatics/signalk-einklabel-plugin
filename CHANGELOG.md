@@ -1,3 +1,14 @@
+# 1.0.0
+
+## Full Release
+
+- The `1.0.0` reflects that this plugin has been working in real environment for months, and has been refactored for better extensibility
+
+## Extension Support
+
+- Custom templates and CLI commands can now be provided by a different plugin
+- Initially this is to support `signalk-einklabel-genai-plugin` which can use a prompt to make an image using a GenAI service like Anthropic or local Ollama
+
 # 0.10.1
 
 - Test fixes

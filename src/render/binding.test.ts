@@ -1,6 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findBindings, parseBinding, renderBinding, resolveBinding, resourceContextKey } from "./binding";
+import {
+  buildLabelContext,
+  findBindings,
+  findTextBindings,
+  parseBinding,
+  renderBinding,
+  resolveBinding,
+  resourceContextKey,
+  substituteTextBindings,
+} from "./binding";
 import { TemplateContext } from "./types";
 
 test("parseBinding", async (t) => {
@@ -23,7 +32,16 @@ test("parseBinding", async (t) => {
       category: "depth",
       round: 2,
       assets: undefined,
+      default: undefined,
     });
+  });
+
+  await t.test("parses an optional default key", () => {
+    assert.equal(parseBinding("path=a,default=n/a").default, "n/a");
+  });
+
+  await t.test("an explicit empty default still counts as given, not unset", () => {
+    assert.equal(parseBinding("path=a,default=").default, "");
   });
 
   await t.test("parses an optional provider key, to pin a specific resource provider", () => {
@@ -141,6 +159,16 @@ test("resolveBinding", async (t) => {
       /source "einklabel" but no "meta" is present/,
     );
   });
+
+  await t.test("reads a label-sourced binding from context.label", () => {
+    const labelContext: TemplateContext = { ...context, label: { width: 416, manufacturer: "zhsunyco" } };
+    assert.equal(resolveBinding(parseBinding("source=label,path=width"), labelContext), 416);
+    assert.equal(resolveBinding(parseBinding("source=label,path=manufacturer"), labelContext), "zhsunyco");
+  });
+
+  await t.test("throws when no label is present in the render context", () => {
+    assert.throws(() => resolveBinding(parseBinding("source=label,path=width"), context), /source "label" but no "label" is present/);
+  });
 });
 
 test("renderBinding", async (t) => {
@@ -192,6 +220,21 @@ test("renderBinding", async (t) => {
     assert.equal(renderBinding(parseBinding("path=a"), context), "");
   });
 
+  await t.test("a missing value with an explicit default= uses that default instead of empty string", () => {
+    const context: TemplateContext = { signalk: { self: {} } };
+    assert.equal(renderBinding(parseBinding("path=a,default=n/a"), context), "n/a");
+  });
+
+  await t.test("default= with an empty value means the default is an empty string, not null/undefined", () => {
+    const context: TemplateContext = { signalk: { self: {} } };
+    assert.equal(renderBinding(parseBinding("path=a,default="), context), "");
+  });
+
+  await t.test("default= is ignored when the value is actually present", () => {
+    const context: TemplateContext = { signalk: { self: { a: "real value" } } };
+    assert.equal(renderBinding(parseBinding("path=a,default=n/a"), context), "real value");
+  });
+
   await t.test("an unformatted object renders as JSON", () => {
     const context: TemplateContext = { signalk: { self: { a: { x: 1 } } } };
     assert.equal(renderBinding(parseBinding("path=a"), context), '{"x":1}');
@@ -208,5 +251,121 @@ test("renderBinding", async (t) => {
       meta: { repainted: "2026-06-21T17:05:00Z" },
     };
     assert.equal(renderBinding(parseBinding("source=einklabel,path=repainted,format=local_datetime_short"), context), "21 Jun 26 18:05");
+  });
+});
+
+test("buildLabelContext", async (t) => {
+  await t.test("annotates each colour with its hex code", () => {
+    const label = buildLabelContext({
+      manufacturer: "zhsunyco",
+      label: '3.7"',
+      width: 416,
+      height: 240,
+      colours: ["black", "white", "red"],
+    });
+    assert.deepEqual(label.colours, ["black (#000000)", "white (#FFFFFF)", "red (#FF0000)"]);
+  });
+
+  await t.test("only offers the three font-family keywords SvgRenderer is guaranteed to render", () => {
+    const label = buildLabelContext({ manufacturer: "x", label: "y", width: 1, height: 1, colours: [] });
+    assert.deepEqual(label.fonts, ["serif", "sans-serif", "monospace"]);
+  });
+
+  await t.test("defaults description to empty rather than undefined", () => {
+    const label = buildLabelContext({ manufacturer: "x", label: "y", width: 1, height: 1, colours: [] });
+    assert.equal(label.description, "");
+  });
+
+  await t.test("formats and rounds position to a plain lat/lon string when given", () => {
+    const label = buildLabelContext({
+      manufacturer: "x",
+      label: "y",
+      width: 1,
+      height: 1,
+      colours: [],
+      position: { latitude: 51.5001, longitude: -0.1001 },
+    });
+    assert.equal(label.position, "51.50°N 0.10°W");
+  });
+
+  await t.test("leaves position undefined when not given", () => {
+    const label = buildLabelContext({ manufacturer: "x", label: "y", width: 1, height: 1, colours: [] });
+    assert.equal(label.position, undefined);
+  });
+});
+
+test("findTextBindings", async (t) => {
+  await t.test("parses every {...} placeholder across fragments, deduplicated", () => {
+    const bindings = findTextBindings("for a {design.length}m vessel", "width={source=label,path=width}, again {design.length}");
+    assert.deepEqual(bindings, [
+      { source: "signalk", context: "self", path: "design.length" },
+      {
+        source: "label",
+        context: "self",
+        resource: undefined,
+        provider: undefined,
+        path: "width",
+        format: undefined,
+        category: undefined,
+        round: undefined,
+        assets: undefined,
+        default: undefined,
+      },
+    ]);
+  });
+
+  await t.test("silently skips a placeholder that isn't valid binding grammar", () => {
+    // No crash - substituteTextBindings hits the identical parse error per-field and shows "???".
+    assert.deepEqual(findTextBindings("bad: {source=taheight}"), []);
+  });
+
+  await t.test("returns nothing for text with no placeholders", () => {
+    assert.deepEqual(findTextBindings("no placeholders here"), []);
+  });
+});
+
+test("substituteTextBindings", async (t) => {
+  const context: TemplateContext = {
+    signalk: { self: { design: { length: 11, aisShipType: { name: "Sailing" } } } },
+    label: buildLabelContext({ manufacturer: "zhsunyco", label: '3.7"', width: 416, height: 240, colours: ["black", "white"] }),
+    pathMeta: {},
+    categories: {},
+  };
+
+  await t.test("resolves a bare SignalK self path (shorthand for source=signalk,context=self)", () => {
+    assert.equal(substituteTextBindings("{design.aisShipType.name}", context), "Sailing");
+  });
+
+  await t.test("resolves a full source=label binding", () => {
+    assert.equal(substituteTextBindings("{source=label,path=manufacturer}", context), "zhsunyco");
+  });
+
+  await t.test("applies format=csv to join an array value", () => {
+    assert.equal(substituteTextBindings("{source=label,path=colours,format=csv}", context), "black (#000000), white (#FFFFFF)");
+  });
+
+  await t.test('substitutes "???" for a SignalK path with no data', () => {
+    assert.equal(substituteTextBindings("{design.beam}", context), "???");
+  });
+
+  await t.test('substitutes "???" for invalid binding grammar, not a crash', () => {
+    assert.equal(substituteTextBindings("{source=taheight}", context), "???");
+  });
+
+  await t.test('uses an explicit default= instead of "???" for a missing value', () => {
+    assert.equal(substituteTextBindings("{path=design.beam,default=n/a}", context), "n/a");
+  });
+
+  await t.test('an explicit empty default= is a deliberate blank, not "???"', () => {
+    assert.equal(substituteTextBindings("[{source=label,path=nonexistent,default=}]", context), "[]");
+  });
+
+  await t.test('leaves a legitimately empty resolved value as empty, not "???"', () => {
+    // label.description defaults to "" (see buildLabelContext) - a deliberate blank, not a lookup miss.
+    assert.equal(substituteTextBindings("[{source=label,path=description}]", context), "[]");
+  });
+
+  await t.test("substitutes every occurrence, including repeats", () => {
+    assert.equal(substituteTextBindings("{design.aisShipType.name} and {design.aisShipType.name}", context), "Sailing and Sailing");
   });
 });

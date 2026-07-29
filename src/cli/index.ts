@@ -29,7 +29,7 @@ registerDriver(new ZhsunycoDriver());
 const VENDOR_IDENTIFY_TIMEOUT_MS = 30_000;
 
 /** Tried in order when -u/--url is omitted (and -e/--example-data isn't given) - first one that answers wins. */
-const DEFAULT_SIGNALK_URLS = ["http://localhost", "http://localhost:3000", "https://localhost"];
+export const DEFAULT_SIGNALK_URLS = ["http://localhost", "http://localhost:3000", "https://localhost"];
 
 const COLOUR_CODES: Record<string, Colour[]> = {
   BW: ["black", "white"],
@@ -37,7 +37,7 @@ const COLOUR_CODES: Record<string, Colour[]> = {
   BWRY: ["black", "white", "red", "yellow"],
 };
 
-function parseColours(code: string): Colour[] {
+export function parseColours(code: string): Colour[] {
   const colours = COLOUR_CODES[code.toUpperCase()];
   if (!colours) {
     throw new Error(`unknown --colours value "${code}" - expected one of ${Object.keys(COLOUR_CODES).join(", ")}`);
@@ -62,7 +62,7 @@ async function resolveDefaultUrl(): Promise<string> {
 }
 
 /** Shared by every command that takes -u/--url and -e/--example-data - -e wins when both are present; when neither is given, probes DEFAULT_SIGNALK_URLS for a default. */
-async function assembleContext(opts: { url?: string; exampleData?: string }, bindings: Binding[]): Promise<TemplateContext> {
+export async function assembleContext(opts: { url?: string; exampleData?: string }, bindings: Binding[]): Promise<TemplateContext> {
   if (opts.exampleData) return assembleExampleContext(opts.exampleData, bindings);
   const url = opts.url ?? (await resolveDefaultUrl());
   return assembleLiveContext(url, bindings);
@@ -88,25 +88,54 @@ async function identifyVendor(address: string): Promise<string> {
   }
 }
 
-const program = new Command();
+/**
+ * Values passed via `-r`/`--require` (repeatable, `--require=value` form included), read directly from
+ * `process.argv` rather than through commander - see the doc comment below on why.
+ */
+function scanRequireModules(argv: string[]): string[] {
+  const modules: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "-r" || arg === "--require") {
+      if (argv[i + 1]) modules.push(argv[i + 1]);
+    } else if (arg.startsWith("--require=")) {
+      modules.push(arg.slice("--require=".length));
+    }
+  }
+  return modules;
+}
+
+// `program` is created (and exported) before anything is `require()`'d below, and before any built-in
+// `.command(...)` is defined - a `-r`'d extension module commonly `require()`s this same compiled file
+// (e.g. `require(".../dist/cli/index.js")`) to get at `program`/`assembleContext`/etc; since that's a
+// circular require back into the module currently being loaded, Node hands it back this module's
+// *exports object as it exists so far*, not the finished one - so `program` has to already be assigned
+// by this point, or the extension would see it as `undefined`.
+export const program = new Command();
 program.name("esl-cli").description("Local CLI for testing ESL device scan and paint without a SignalK server");
 
 program.option(
   "-r, --require <module>",
-  "require a module before running, e.g. an npm package that registers a vendor driver (repeatable)",
-  // Commander's own typings declare `previous` as always `string[]`, but at runtime it's actually
-  // `undefined` on the first invocation when no default is passed to `.option()` - the `| undefined`
-  // here keeps that true and makes the `= []` fallback meaningful rather than dead code.
+  "require a module before running, e.g. an npm package that registers a vendor driver/template provider or contributes its own subcommands (repeatable) - loaded before any command is parsed",
   (value, previous: string[] | undefined = []) => [...previous, value],
 );
 program.option("-l, --log-level <level>", "log verbosity: info or debug (e.g. trace which URLs are fetched)", "info");
 
 program.hook("preAction", () => {
   setLogLevel(program.opts().logLevel);
-  for (const mod of (program.opts().require as string[] | undefined) ?? []) {
-    require(mod);
-  }
 });
+
+// Loaded here - after `program` exists (see above) but before any built-in `.command(...)` is defined,
+// and well before `.parseAsync()` at the bottom of this file - not in a commander `preAction` hook (as
+// this used to work), which only runs *after* commander has already resolved which command was invoked
+// and parsed its arguments. That timing is fine for a `-r`'d module that only registers a vendor driver
+// or template provider (an already-defined command's own action merely consults those registries when
+// it runs), but too late for one to contribute a brand-new *subcommand* (e.g. a companion plugin adding
+// its own `prompt`/`generate`) to this same invocation - by the time `preAction` fires, commander has
+// already decided there's no such command.
+for (const mod of scanRequireModules(process.argv)) {
+  require(mod);
+}
 
 program
   .command("vendors")

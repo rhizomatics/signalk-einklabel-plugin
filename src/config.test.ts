@@ -5,6 +5,7 @@ import { homedir, tmpdir } from "os";
 import { join } from "path";
 import { ServerAPI } from "@signalk/server-api";
 import { Colour, DiscoveredDevice } from "./devices/types";
+import { registerTemplateProvider, TemplateProvider } from "./render/templateProviders";
 import {
   configSchema,
   configUiSchema,
@@ -166,10 +167,25 @@ test("configSchema", async (t) => {
       writeFileSync(join(dir, "custom.svg"), "<svg/>");
       writeFileSync(join(dir, "tide.svg"), "<svg/>");
       const schema = configSchema(fakeApp({ templatesDir: dir }), []) as any;
-      // "tides" is the bundled template-family directory (templates/tides/*x*-*.svg) - always offered
-      // alongside flat files, see the "template-family directories" tests below.
+      // "tides"/"watch" are bundled template-family directories (templates/tides/*x*-*.svg etc) -
+      // always offered alongside flat files, see the "template-family directories" tests below.
+      // The bundled ".error" fallback family is dot-prefixed, so it's excluded here, same as ".assets".
       assert.deepEqual(schema.properties.devices.items.properties.templateName.enum, ["custom.svg", "tide.svg", "tides", "watch"]);
     });
+  });
+
+  await t.test("merges in every registered TemplateProvider's own entries, after files/families", () => {
+    const provider: TemplateProvider = {
+      suffix: "(Test)",
+      listTemplates: () => ["fake-entry (Test)"],
+      describeBindings: () => [],
+      render: async () => {
+        throw new Error("not used in this test");
+      },
+    };
+    registerTemplateProvider(provider);
+    const schema = configSchema(fakeApp(), []) as any;
+    assert.ok(schema.properties.devices.items.properties.templateName.enum.includes("fake-entry (Test)"));
   });
 
   await t.test("builds the device enum/enumNames from discovered devices, skipping ones with no confirmed pid", () => {
@@ -267,8 +283,13 @@ test("healNestedConfig", async (t) => {
   });
 });
 
-test("configUiSchema renders repaintTrigger as a radio group", () => {
+test("configUiSchema renders repaintTrigger as a radio group and description as a textarea", () => {
   assert.deepEqual(configUiSchema(), {
-    devices: { items: { repaintTrigger: { "ui:widget": "radio" } } },
+    devices: {
+      items: {
+        description: { "ui:widget": "textarea" },
+        repaintTrigger: { "ui:widget": "radio" },
+      },
+    },
   });
 });

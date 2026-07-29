@@ -3,6 +3,24 @@
     "self": {
       "uuid": "urn:mrn:signalk:uuid:c3d69c28-98f5-472e-848f-3670db47e703",
       "name": "MyBoat",
+      "design": {
+        "length": {
+          "overall": {
+            "value": 11,
+            "timestamp": "2026-06-30T14:45:00.000Z",
+            "meta": {
+              "units": "m"
+            }
+          }
+        },
+        "aisShipType": {
+          "value": {
+            "id": 36,
+            "name": "Sailing"
+          },
+          "timestamp": "2026-06-30T14:45:00.000Z"
+        }
+      },
       "navigation": {
         "position": {
           "value": {

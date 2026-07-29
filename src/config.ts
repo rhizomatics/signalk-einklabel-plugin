@@ -3,6 +3,7 @@ import { homedir } from "os";
 import { isAbsolute, join } from "path";
 import { ServerAPI } from "@signalk/server-api";
 import { Colour, DiscoveredDevice } from "./devices/types";
+import { allTemplateProviders } from "./render/templateProviders";
 import { SIGNALK_API_URL_OPTIONS } from "./resolveApiUrl";
 
 /**
@@ -23,6 +24,14 @@ export interface DeviceConfig {
    * live BLE read) and the BLE address, or the special value `ALL_DEVICES` (see above).
    */
   device: string;
+  /**
+   * Free-text notes about where this label is physically mounted/viewed from, e.g. "chart table,
+   * viewed from ~1m in poor light" - purely descriptive. Available to any template via
+   * `source=einklabel,path=description` or `source=label,path=description` (see `buildLabelContext` in
+   * `./render/binding.ts`) if it wants it - e.g. useful to a `TemplateProvider` extension (see
+   * `./render/templateProviders.ts`) tailoring content to where the label actually sits.
+   */
+  description?: string;
   /** Per-device override; if omitted, the vendor driver may fall back to a stock/manufacturer-default key. */
   aesKey?: string;
   /**
@@ -31,8 +40,13 @@ export interface DeviceConfig {
    * (e.g. `templates/tides/416x240-BWRY.svg`) - `pickBestVariant` then picks whichever file inside it
    * best matches this entry's actual device(s), so one `DeviceConfig` (and one `ALL_DEVICES` entry in
    * particular) works across different panel sizes without the user picking a file for each.
+   *
+   * Can also name an entry a registered `TemplateProvider` offers (see `./render/templateProviders.ts`)
+   * instead of a file - e.g. `signalk-einklabel-genai-plugin` contributing `"forecast (GenAI)"` -
+   * `considerRepaint` (`./repaintScheduler.ts`) checks the provider registry before falling back to
+   * resolving this as a file path.
    */
-  templateName: string;
+  templateName?: string;
   repaintTrigger: "subscription" | "interval";
   /** SignalK path to subscribe to when `repaintTrigger` is `subscription` - a repaint is considered on every delta. */
   triggerPath?: string;
@@ -101,6 +115,19 @@ export interface PluginConfig {
  * `templates/.assets/lunar_phases`) just to keep a binding the override never touched working.
  */
 export const BUNDLED_TEMPLATES_DIR = join(__dirname, "..", "templates");
+
+/**
+ * Bundled template family pushed instead of a device's real content whenever a repaint fails - a broken
+ * hand-authored template, or a registered `TemplateProvider`'s `render()` rejecting (e.g.
+ * `@rhizomatics/signalk-einklabel-genai-plugin`'s LLM call failing) - see `considerRepaint` in
+ * `./repaintScheduler.ts`. Generic on purpose: it has no idea *why* the render failed, only that it
+ * did, and that the previous, possibly now-wrong, content must never be left on screen unmarked.
+ *
+ * Dot-prefixed like `.assets`/`.blank` so `listTemplateFamilies` excludes it from the "Template"
+ * dropdown - it's an internal fallback mechanism, not something a user should ever pick as a device's
+ * own template.
+ */
+export const RENDER_FALLBACK_TEMPLATE_NAME = ".error";
 
 const SIGNALK_HOME_DIR = join(homedir(), ".signalk");
 const DEFAULT_TEMPLATES_DIR = join(SIGNALK_HOME_DIR, "einklabel", "templates");
@@ -194,17 +221,21 @@ export function healNestedConfig(app: ServerAPI): void {
 }
 
 /**
- * Resolves the user-facing `templatesDir` setting to an actual directory, mirroring
- * signalk-parquet's `outputDirectory` convention: empty means the default location, a relative
- * path is resolved against `~/.signalk` (where SignalK itself stores its config by default), and
- * an absolute path is used as-is.
+ * Resolves a user-facing `<x>Dir` setting to an actual directory, mirroring signalk-parquet's
+ * `outputDirectory` convention: empty means `defaultDir`, a relative path is resolved against
+ * `~/.signalk` (where SignalK itself stores its config by default), and an absolute path is used as-is.
  */
-export function resolveTemplatesDir(templatesDir: string | undefined): string {
-  const trimmed = templatesDir?.trim();
+function resolveDir(dir: string | undefined, defaultDir: string): string {
+  const trimmed = dir?.trim();
   if (!trimmed) {
-    return DEFAULT_TEMPLATES_DIR;
+    return defaultDir;
   }
   return isAbsolute(trimmed) ? trimmed : join(SIGNALK_HOME_DIR, trimmed);
+}
+
+/** See `resolveDir` - `templatesDir`'s own resolution. */
+export function resolveTemplatesDir(templatesDir: string | undefined): string {
+  return resolveDir(templatesDir, DEFAULT_TEMPLATES_DIR);
 }
 
 /**
@@ -311,13 +342,20 @@ function listTemplateFamilies(dir: string): string[] {
     .map((entry) => entry.name);
 }
 
-/** Local templates (files or template-family directories) take priority over a same-named bundled one; both show up as options. */
+/**
+ * Local templates (files or template-family directories) take priority over a same-named bundled one;
+ * both show up as options, followed by every registered `TemplateProvider`'s own entries (e.g.
+ * `signalk-einklabel-genai-plugin` contributing `"forecast (GenAI)"` - see `./render/templateProviders.ts`)
+ * - so a provider-backed "template" is picked from this exact same dropdown, distinguished only by its
+ * `suffix`, with no separate render-mode field at all.
+ */
 function templateNameOptions(templatesDir: string): string[] {
   const local = [...listSvgFiles(templatesDir), ...listTemplateFamilies(templatesDir)];
   const bundled = [...listSvgFiles(BUNDLED_TEMPLATES_DIR), ...listTemplateFamilies(BUNDLED_TEMPLATES_DIR)].filter(
     (name) => !local.includes(name),
   );
-  return [...local, ...bundled];
+  const provided = allTemplateProviders().flatMap((provider) => provider.listTemplates());
+  return [...local, ...bundled, ...provided];
 }
 
 function sameColours(a: Colour[], b: Colour[]): boolean {
@@ -470,6 +508,13 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               deviceLabels,
             ),
 
+            description: {
+              type: "string",
+              title: "Location/description (optional)",
+              description:
+                'Free-text notes about where this label is physically mounted/viewed from, e.g. "chart table, viewed from ~1m ' +
+                'in poor light" - available to any template as source=einklabel,path=description or source=label,path=description.',
+            },
             templateName: withEnum({ type: "string", title: "Template" }, templateNameOptions(resolveTemplatesDir(current.templatesDir))),
             repaintTrigger: {
               type: "string",
@@ -513,6 +558,7 @@ export function configUiSchema(): object {
   return {
     devices: {
       items: {
+        description: { "ui:widget": "textarea" },
         repaintTrigger: { "ui:widget": "radio" },
       },
     },

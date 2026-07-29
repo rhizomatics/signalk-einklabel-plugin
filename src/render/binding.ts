@@ -1,8 +1,9 @@
 import { DOMParser } from "@xmldom/xmldom";
+import { Colour } from "../devices/types";
 import { TemplateContext } from "./types";
 import { applyFormat, DisplayUnits, formatDisplayUnits } from "./formatters";
 
-const SOURCES = ["signalk", "resources", "einklabel"] as const;
+const SOURCES = ["signalk", "resources", "einklabel", "label"] as const;
 type Source = (typeof SOURCES)[number];
 
 /**
@@ -23,7 +24,12 @@ export interface Binding {
    * for). Set this to pin a template to one provider regardless of what else is installed.
    */
   provider?: string;
-  /** For `source === 'einklabel'`, a dotted path into the plugin's own injected `meta` (e.g. `repainted`), rather than into vessel/resource data. */
+  /**
+   * For `source === 'einklabel'`, a dotted path into the plugin's own injected `meta` (e.g. `repainted`);
+   * for `source === 'label'`, a dotted path into the physical label's own facts (`manufacturer`, `label`,
+   * `width`, `height`, `colours`, `fonts`, `description`, `position` - see `buildLabelContext` below)
+   * rather than into vessel/resource data.
+   */
   path: string;
   /** A named formatter (see `./formatters.ts`), or `'raw'` to suppress automatic unit conversion (see `renderBinding`). */
   format?: string;
@@ -39,9 +45,17 @@ export interface Binding {
    * template doesn't also require duplicating its bundled asset sets.
    */
   assets?: string;
+  /**
+   * Substituted in place of the resolved value when that value is missing (`undefined`/`null`,
+   * e.g. an unpublished SignalK path) - see `renderBinding`. Distinct from an *unset* default (this
+   * field itself being `undefined`), which falls through to the pre-existing "" fallback - explicitly
+   * writing `default=` (an empty value) still counts as "given", so a binding can deliberately default
+   * to blank rather than to `substituteTextBindings`' own "???" below.
+   */
+  default?: string;
 }
 
-const KNOWN_KEYS = new Set(["source", "context", "resource", "provider", "path", "format", "category", "round", "assets"]);
+const KNOWN_KEYS = new Set(["source", "context", "resource", "provider", "path", "format", "category", "round", "assets", "default"]);
 
 /**
  * Parses a `<desc>` element's text content into a `Binding`, e.g.
@@ -98,6 +112,7 @@ export function parseBinding(desc: string): Binding {
     category: fields.category,
     round: fields.round !== undefined ? Number(fields.round) : undefined,
     assets: fields.assets,
+    default: fields.default,
   };
 }
 
@@ -167,6 +182,14 @@ export function resolveBinding(binding: Binding, context: TemplateContext): unkn
     return getAtPath(meta, binding.path);
   }
 
+  if (binding.source === "label") {
+    const label = context.label as Record<string, unknown> | undefined;
+    if (label === undefined) {
+      throw new Error('binding references source "label" but no "label" is present in the render context');
+    }
+    return getAtPath(label, binding.path);
+  }
+
   const resources = context.resources as Record<string, unknown> | undefined;
   const resourceKey = resourceContextKey(binding);
   const resource = resources?.[resourceKey];
@@ -209,6 +232,8 @@ function resolveCategoryDisplayUnits(binding: Binding, context: TemplateContext)
  * the CLI's `field`/`fields` commands show the same thing a real render would.
  *
  * Precedence for a numeric value:
+ * 0. A missing value (`undefined`/`null`, e.g. an unpublished path) with an explicit `default=` given -
+ *    that default, verbatim, bypassing every step below (there's nothing to format).
  * 1. An explicit named `format=` (anything other than `raw`) - `local_time`/`utc_offset`/`position`.
  * 2. An explicit `category=` - for values with no path metadata of their own, e.g. a `source=resources`
  *    value.
@@ -216,10 +241,12 @@ function resolveCategoryDisplayUnits(binding: Binding, context: TemplateContext)
  *    `context.pathMeta`) by default - `format=raw` opts out of this step only.
  * 4. Falls through to `round=` (`toFixed`), `JSON.stringify` for an unformatted object/array value
  *    (e.g. a path that resolved to a whole sub-tree rather than a leaf) instead of the useless
- *    `String(value)` -> `"[object Object]"`, else `String`.
+ *    `String(value)` -> `"[object Object]"`, else `String`. A missing value with no `default=` given
+ *    still falls through to the pre-existing "" here, unchanged from before `default=` existed.
  */
 export function renderBinding(binding: Binding, context: TemplateContext): string {
   const value = resolveBinding(binding, context);
+  if ((value === null || value === undefined) && binding.default !== undefined) return binding.default;
   if (binding.format && binding.format !== "raw") return applyFormat(binding.format, value, context, binding.round);
   if (typeof value === "number") {
     if (binding.category) return formatDisplayUnits(value, resolveCategoryDisplayUnits(binding, context), binding.round);
@@ -230,4 +257,113 @@ export function renderBinding(binding: Binding, context: TemplateContext): strin
   if (value === null || value === undefined) return "";
   if (typeof value === "object") return JSON.stringify(value);
   return String(value as string | number | boolean | bigint | symbol);
+}
+
+const COLOUR_HEX: Record<Colour, string> = { black: "#000000", white: "#FFFFFF", red: "#FF0000", yellow: "#FFFF00" };
+
+/** The only `font-family` values `SvgRenderer` is guaranteed to render - see `expandGenericFontFamilies` in `./svgRenderer.ts`. */
+const SAFE_FONT_FAMILIES = ["serif", "sans-serif", "monospace"];
+
+/** Facts about one physical label a `source=label,path=...` binding can reference - see `buildLabelContext`. */
+export interface LabelMeta {
+  manufacturer: string;
+  /** The physical panel's own size label, e.g. `'3.7"'` - `DeviceMetadata.label` verbatim, see `../devices/types.ts`. */
+  label: string;
+  width: number;
+  height: number;
+  colours: Colour[];
+  description?: string;
+  position?: { latitude: number; longitude: number };
+}
+
+/**
+ * Builds the `context.label` object a `source=label,path=...` binding addresses (e.g.
+ * `{source=label,path=width}` in free text, or a `<desc>source=label,path=width</desc>` in an SVG
+ * template - every `{...}`/`<desc>` placeholder is a real binding, so a `label` path always needs the
+ * explicit `source=label,path=` form to disambiguate it from a `signalk` self path). `colours`/`fonts`
+ * are left as arrays (each colour entry pre-annotated with its hex code, e.g. `"black (#000000)"`)
+ * rather than joined into a single string, so a caller can either use them bare (renders as JSON) or add
+ * `format=csv` (see `./formatters.ts`) for a plain comma-separated list. `position`, if given, is rounded
+ * to ~2 decimal places (~1.1km) - fine-grained enough to be meaningfully "for here", coarse enough that
+ * ordinary GPS jitter at anchor doesn't change it tick to tick, which matters because `considerRepaint`
+ * (`../repaintScheduler.ts`) folds this whole object into every device's dedup hash - full-precision
+ * jitter here would otherwise force a repaint (and, for a provider-rendered template, a fresh paid API
+ * call) far more often than the underlying position has actually meaningfully changed.
+ */
+export function buildLabelContext(meta: LabelMeta): Record<string, unknown> {
+  const position = meta.position && {
+    latitude: Math.round(meta.position.latitude * 100) / 100,
+    longitude: Math.round(meta.position.longitude * 100) / 100,
+  };
+  return {
+    manufacturer: meta.manufacturer,
+    label: meta.label,
+    width: meta.width,
+    height: meta.height,
+    colours: meta.colours.map((colour) => `${colour} (${COLOUR_HEX[colour]})`),
+    fonts: SAFE_FONT_FAMILIES,
+    description: meta.description ?? "",
+    position: position ? applyFormat("position", position, {}, 2) : undefined,
+  };
+}
+
+function placeholderContents(text: string): string[] {
+  return [...new Set([...text.matchAll(/\{([^{}]+)\}/g)].map((match) => match[1].trim()))];
+}
+
+/**
+ * Every binding referenced across one or more free-text fragments - every `{...}` placeholder,
+ * deduplicated across all of `texts` combined, parsed exactly the way a template's `<desc>` binding is
+ * (`parseBinding` above), so a bare path (`{design.length}`, `source=signalk,context=self` shorthand),
+ * the full binding grammar (`{source=signalk,path=navigation.position,format=position}`), and a
+ * `source=label,path=...` binding all work uniformly. Pass the result to `assembleRawContext`
+ * (`../repaintScheduler.ts`) exactly as a template's own bindings are - it fetches the `signalk`/
+ * `resources`-sourced ones and silently ignores `label`/`einklabel`-sourced ones, which resolve directly
+ * against `context.label`/`context.meta` instead (built by the caller, not fetched).
+ *
+ * A placeholder that isn't valid binding grammar (e.g. a typo like `{source=taheight}`) is silently
+ * skipped here rather than thrown - the same per-field isolation `SvgRenderer` gives a bad `<desc>`
+ * binding, so one malformed placeholder doesn't take down the whole text. `substituteTextBindings` hits
+ * the identical parse error at substitution time and turns it into "???" for just that field.
+ */
+export function findTextBindings(...texts: string[]): Binding[] {
+  const seen = new Set<string>();
+  const bindings: Binding[] = [];
+  for (const text of texts) {
+    for (const key of placeholderContents(text)) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      try {
+        bindings.push(parseBinding(key));
+      } catch {
+        // see doc comment above - left for `substituteTextBindings` to turn into "???"
+      }
+    }
+  }
+  return bindings;
+}
+
+/**
+ * Substitutes every `{...}` placeholder in `text` with its resolved binding value against `context`
+ * (built by `assembleRawContext` plus `context.label` from `buildLabelContext` - see
+ * `findTextBindings`). Mirrors `renderBinding`'s per-field isolation, but substitutes "???" for anything
+ * that resolves to no value at all (missing path, invalid binding grammar) rather than "" - prose with a
+ * silently-blank word reads as a fact ("for the sailor of a m vessel"), not as a gap the reader would
+ * notice. Two things override that "???": a binding that resolves successfully to a legitimately empty
+ * string (e.g. an unset `{source=label,path=description}`) is left as empty, since that's a real answer,
+ * not a miss; and a binding with an explicit `default=` uses that default instead, since the caller has
+ * already said what a missing value should read as.
+ */
+export function substituteTextBindings(text: string, context: TemplateContext): string {
+  return text.replace(/\{([^{}]+)\}/g, (_match, raw: string) => {
+    const key = raw.trim();
+    try {
+      const binding = parseBinding(key);
+      const value = resolveBinding(binding, context);
+      if ((value === undefined || value === null) && binding.default === undefined) return "???";
+      return renderBinding(binding, context);
+    } catch {
+      return "???";
+    }
+  });
 }

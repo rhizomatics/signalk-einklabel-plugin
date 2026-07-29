@@ -116,6 +116,20 @@ function formatPosition(value: unknown, round: number | undefined): string {
   return `${lat}°${latHemisphere} ${lon}°${lonHemisphere}`;
 }
 
+/**
+ * A resolved value that's an array (e.g. `source=label,path=colours` - see `../render/llmPrompt.ts`'s
+ * `buildLabelContext`) joined into a plain comma-separated list, e.g. `["black","white"]` ->
+ * `"black, white"`. A non-array value falls through to the same null/object/scalar handling
+ * `renderBinding` uses for its own generic fallback, so `format=csv` is harmless on an ordinary
+ * scalar binding too.
+ */
+function formatCsv(value: unknown): string {
+  if (Array.isArray(value)) return value.map((entry) => String(entry as string | number | boolean)).join(", ");
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value as string | number | boolean | bigint | symbol);
+}
+
 /** Applies a named `format=` formatter to a resolved binding value. */
 export function applyFormat(name: string, value: unknown, context: TemplateContext, round: number | undefined): string {
   switch (name) {
@@ -129,6 +143,8 @@ export function applyFormat(name: string, value: unknown, context: TemplateConte
       return formatUtcOffset(value);
     case "position":
       return formatPosition(value, round);
+    case "csv":
+      return formatCsv(value);
     default:
       throw new Error(`unknown format "${name}"`);
   }

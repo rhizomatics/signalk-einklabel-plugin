@@ -7,6 +7,7 @@ import {
   BUNDLED_TEMPLATES_DIR,
   DeviceConfig,
   PluginConfig,
+  RENDER_FALLBACK_TEMPLATE_NAME,
   parseDevice,
   readCurrentConfig,
   resolveTemplatePath,
@@ -18,9 +19,10 @@ import { ensureScan } from "./devices/discoveryCoordinator";
 import { getDriver } from "./devices/registry";
 import { DeviceMetadata, VendorDriver } from "./devices/types";
 import { SvgRenderer } from "./render/svgRenderer";
-import { Binding, findBindings, resourceContextKey } from "./render/binding";
+import { Binding, buildLabelContext, findBindings, resourceContextKey } from "./render/binding";
 import { resolveLocalZoneAbbreviation } from "./render/formatters";
-import { TemplateContext } from "./render/types";
+import { findTemplateProvider } from "./render/templateProviders";
+import { Bitmap, TemplateContext } from "./render/types";
 import { unwrapSignalkTree } from "./render/unwrapSignalkTree";
 import { fetchCategoryDisplayUnits } from "./unitCategories";
 import { fetchPathMeta } from "./pathMeta";
@@ -272,6 +274,25 @@ async function resolveTargets(app: ServerAPI, config: PluginConfig, device: Devi
   return [target];
 }
 
+/**
+ * Renders and paints one device. `device.templateName` is resolved two ways: first against the
+ * `TemplateProvider` registry (`./render/templateProviders.ts`) - an extension like
+ * `signalk-einklabel-genai-plugin` contributing e.g. `"forecast (GenAI)"` - and only if no provider
+ * matches, as an ordinary `.svg` file/family (`resolveTemplatePath`), exactly as before this registry
+ * existed. Either way, the resolved content is rendered and pushed through the same paint step.
+ *
+ * `context.label` (`buildLabelContext`, `./render/binding.ts`) is now built for *every* device, not
+ * just provider-rendered ones - a plain SVG template can use `source=label,path=width` etc too. Its
+ * `position` is pre-rounded there, so folding it into every device's dedup hash below doesn't
+ * reintroduce GPS-jitter-driven repaints for a template that never even references it.
+ *
+ * On any failure - a broken hand-authored template, a missing template file, or a `TemplateProvider`'s
+ * `render()` rejecting (e.g. an LLM call failing) - pushes the bundled `RENDER_FALLBACK_TEMPLATE_NAME`
+ * warning instead, and deliberately does *not* persist a success hash: content that can't be generated
+ * must never leave the previous, possibly now-wrong, content on screen unmarked (e.g. a stale weather
+ * prompt showing "gentle breezes" through an actual storm), and not persisting a hash means the very
+ * next scheduled tick retries for real rather than being suppressed by dedup.
+ */
 async function considerRepaint(
   app: ServerAPI,
   config: PluginConfig,
@@ -282,61 +303,125 @@ async function considerRepaint(
 ): Promise<void> {
   const { address, metadata, driver } = target;
   const label = `"${device.friendlyName}" [${address}]`;
-  const templatesDir = resolveTemplatesDir(config.templatesDir);
-  const templatePath = resolveTemplatePath(templatesDir, device.templateName, {
-    width: metadata.width,
-    height: metadata.height,
-    colours: metadata.colours,
-  });
-  const templateMtimeMs = statSync(templatePath).mtimeMs;
-  const bindings = findBindings(readFileSync(templatePath, "utf-8"));
-
-  const apiUrl = await getApiUrl().catch((err) => {
-    app.debug(`${label}: ${err.message}`);
-    return undefined;
-  });
-  const rawContext = await assembleRawContext(app, apiUrl, bindings);
-  const templateHash = hashTemplate(templateMtimeMs);
-  // Hashed from `rawContext`, not `renderContext` below - `meta.repainted` (and the rest of `meta`)
-  // is only added after this point, deliberately, so a template merely *displaying* the repaint
-  // timestamp doesn't perpetually invalidate its own dedup and force a repaint every check. A full
-  // paint flashes the whole panel several times, and there's no confirmed partial-refresh path on
-  // these devices - so a bound value simply being unchanged is worth trusting over any staleness in
-  // a displayed clock.
-  const dataHash = hashData(rawContext);
-  const stateKey = stateKeyFor(device.friendlyName, address);
-  const previous = state[stateKey];
-  const templateChanged = previous?.templateHash !== templateHash;
-  const dataChanged = previous?.dataHash !== dataHash;
-  // The devices are battery-constrained, so a repaint is skipped whenever neither the template nor
-  // the bound data has changed since the last successful paint - regardless of what triggered this
-  // check (interval or subscription) or whether it's a regular scheduled tick vs. the deferred
-  // startup catch-up (see `startupCheckTimer`). `forceRepaint` is the explicit, one-shot override
-  // for "repaint anyway".
-  if (!templateChanged && !dataChanged && !device.forceRepaint) {
-    app.debug(`${label}: data unchanged, skipping repaint`);
+  if (!device.templateName) {
+    app.debug(`${label}: no template configured, skipping`);
     return;
   }
 
-  const renderContext: TemplateContext = {
-    ...rawContext,
-    meta: {
-      repainted: new Date().toISOString(),
-      local_zone: resolveLocalZoneAbbreviation(rawContext),
-      plugin_version: PLUGIN_VERSION,
-    },
-  };
+  const width = metadata.width;
+  const height = metadata.height - metadata.voffset;
+  const provider = findTemplateProvider(device.templateName);
+  const templatesDir = resolveTemplatesDir(config.templatesDir);
+  const stateKey = stateKeyFor(device.friendlyName, address);
+  const previous = state[stateKey];
+
   const renderer = new SvgRenderer();
-  const bitmap = await renderer.render(
-    templatePath,
-    renderContext,
-    metadata.width,
-    metadata.height - metadata.voffset,
-    templatesDir,
-    BUNDLED_TEMPLATES_DIR,
-  );
-  const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;
+  let bitmap: Bitmap;
+  let succeeded = false;
+  let templateHash = "";
+  let dataHash = "";
   let paintDurationMs = 0;
+  let repaintReason = "render failed";
+
+  try {
+    const apiUrl = await getApiUrl().catch((err) => {
+      app.debug(`${label}: ${err.message}`);
+      return undefined;
+    });
+
+    let bindings: Binding[] = [];
+    let templatePath = "";
+    if (provider) {
+      templateHash = createHash("sha1").update(device.templateName).digest("hex");
+      bindings = provider.describeBindings(device.templateName);
+    } else {
+      templatePath = resolveTemplatePath(templatesDir, device.templateName, {
+        width: metadata.width,
+        height: metadata.height,
+        colours: metadata.colours,
+      });
+      templateHash = hashTemplate(statSync(templatePath).mtimeMs);
+      bindings = findBindings(readFileSync(templatePath, "utf-8"));
+    }
+
+    const rawContext = await assembleRawContext(app, apiUrl, bindings);
+    const rawPosition = unwrapSignalkTree(app.getSelfPath("navigation.position")) as { latitude?: number; longitude?: number } | undefined;
+    const position =
+      typeof rawPosition?.latitude === "number" && typeof rawPosition?.longitude === "number"
+        ? { latitude: rawPosition.latitude, longitude: rawPosition.longitude }
+        : undefined;
+    const labelContext = buildLabelContext({
+      // Falls back to the driver's own internal vendor key (e.g. "zhsunyco") when a device model has no
+      // explicit `manufacturer` of its own - see `DeviceMetadata.manufacturer`'s doc comment.
+      manufacturer: metadata.manufacturer ?? target.vendor,
+      label: metadata.label,
+      width,
+      height,
+      colours: metadata.colours,
+      description: device.description,
+      position,
+    });
+
+    // Hashed before `meta` is merged in below, deliberately, so a template merely *displaying* the
+    // repaint timestamp doesn't perpetually invalidate its own dedup and force a repaint every check. A
+    // full paint flashes the whole panel several times, and there's no confirmed partial-refresh path
+    // on these devices - so a bound value simply being unchanged is worth trusting over any staleness
+    // in a displayed clock.
+    dataHash = hashData({ ...rawContext, label: labelContext });
+    const templateChanged = previous?.templateHash !== templateHash;
+    const dataChanged = previous?.dataHash !== dataHash;
+    // A provider-rendered template always attempts a fresh render when triggered, bypassing dedup
+    // entirely - core can't know whether the provider's output would differ, and "fresh content each
+    // scheduled tick" (e.g. a regenerated forecast) is the whole point of one - which is exactly why a
+    // provider-backed device should use `repaintTrigger: "interval"`, not `subscription`, for
+    // cost/battery reasons (each repaint may be a paid API call on the provider's side).
+    if (!provider && !templateChanged && !dataChanged && !device.forceRepaint) {
+      app.debug(`${label}: data unchanged, skipping repaint`);
+      return;
+    }
+
+    const renderContext: TemplateContext = {
+      ...rawContext,
+      label: labelContext,
+      meta: {
+        repainted: new Date().toISOString(),
+        local_zone: resolveLocalZoneAbbreviation(rawContext),
+        plugin_version: PLUGIN_VERSION,
+        description: device.description ?? "",
+      },
+    };
+
+    bitmap = provider
+      ? await provider.render({ templateName: device.templateName, context: renderContext, width, height, colours: metadata.colours })
+      : await renderer.render(templatePath, renderContext, width, height, templatesDir, BUNDLED_TEMPLATES_DIR);
+    succeeded = true;
+    repaintReason = device.forceRepaint
+      ? "forced"
+      : provider
+        ? "provider-rendered"
+        : templateChanged && dataChanged
+          ? "template and data changed"
+          : templateChanged
+            ? "template changed"
+            : "data changed";
+  } catch (err) {
+    app.debug(`${label}: render failed (${(err as Error).message}) - showing fallback warning`);
+    const fallbackPath = resolveTemplatePath(templatesDir, RENDER_FALLBACK_TEMPLATE_NAME, {
+      width: metadata.width,
+      height: metadata.height,
+      colours: metadata.colours,
+    });
+    bitmap = await renderer.render(
+      fallbackPath,
+      { meta: { repainted: new Date().toISOString(), plugin_version: PLUGIN_VERSION, description: device.description ?? "" } },
+      width,
+      height,
+      templatesDir,
+      BUNDLED_TEMPLATES_DIR,
+    );
+  }
+
+  const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;
   await withRetries(config.paintRetries, async (attempt) => {
     if (attempt > 1) {
       app.debug(`${label}: attempting paint ${attempt}/${config.paintRetries}`);
@@ -347,16 +432,13 @@ async function considerRepaint(
   });
 
   touchDiscoveredDevice(app, { address, vendor: target.vendor, pid: target.pid, hwVersion: target.hwVersion, metadata });
-  state[stateKey] = { templateHash, dataHash, repaintedAt: Date.now() };
-  saveState(app, state);
-  const reason = device.forceRepaint
-    ? "forced"
-    : templateChanged && dataChanged
-      ? "template and data changed"
-      : templateChanged
-        ? "template changed"
-        : "data changed";
-  app.debug(`${label}: repainted (${reason}, paint took ${paintDurationMs}ms)`);
+  // Only a successful render counts as "repainted" for dedup/catch-up purposes - a failure must not be
+  // recorded here (see this function's doc comment on why).
+  if (succeeded) {
+    state[stateKey] = { templateHash, dataHash, repaintedAt: Date.now() };
+    saveState(app, state);
+  }
+  app.debug(succeeded ? `${label}: repainted (${repaintReason}, paint took ${paintDurationMs}ms)` : `${label}: repainted fallback warning`);
 }
 
 export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): RepaintScheduler {

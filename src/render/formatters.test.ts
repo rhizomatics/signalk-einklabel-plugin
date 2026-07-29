@@ -93,6 +93,14 @@ test("applyFormat", async (t) => {
   await t.test("throws for an unknown format name", () => {
     assert.throws(() => applyFormat("nope", 1, context, undefined), /unknown format "nope"/);
   });
+
+  await t.test("csv joins an array value with commas", () => {
+    assert.equal(applyFormat("csv", ["black", "white", "red"], context, undefined), "black, white, red");
+  });
+
+  await t.test("csv passes a non-array value through String()", () => {
+    assert.equal(applyFormat("csv", "solo", context, undefined), "solo");
+  });
 });
 
 test("resolveLocalZoneAbbreviation", async (t) => {
