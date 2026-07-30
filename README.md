@@ -17,7 +17,7 @@ Electronic Shelf Labels are [eInk](https://en.wikipedia.org/wiki/E_Ink) devices 
 
 Since they are designed to be used in large quantity in small shops, they are cheap and simple devices. Earlier models required dedicated controllers, or updates over Wifi or NFC, whereas many modern ones are standalone BLE devices that can be updated from a phone or server.
 
-Being battery operated, they can be stuck on anywhere without wiring - the only location constraints are bluetooth range, visibility (they need ambient light since the display is more like paper than a traditional lit-up electronic display) and out of the weather since the devices are intended for indoor use.
+Being battery operated, they can be stuck on anywhere without wiring - the only location constraints are bluetooth range, visibility (they need ambient light since the display is more like paper than a traditional lit-up electronic display) and, for some labels, being out of the weather if they are not waterproof, although IP65 labels are available.
 
 ## Pre-requisites
 
