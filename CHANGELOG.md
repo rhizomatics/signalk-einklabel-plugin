@@ -1,3 +1,7 @@
+# 1.1.0
+
+- Label images can now optionally be emailed to an address every time they change, including a table of fields and values used to complete the template, or the prompt if genai based
+
 # 1.0.0
 
 ## Full Release
