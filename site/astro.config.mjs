@@ -17,8 +17,7 @@ try {
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://rhizomatics.github.io",
-  base: "/signalk-einklabel-plugin",
+  site: "https://signalk-einklabel.rhizomatics.org.uk",
   integrations: [
     starlight({
       title: "eInk Labels for SignalK",
