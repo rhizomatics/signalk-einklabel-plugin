@@ -378,8 +378,6 @@ and this version will work even without a running SignalK server, using some pre
 npx esl-cli render -t templates/tides/250x128-BWRY.svg -o example.png -e examples
 ```
 
-
-
 #### List all Fields and Rendered Values
 
 ```bash
