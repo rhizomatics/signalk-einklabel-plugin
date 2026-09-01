@@ -4,6 +4,7 @@ import { registerDriver } from "./devices/registry";
 import { ZhsunycoDriver } from "./devices/zhsunyco";
 import { GiciskyDriver } from "./devices/gicisky";
 import { ensureScan, scanInProgressSince } from "./devices/discoveryCoordinator";
+import { waitForAdapter } from "./devices/bleDiscovery";
 import { loadDiscoveredDevices } from "./devices/discoveredDevicesStore";
 import { startRepaintScheduler, RepaintScheduler } from "./repaintScheduler";
 
@@ -42,6 +43,7 @@ export function createPlugin(app: ServerAPI): Plugin {
   registerDriver(new GiciskyDriver());
 
   let scheduler: RepaintScheduler | undefined;
+  let stopped = false;
 
   const plugin: Plugin = {
     id: "signalk-einklabel-plugin",
@@ -59,14 +61,22 @@ export function createPlugin(app: ServerAPI): Plugin {
       };
       app.debug(`starting with ${pluginConfig.devices.length} configured device(s)`);
       healNestedConfig(app);
+      stopped = false;
 
-      if (pluginConfig.scanOnStart) {
-        void runStartupScan(app, pluginConfig.scanDurationSeconds);
-      }
-
-      scheduler = startRepaintScheduler(app, pluginConfig);
+      // Waits (with backoff, indefinitely on Linux) for a BLE adapter before the startup scan or the
+      // repaint scheduler touch BLE at all - see `waitForAdapter`'s doc comment on the boot-time race
+      // this covers. `stopped` is checked after, not just passed as `cancelled`, since the wait can
+      // also resolve `true` on its own right as `stop()` runs.
+      void waitForAdapter((message) => app.debug(message), () => stopped).then(() => {
+        if (stopped) return;
+        if (pluginConfig.scanOnStart) {
+          void runStartupScan(app, pluginConfig.scanDurationSeconds);
+        }
+        scheduler = startRepaintScheduler(app, pluginConfig);
+      });
     },
     stop() {
+      stopped = true;
       scheduler?.stop();
       scheduler = undefined;
       app.debug("stopped");

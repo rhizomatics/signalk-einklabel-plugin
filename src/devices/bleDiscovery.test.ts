@@ -7,6 +7,7 @@ import {
   forEachAdvertisedDevice,
   getManufacturerId,
   getOrDiscoverDevice,
+  waitForAdapter,
   withDiscovery,
   withRetries,
 } from "./bleDiscovery";
@@ -20,6 +21,29 @@ test("withDiscovery refuses to run on a non-Linux platform", { skip: process.pla
     withDiscovery(10, async () => "unreachable"),
     /requires Linux/,
   );
+});
+
+test("waitForAdapter", async (t) => {
+  await t.test("returns false immediately on a non-Linux platform, without retrying", { skip: process.platform === "linux" }, async () => {
+    const messages: string[] = [];
+    assert.equal(
+      await waitForAdapter((message) => messages.push(message)),
+      false,
+    );
+    assert.deepEqual(messages, []);
+  });
+
+  await t.test("returns false immediately once already cancelled, without attempting a connection", async () => {
+    const messages: string[] = [];
+    assert.equal(
+      await waitForAdapter(
+        (message) => messages.push(message),
+        () => true,
+      ),
+      false,
+    );
+    assert.deepEqual(messages, []);
+  });
 });
 
 test("getManufacturerId", async (t) => {

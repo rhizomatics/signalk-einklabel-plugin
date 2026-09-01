@@ -161,6 +161,10 @@ Known by other names, e.g. 'Picksmart', and with white label brands
 
 Templates are simply SVG files, to which expressions can be added to use SignalK data, with options to make it easier to read, like rounding or simplifying dates and times. The template can have sample data in the placeholder, so is easy to layout and visualize.
 
+### Reframing
+
+There's some wiggle room with the `reframe` options to use a template that's a bit too small, or too large, for the label, although best results come from a template that's precisely matching the pixel height and width of the label. Next best is template that has the same aspect ratio, so it can be cleanly scaled. `crop` is the 2nd least worst, though if its only a handful of pixels its often not worth worring about a separate template and `crop` is just fine. `scale` is likely to look worst, since it will force an image in regardless of aspect ratio.
+
 ### Template Families (multiple panel sizes/colours)
 
 A "Template" selection can either be one specific `.svg` file, or a _directory_ holding several versions of the same template for different panel sizes/colour-sets, e.g. `templates/tides/416x240-BWRY.svg` and `templates/tides/250x128-BWRY.svg` both implement the tide clock, just at different sizes.

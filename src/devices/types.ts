@@ -63,7 +63,7 @@ export interface VendorDeviceConfig {
   modelOverride?: DeviceModelOverride;
   /** How long to wait for the BLE connect step before giving up - if omitted, the driver picks its own default. */
   connectTimeoutMs?: number;
-  /** How to fit the bitmap onto the panel when its size doesn't already match - see `ReframeMode`. Defaults to `"fixed"`, i.e. unchanged (encoding then rejects the mismatch, as it always has). */
+  /** How to fit the bitmap onto the panel when its size doesn't already match - see `ReframeMode`. Defaults to `"crop"` - a live label showing *something*, even off-size, beats a repaint that just fails outright; pass `"fixed"` explicitly to get the old reject-the-mismatch behaviour back. */
   reframe?: ReframeMode;
 }
 

@@ -1,12 +1,14 @@
 import { Bitmap } from "./types";
 
 /**
- * How a rendered bitmap is fitted onto a device's actual panel size when the two don't match -
- * `"fixed"` (the default, and the only behaviour before this existed) makes no change, leaving each
- * vendor driver's own exact-size check in `encodeBitmap` to reject the mismatch; `"scale"` scales
- * the source onto the target dimensions independently per axis (not preserving aspect ratio);
- * `"crop"` keeps source pixels 1:1, placing them from the top-left and either truncating whatever
- * doesn't fit (source bigger than target) or leaving the extra target space blank (source smaller).
+ * How a rendered bitmap is fitted onto a device's actual panel size when the two don't match - see
+ * `VendorDeviceConfig.reframe` for where the default (`"crop"`) actually lives; this type has none
+ * of its own. `"fixed"` (the only behaviour that existed before this type did) makes no change,
+ * leaving each vendor driver's own exact-size check in `encodeBitmap` to reject the mismatch;
+ * `"scale"` scales the source onto the target dimensions independently per axis (not preserving
+ * aspect ratio); `"crop"` keeps source pixels 1:1, placing them from the top-left and either
+ * truncating whatever doesn't fit (source bigger than target) or leaving the extra target space
+ * blank (source smaller).
  */
 export type ReframeMode = "fixed" | "scale" | "crop";
 

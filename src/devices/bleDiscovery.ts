@@ -161,3 +161,41 @@ export async function getOrDiscoverDevice(adapter: Adapter, address: string, tim
     }
   }
 }
+
+const ADAPTER_WAIT_BASE_DELAY_MS = 2_000;
+const ADAPTER_WAIT_MAX_DELAY_MS = 30_000;
+
+/**
+ * Blocks until `bluetooth.defaultAdapter()` actually succeeds, retrying with exponential backoff
+ * (2s, doubling, capped at 30s) rather than failing once and giving up - covers the boot-time race
+ * where SignalK starts before bluetoothd/D-Bus is up (see the README's "SignalK starts before the
+ * Bluetooth daemon" FAQ), and equally a later transient loss (e.g. `bluetoothd` restarting) if a
+ * caller invokes this again rather than just once at startup.
+ *
+ * A non-Linux platform is `createBluetooth`'s own hard incompatibility, not a transient readiness
+ * race, so it returns `false` immediately there instead of retrying forever - preserves this
+ * plugin's "everything except scan/paint still works" story for template development off a real
+ * device (see README's Pre-requisites). `cancelled` is polled between backoff waits so a caller
+ * with its own lifecycle (e.g. the plugin's own `stop()`) can abandon an in-progress wait instead of
+ * leaving it to retry forever in the background after the thing it was waiting to unblock is gone.
+ */
+export async function waitForAdapter(logDebug: (message: string) => void, cancelled: () => boolean = () => false): Promise<boolean> {
+  if (process.platform !== "linux") return false;
+  let delayMs = ADAPTER_WAIT_BASE_DELAY_MS;
+  while (!cancelled()) {
+    let destroy: (() => void) | undefined;
+    try {
+      const created = createBluetooth();
+      destroy = created.destroy;
+      await created.bluetooth.defaultAdapter();
+      return true;
+    } catch (err) {
+      logDebug(`BLE adapter not ready (${(err as Error).message}) - retrying in ${delayMs / 1000}s...`);
+      await sleep(delayMs);
+      delayMs = Math.min(delayMs * 2, ADAPTER_WAIT_MAX_DELAY_MS);
+    } finally {
+      destroy?.();
+    }
+  }
+  return false;
+}

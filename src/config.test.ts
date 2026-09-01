@@ -283,12 +283,13 @@ test("healNestedConfig", async (t) => {
   });
 });
 
-test("configUiSchema renders repaintTrigger as a radio group and description as a textarea", () => {
+test("configUiSchema renders repaintTrigger/reframe as radio groups and description as a textarea", () => {
   assert.deepEqual(configUiSchema(), {
     devices: {
       items: {
         description: { "ui:widget": "textarea" },
         repaintTrigger: { "ui:widget": "radio" },
+        reframe: { "ui:widget": "radio" },
       },
     },
   });

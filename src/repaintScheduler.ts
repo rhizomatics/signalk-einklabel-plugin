@@ -427,7 +427,7 @@ async function considerRepaint(
       app.debug(`${label}: attempting paint ${attempt}/${config.paintRetries}`);
     }
     const startedAt = Date.now();
-    await driver.paint(bitmap, { address, aesKey: device.aesKey, connectTimeoutMs });
+    await driver.paint(bitmap, { address, aesKey: device.aesKey, connectTimeoutMs, reframe: device.reframe });
     paintDurationMs = Date.now() - startedAt;
   });
 

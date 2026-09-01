@@ -48,7 +48,7 @@ export function parseColours(code: string): Colour[] {
   return colours;
 }
 
-const REFRAME_MODES: ReframeMode[] = ["fixed", "scale", "crop"];
+const REFRAME_MODES: ReframeMode[] = ["crop", "scale", "fixed"];
 
 export function parseReframeMode(value: string): ReframeMode {
   if (!(REFRAME_MODES as string[]).includes(value)) {
@@ -276,8 +276,8 @@ program
   )
   .option(
     "--reframe <mode>",
-    "how to fit the rendered image onto the device's actual panel size when it doesn't match: fixed (default - reject the mismatch, as always), scale (stretch the template to the panel), crop (place at top-left, truncating or leaving the rest blank)",
-    "fixed",
+    "how to fit the rendered image onto the device's actual panel size when it doesn't match: crop (default - place at top-left, truncating or leaving the rest blank), scale (stretch the template to the panel), fixed (reject the mismatch instead)",
+    "crop",
   )
   .option("--connect-timeout <seconds>", "BLE connect timeout before giving up on an attempt", "30")
   .option("--retries <n>", "number of paint attempts (including the first) before giving up", "3")

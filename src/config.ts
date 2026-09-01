@@ -3,6 +3,7 @@ import { homedir } from "os";
 import { isAbsolute, join } from "path";
 import { ServerAPI } from "@signalk/server-api";
 import { Colour, DiscoveredDevice } from "./devices/types";
+import { ReframeMode } from "./render/reframe";
 import { allTemplateProviders } from "./render/templateProviders";
 import { SIGNALK_API_URL_OPTIONS } from "./resolveApiUrl";
 
@@ -56,6 +57,14 @@ export interface DeviceConfig {
   intervalMinute?: number;
   /** One-shot override to repaint even if the data is unchanged; cleared automatically once that repaint completes. */
   forceRepaint?: boolean;
+  /**
+   * How to fit the rendered image onto the device's actual panel size when it doesn't match (see
+   * `ReframeMode`) - e.g. a template family with no variant sized for this particular label. Left
+   * unset, `driver.paint()` defaults to `"crop"` itself (see `VendorDeviceConfig.reframe`'s doc
+   * comment) - place from the top-left, truncating or leaving the rest blank - since a live label
+   * showing *something*, even off-size, beats a repaint that just fails outright.
+   */
+  reframe?: ReframeMode;
 }
 
 export interface PluginConfig {
@@ -547,6 +556,14 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               description: "Repaint even if the data is unchanged - clears itself automatically once that repaint completes",
               default: false,
             },
+            reframe: {
+              type: "string",
+              title: "If the render doesn't match the panel size",
+              description:
+                'Crop: place at the top-left, truncating anything too big or leaving the rest blank if too small. Scale: stretch to fit exactly (may distort). Fixed: fail the repaint instead of showing an off-size image.',
+              enum: ["crop", "scale", "fixed"],
+              default: "crop",
+            },
           },
         },
       },
@@ -560,6 +577,7 @@ export function configUiSchema(): object {
       items: {
         description: { "ui:widget": "textarea" },
         repaintTrigger: { "ui:widget": "radio" },
+        reframe: { "ui:widget": "radio" },
       },
     },
   };

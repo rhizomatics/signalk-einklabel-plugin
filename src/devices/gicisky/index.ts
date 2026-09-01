@@ -96,7 +96,7 @@ export class GiciskyDriver implements VendorDriver {
       }
       const layout: GiciskyLayout = (info && GICISKY_PID_LAYOUT[info.deviceId]) || defaultLayoutFor(metadata.colours);
 
-      const framed = reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "fixed");
+      const framed = reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "crop");
       const payload = encodeBitmap(framed, metadata, layout);
 
       await connectWithTimeout(device, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);

@@ -1,3 +1,9 @@
+# 1.3.0
+
+- Fully implemented the backoff and retry logic on failed paint, by default after 30s
+- Auto reframe now happens in main plugin as well as CLI
+- Auto reframe now defaults to `crop` for CLI, can be overidden back to `fixed`
+
 # 1.2.1
 
 - Additional tide template for 296x128

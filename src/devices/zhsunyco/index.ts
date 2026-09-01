@@ -117,7 +117,7 @@ export class ZhsunycoDriver implements VendorDriver {
         await authChar.writeValueWithoutResponse(authResponse(challenge, aesKey));
         await sleep(AUTH_SETTLE_DELAY_MS);
 
-        const framed = reframeBitmap(bitmap, metadata.width, metadata.height - metadata.voffset, config.reframe ?? "fixed");
+        const framed = reframeBitmap(bitmap, metadata.width, metadata.height - metadata.voffset, config.reframe ?? "crop");
         const pixelData = encodeBitmap(framed, metadata);
         for (let offset = 0; offset < pixelData.length; offset += UPLOAD_CHUNK_SIZE) {
           const chunk = pixelData.subarray(offset, offset + UPLOAD_CHUNK_SIZE);
