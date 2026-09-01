@@ -6,6 +6,7 @@
 [![codecov](https://img.shields.io/codecov/c/github/rhizomatics/signalk-einklabel-plugin)](https://codecov.io/gh/rhizomatics/signalk-einklabel-plugin)
 [![code style: oxfmt](https://img.shields.io/badge/code_style-oxfmt-blue.svg)](https://github.com)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/LICENSE)
+[![boat tech directory](https://boat-tech-directory.rhizomatics.org.uk/images/badge.svg)](https://boat-tech-directory.rhizomatics.org.uk)
 
 A SignalK plugin to display data from SignalK paths, Resource APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates, or optionally created from a crafted prompt by GenAI if the companion [`@rhizomatics/signalk-einklabel-genai-plugin`](https://github.com/rhizomatics/signalk-einklabel-genai-plugin) is installed.
 
@@ -34,8 +35,9 @@ Most of requirements below are to make SignalK work with Bluetooth Low Energy, w
 
 - Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
 - Some Raspberry Pi models come with suitable Bluetooth built in
-- Don't worry about the very latest Bluetooth versions, 4.0 is minimum for BLE, 5.0 is nice
-- Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
+
+> - Don't worry about the very latest Bluetooth versions, 4.0 is minimum for BLE, 5.0 is nice
+> - Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
 
 3. `bluez` package installed in Linux
 

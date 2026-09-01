@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://rhizomatics.github.io/signalk-einklabel-plugin/sitemap-index.xml
+Sitemap: https://signalk-einklabel.rhizomatics.org.uk/sitemap-index.xml
