@@ -100,17 +100,17 @@ test("findBindings extracts every <text><desc> and <image><desc> binding from SV
 
 test("readTemplateDimensions", async (t) => {
   await t.test("reads width/height off the root <svg> element", () => {
-    assert.deepEqual(
-      readTemplateDimensions('<svg xmlns="http://www.w3.org/2000/svg" width="250" height="128"></svg>'),
-      { width: 250, height: 128 },
-    );
+    assert.deepEqual(readTemplateDimensions('<svg xmlns="http://www.w3.org/2000/svg" width="250" height="128"></svg>'), {
+      width: 250,
+      height: 128,
+    });
   });
 
   await t.test("falls back to viewBox when width/height are missing", () => {
-    assert.deepEqual(
-      readTemplateDimensions('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 416 240"></svg>'),
-      { width: 416, height: 240 },
-    );
+    assert.deepEqual(readTemplateDimensions('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 416 240"></svg>'), {
+      width: 416,
+      height: 240,
+    });
   });
 
   await t.test("returns undefined for whichever of width/height isn't declared anywhere", () => {
