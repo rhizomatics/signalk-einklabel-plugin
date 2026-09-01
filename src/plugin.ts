@@ -2,6 +2,7 @@ import { Plugin, ServerAPI } from "@signalk/server-api";
 import { configSchema, configUiSchema, defaultConfig, healNestedConfig, PluginConfig } from "./config";
 import { registerDriver } from "./devices/registry";
 import { ZhsunycoDriver } from "./devices/zhsunyco";
+import { GiciskyDriver } from "./devices/gicisky";
 import { ensureScan, scanInProgressSince } from "./devices/discoveryCoordinator";
 import { loadDiscoveredDevices } from "./devices/discoveredDevicesStore";
 import { startRepaintScheduler, RepaintScheduler } from "./repaintScheduler";
@@ -38,6 +39,7 @@ async function runStartupScan(app: ServerAPI, durationSeconds: number): Promise<
 
 export function createPlugin(app: ServerAPI): Plugin {
   registerDriver(new ZhsunycoDriver());
+  registerDriver(new GiciskyDriver());
 
   let scheduler: RepaintScheduler | undefined;
 

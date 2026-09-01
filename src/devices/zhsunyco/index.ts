@@ -5,6 +5,7 @@ import { connectWithTimeout, createBluetooth, getOrDiscoverDevice, sleep } from 
 import { PLUGIN_NAME } from "../../pluginVersion";
 import { ZHSUNYCO_PID_METADATA } from "./metadata";
 import { encodeBitmap } from "./encode";
+import { reframeBitmap } from "../../render/reframe";
 import {
   AdvertisedDeviceInfo,
   COMMAND,
@@ -116,7 +117,8 @@ export class ZhsunycoDriver implements VendorDriver {
         await authChar.writeValueWithoutResponse(authResponse(challenge, aesKey));
         await sleep(AUTH_SETTLE_DELAY_MS);
 
-        const pixelData = encodeBitmap(bitmap, metadata);
+        const framed = reframeBitmap(bitmap, metadata.width, metadata.height - metadata.voffset, config.reframe ?? "fixed");
+        const pixelData = encodeBitmap(framed, metadata);
         for (let offset = 0; offset < pixelData.length; offset += UPLOAD_CHUNK_SIZE) {
           const chunk = pixelData.subarray(offset, offset + UPLOAD_CHUNK_SIZE);
           await dataChar.writeValueWithResponse(Buffer.concat([commandHeader(COMMAND.uploadBlock, offset), chunk]));

@@ -46,7 +46,7 @@ Most of requirements below are to make SignalK work with Bluetooth Low Energy, w
 
 4. One or more supported Electronic Shelf Labels
 
-- The label used for testing this is the [Zhsunyco 3.7" BWRY](https://www.aliexpress.com/item/1005010050104435.html)
+- The labels used for testing this are the [Zhsunyco 3.7" BWRY](https://www.aliexpress.com/item/1005010050104435.html) and a [Gicisky 2.9" BWRY](https://www.aliexpress.com/item/1005012933325056.html)
 
 5. Correct time zone set on server if local time is to be shown on display
 
@@ -148,6 +148,14 @@ Also known as 'Suny' and 'WOLink'.
   - Cheapest units are 2 colour 1.54", and they go up to 7.5"
 
 Python code for a variety of their labels at https://github.com/roxburghm/zhsunyco-esl and https://github.com/NickWaterton/Wolink
+
+### Gicisky
+
+Known by other names, e.g. 'Picksmart', and with white label brands
+
+- BLE ESLs
+  - Official store is on [AliExpress](https://www.aliexpress.com/store/911771479/pages/all-items.html?productGroupId=40000001654819&spm=a2g0o.store_pc_home.pcShopHead_6000727597996.1_1)
+  - Cheapest labels under £10 GBP / $13 USD
 
 ## Templating
 
@@ -272,7 +280,15 @@ See also the commands useful for debugging under [Developing Templates]
 - `render` - transform an SVG template and data into a PNG
 - `paint` - render an SVG template and data to a selected ESL
 
-The width, height, vertical offset and colour palette for the device are taken from the internal register of devices, however can be overridden on the command line. This could be used to help you choose what size of label to buy, or to get an unsupported label working.
+The width, height, vertical offset and colour palette for the device are taken from the internal register of devices, however can be overridden on the command line with `-w/--width`, `--height`, `--voffset` and `--colours`. This could be used to help you choose what size of label to buy, or to get an unsupported label working.
+
+Left unset, both `render` and `paint` default `-w/--width`/`--height` to the template's own declared `width`/`height` (or `viewBox`) - neither command connects to a device just to size the render, since that would mean an extra BLE connect ahead of `paint`'s own, and doing two back-to-back is exactly the kind of churn that trips real BLE hardware.
+
+`paint` also takes `--reframe <mode>`, applied once it has connected and identified the device, for when the rendered image doesn't come out the same size as its actual panel:
+
+- `fixed` (default) - no adjustment; a size mismatch is rejected with an error, as it always has been
+- `scale` - stretches the rendered image onto the panel's exact dimensions (independently per axis, not preserving aspect ratio)
+- `crop` - keeps pixels 1:1, placed from the top-left; a bigger render is truncated to fit, a smaller one leaves the extra panel space blank
 
 `esl-cli` can also be extended with new subcommands by a `-r/--require`'d package - see [Extending](#extending) below - which is how [`@rhizomatics/signalk-einklabel-genai-plugin`](#genai-rendering) adds its own `prompt`/`generate` commands for testing prompts without a device.
 
@@ -330,7 +346,39 @@ The `esl-cli` can be used to debug and validate templates quickly:
 - `fields` - List the fields in the template, with the source specification and the rendered data value
 - `field` - Accept a source specification (outside of any template context) and return the rendered value if available
 
+Use `--help` to get the full set of arguments for any of the commands.
+
 ### Examples
+
+#### Paint Image Directly
+
+The label address previously discovered via `esl-cli scan`
+
+```bash
+npx esl-cli paint -t templates/tides/250x128-BWRY.svg -a FF:FF:92:84:53:93
+```
+
+If the label turns out to be a different size than the template (e.g. it's a 250x128 template on a 416x240 panel), that's normally rejected as a mismatch - add `--reframe` to fit it instead:
+
+```bash
+npx esl-cli paint -t templates/tides/250x128-BWRY.svg -a FF:FF:92:84:53:93 --reframe scale
+```
+
+#### Test Template Without Updating Label
+
+This will work even if you don't have a label, or even bluetooth. (The `-u` can be left out if your SignalK server running locally on default ports).
+
+```bash
+npx esl-cli render -t templates/tides/250x128-BWRY.svg -o example.png -u http://localhost
+```
+
+and this version will work even without a running SignalK server, using some pre-packaged example data:
+
+```bash
+npx esl-cli render -t templates/tides/250x128-BWRY.svg -o example.png -e examples
+```
+
+
 
 #### List all Fields and Rendered Values
 

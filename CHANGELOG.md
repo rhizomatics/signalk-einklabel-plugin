@@ -1,3 +1,10 @@
+# 1.2.0
+
+- Added support for Gicisky labels (also known by other brands), tested with a 2.9" BWRY model
+- CLI render command use template height and width as defaults, can still be overridden by arguments to preview particular size of label
+- CLI paint commands use label height and width as defaults, overridden by arguments if needed
+- CLI paint command now has a `--reframe` option for labels that don't match template size, so can quickly test a label without having perfect template right away
+
 # 1.1.0
 
 - Label images can now optionally be emailed to an address every time they change, including a table of fields and values used to complete the template, or the prompt if genai based

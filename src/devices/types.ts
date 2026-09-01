@@ -1,5 +1,6 @@
 import { Device } from "@naugehyde/node-ble";
 import { Bitmap } from "../render/types";
+import { ReframeMode } from "../render/reframe";
 
 export type Colour = "black" | "white" | "red" | "yellow";
 
@@ -62,6 +63,8 @@ export interface VendorDeviceConfig {
   modelOverride?: DeviceModelOverride;
   /** How long to wait for the BLE connect step before giving up - if omitted, the driver picks its own default. */
   connectTimeoutMs?: number;
+  /** How to fit the bitmap onto the panel when its size doesn't already match - see `ReframeMode`. Defaults to `"fixed"`, i.e. unchanged (encoding then rejects the mismatch, as it always has). */
+  reframe?: ReframeMode;
 }
 
 export interface VendorDriver {

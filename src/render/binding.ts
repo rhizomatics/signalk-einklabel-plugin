@@ -149,6 +149,29 @@ export function findBindings(svgSource: string): Binding[] {
   return bindings;
 }
 
+/**
+ * Reads the root `<svg>` element's declared `width`/`height` (falling back to the 3rd/4th `viewBox`
+ * numbers when either attribute is missing) - lets a caller default a render size to what the template
+ * itself was authored for, e.g. the CLI's -w/--width and --height options.
+ */
+export function readTemplateDimensions(svgSource: string): { width?: number; height?: number } {
+  const doc = new DOMParser().parseFromString(svgSource, "image/svg+xml");
+  const svg = doc.getElementsByTagName("svg").item(0);
+  if (!svg) return {};
+
+  const viewBox = svg.getAttribute("viewBox")?.trim().split(/\s+/).map(Number);
+  const viewBoxWidth = viewBox?.length === 4 && Number.isFinite(viewBox[2]) ? viewBox[2] : undefined;
+  const viewBoxHeight = viewBox?.length === 4 && Number.isFinite(viewBox[3]) ? viewBox[3] : undefined;
+
+  const width = parseFloat(svg.getAttribute("width") ?? "");
+  const height = parseFloat(svg.getAttribute("height") ?? "");
+
+  return {
+    width: Number.isFinite(width) ? width : viewBoxWidth,
+    height: Number.isFinite(height) ? height : viewBoxHeight,
+  };
+}
+
 /** Supports both `a.[0].b` and `a[0].b` array index notation, matching `setAtPath` in repaintScheduler.ts. */
 function getAtPath(obj: unknown, path: string): unknown {
   const segments = path

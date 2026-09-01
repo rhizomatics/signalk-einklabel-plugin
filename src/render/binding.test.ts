@@ -5,6 +5,7 @@ import {
   findBindings,
   findTextBindings,
   parseBinding,
+  readTemplateDimensions,
   renderBinding,
   resolveBinding,
   resourceContextKey,
@@ -95,6 +96,33 @@ test("findBindings extracts every <text><desc> and <image><desc> binding from SV
     findBindings(svg).map((b) => b.path),
     ["a.b", "c.d", "e.f"],
   );
+});
+
+test("readTemplateDimensions", async (t) => {
+  await t.test("reads width/height off the root <svg> element", () => {
+    assert.deepEqual(
+      readTemplateDimensions('<svg xmlns="http://www.w3.org/2000/svg" width="250" height="128"></svg>'),
+      { width: 250, height: 128 },
+    );
+  });
+
+  await t.test("falls back to viewBox when width/height are missing", () => {
+    assert.deepEqual(
+      readTemplateDimensions('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 416 240"></svg>'),
+      { width: 416, height: 240 },
+    );
+  });
+
+  await t.test("returns undefined for whichever of width/height isn't declared anywhere", () => {
+    assert.deepEqual(readTemplateDimensions('<svg xmlns="http://www.w3.org/2000/svg" width="250"></svg>'), {
+      width: 250,
+      height: undefined,
+    });
+  });
+
+  await t.test("returns an empty result when there is no root <svg> element", () => {
+    assert.deepEqual(readTemplateDimensions("<not-svg/>"), {});
+  });
 });
 
 test("resolveBinding", async (t) => {

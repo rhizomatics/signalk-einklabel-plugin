@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { DOMParser } from "@xmldom/xmldom";
 import { allDrivers, getDriver, registerDriver } from "../devices/registry";
 import { ZhsunycoDriver } from "../devices/zhsunyco";
+import { GiciskyDriver } from "../devices/gicisky";
 import {
   createBluetooth,
   forEachAdvertisedDevice,
@@ -14,9 +15,10 @@ import {
   withRetries,
 } from "../devices/bleDiscovery";
 import { Colour, DeviceModelOverride } from "../devices/types";
+import { ReframeMode } from "../render/reframe";
 import { SvgRenderer } from "../render/svgRenderer";
 import { bitmapToPng } from "../render/png";
-import { Binding, findBindings, parseBinding, renderBinding, resolveBinding } from "../render/binding";
+import { Binding, findBindings, parseBinding, readTemplateDimensions, renderBinding, resolveBinding } from "../render/binding";
 import { normalizeAssetKey, resolveAssetPath } from "../render/assets";
 import { BUNDLED_TEMPLATES_DIR } from "../config";
 import { assembleExampleContext, assembleLiveContext } from "./liveContext";
@@ -25,6 +27,7 @@ import { logDebug, setLogLevel } from "./log";
 import { TemplateContext } from "../render/types";
 
 registerDriver(new ZhsunycoDriver());
+registerDriver(new GiciskyDriver());
 
 const VENDOR_IDENTIFY_TIMEOUT_MS = 30_000;
 
@@ -45,6 +48,15 @@ export function parseColours(code: string): Colour[] {
   return colours;
 }
 
+const REFRAME_MODES: ReframeMode[] = ["fixed", "scale", "crop"];
+
+export function parseReframeMode(value: string): ReframeMode {
+  if (!(REFRAME_MODES as string[]).includes(value)) {
+    throw new Error(`unknown --reframe value "${value}" - expected one of ${REFRAME_MODES.join(", ")}`);
+  }
+  return value as ReframeMode;
+}
+
 /** Probes DEFAULT_SIGNALK_URLS in order and returns the first that answers a plain GET - used when -u/--url is omitted. */
 async function resolveDefaultUrl(): Promise<string> {
   for (const candidate of DEFAULT_SIGNALK_URLS) {
@@ -59,6 +71,15 @@ async function resolveDefaultUrl(): Promise<string> {
   throw new Error(
     `no -u/--url given and none of ${DEFAULT_SIGNALK_URLS.join(", ")} answered - specify the server explicitly with -u/--url`,
   );
+}
+
+const DEFAULT_RENDER_WIDTH = 416;
+const DEFAULT_RENDER_HEIGHT = 240;
+
+/** Shared by every command's -w/--width and --height: an explicit flag always wins; otherwise the first defined value in `sources` (in order); otherwise a generic last-resort default. */
+function resolveDimension(explicit: string | undefined, sources: (number | undefined)[], fallback: number): number {
+  if (explicit !== undefined) return Number(explicit);
+  return sources.find((value) => value !== undefined) ?? fallback;
 }
 
 /** Shared by every command that takes -u/--url and -e/--example-data - -e wins when both are present; when neither is given, probes DEFAULT_SIGNALK_URLS for a default. */
@@ -168,7 +189,7 @@ program
 program
   .command("scan")
   .description("Scan for supported BLE ESL devices across all registered vendor drivers")
-  .option("-d, --duration <seconds>", "scan duration in seconds", "10")
+  .option("-d, --duration <seconds>", "scan duration in seconds", "30")
   .option(
     "-a, --all-devices",
     "list every nearby BLE device, not just ones a registered driver recognised - unmatched devices show address/name/mfr/rssi only, since there's no driver to do a vendor-specific read like battery",
@@ -236,8 +257,11 @@ program
     "-k, --aes-key <hex>",
     "AES-128 key for device authentication, as 32 hex characters - defaults to the vendor's stock key if omitted",
   )
-  .option("-w, --width <px>", "render width", "416")
-  .option("--height <px>", "render height", "240")
+  .option("-w, --width <px>", "render width - defaults to the template's declared width/viewBox - see --reframe for fitting onto a differently-sized panel")
+  .option(
+    "--height <px>",
+    "render height - defaults to the template's declared height/viewBox - see --reframe for fitting onto a differently-sized panel",
+  )
   .option(
     "--voffset <px>",
     "vertical pixel offset of the panel - overrides the looked-up model for unsupported hardware (requires --colours)",
@@ -247,6 +271,11 @@ program
     "--colours <code>",
     "device colour palette for unsupported hardware: BW, BWR, or BWRY - overrides the looked-up model (uses --width/--height/--voffset)",
   )
+  .option(
+    "--reframe <mode>",
+    "how to fit the rendered image onto the device's actual panel size when it doesn't match: fixed (default - reject the mismatch, as always), scale (stretch the template to the panel), crop (place at top-left, truncating or leaving the rest blank)",
+    "fixed",
+  )
   .option("--connect-timeout <seconds>", "BLE connect timeout before giving up on an attempt", "30")
   .option("--retries <n>", "number of paint attempts (including the first) before giving up", "3")
   .action(async (opts) => {
@@ -255,26 +284,30 @@ program
     if (!driver) {
       throw new Error(`no driver registered for vendor "${vendor}"`);
     }
+    const svgSource = await readFile(opts.template, "utf-8");
+    // Defaults from the template's own declared size, same as `render` - not from the device's real
+    // panel size, which would need its own identify connect ahead of driver.paint()'s own connect;
+    // two back-to-back BLE connects on the same device is exactly the kind of churn that trips BlueZ
+    // (confirmed: identifyDevice() does a full connect+disconnect for zhsunyco, to read its PID off a
+    // GATT characteristic - immediately followed by paint()'s own connect crashed with a raw D-Bus
+    // "recipient disconnected from message bus without replying" on real hardware). --reframe below
+    // covers a mismatch against the real panel size within paint()'s own single connect instead.
+    const declared = readTemplateDimensions(svgSource);
+    const width = resolveDimension(opts.width, [declared.width], DEFAULT_RENDER_WIDTH);
+    const height = resolveDimension(opts.height, [declared.height], DEFAULT_RENDER_HEIGHT);
     const modelOverride: DeviceModelOverride | undefined = opts.colours
       ? {
           label: "manual override",
-          width: Number(opts.width),
-          height: Number(opts.height),
+          width,
+          height,
           voffset: Number(opts.voffset),
           colours: parseColours(opts.colours),
         }
       : undefined;
-    const bindings = findBindings(await readFile(opts.template, "utf-8"));
+    const bindings = findBindings(svgSource);
     const context = await assembleContext(opts, bindings);
     const renderer = new SvgRenderer();
-    const bitmap = await renderer.render(
-      opts.template,
-      context,
-      Number(opts.width),
-      Number(opts.height),
-      dirname(opts.template),
-      BUNDLED_TEMPLATES_DIR,
-    );
+    const bitmap = await renderer.render(opts.template, context, width, height, dirname(opts.template), BUNDLED_TEMPLATES_DIR);
     const connectTimeoutMs = Number(opts.connectTimeout) * 1000;
     await withRetries(Number(opts.retries), async (attempt) => {
       if (attempt > 1) {
@@ -285,6 +318,7 @@ program
         aesKey: opts.aesKey,
         modelOverride,
         connectTimeoutMs,
+        reframe: parseReframeMode(opts.reframe),
       });
     });
     console.log(`painted ${opts.address} (${bitmap.width}x${bitmap.height}) ${opts.colours}`);
@@ -305,8 +339,8 @@ program
     "-e, --example-data <dir>",
     "load vessels/resources from local example JSON files in <dir> (e.g. ./examples) instead of a live SignalK server - alternative to -u",
   )
-  .option("-w, --width <px>", "render width", "416")
-  .option("--height <px>", "render height", "240")
+  .option("-w, --width <px>", "render width - defaults to the template's declared width/viewBox")
+  .option("--height <px>", "render height - defaults to the template's declared height/viewBox")
   .option(
     "-f, --font <path>",
     "override a bundled font with this file (repeatable) - defaults to the bundled monospace/sans-serif/serif trio",
@@ -314,17 +348,14 @@ program
     (value, previous: string[] | undefined = []) => [...previous, value],
   )
   .action(async (opts) => {
-    const bindings = findBindings(await readFile(opts.template, "utf-8"));
+    const svgSource = await readFile(opts.template, "utf-8");
+    const declared = readTemplateDimensions(svgSource);
+    const width = resolveDimension(opts.width, [declared.width], DEFAULT_RENDER_WIDTH);
+    const height = resolveDimension(opts.height, [declared.height], DEFAULT_RENDER_HEIGHT);
+    const bindings = findBindings(svgSource);
     const context = await assembleContext(opts, bindings);
     const renderer = opts.font ? new SvgRenderer(opts.font) : new SvgRenderer();
-    const bitmap = await renderer.render(
-      opts.template,
-      context,
-      Number(opts.width),
-      Number(opts.height),
-      dirname(opts.template),
-      BUNDLED_TEMPLATES_DIR,
-    );
+    const bitmap = await renderer.render(opts.template, context, width, height, dirname(opts.template), BUNDLED_TEMPLATES_DIR);
     await writeFile(opts.output, bitmapToPng(bitmap));
     console.log(`wrote ${opts.output} (${bitmap.width}x${bitmap.height})`);
   });
