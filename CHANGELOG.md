@@ -1,3 +1,7 @@
+# 1.2.1
+
+- Additional tide template for 296x128
+
 # 1.2.0
 
 - Added support for Gicisky labels (also known by other brands), tested with a 2.9" BWRY model
