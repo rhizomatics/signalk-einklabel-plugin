@@ -257,7 +257,10 @@ program
     "-k, --aes-key <hex>",
     "AES-128 key for device authentication, as 32 hex characters - defaults to the vendor's stock key if omitted",
   )
-  .option("-w, --width <px>", "render width - defaults to the template's declared width/viewBox - see --reframe for fitting onto a differently-sized panel")
+  .option(
+    "-w, --width <px>",
+    "render width - defaults to the template's declared width/viewBox - see --reframe for fitting onto a differently-sized panel",
+  )
   .option(
     "--height <px>",
     "render height - defaults to the template's declared height/viewBox - see --reframe for fitting onto a differently-sized panel",

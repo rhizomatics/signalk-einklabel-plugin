@@ -7,15 +7,15 @@
     "display",
     "eink",
     "esl",
+    "gicisky",
     "instrument",
     "signalk",
-    "zhsunyco",
-    "gicisky",
     "signalk-category-hardware",
     "signalk-category-instruments",
     "signalk-node-server-plugin",
     "tides",
-    "watch-schedule"
+    "watch-schedule",
+    "zhsunyco"
   ],
   "homepage": "https://signalk-einklabel.rhizomatics.org.uk/",
   "bugs": {
