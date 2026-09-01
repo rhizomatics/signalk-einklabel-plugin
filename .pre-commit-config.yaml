@@ -11,7 +11,7 @@ repos:
       - id: check-added-large-files
       - id: check-merge-conflict
   - repo: https://github.com/oxc-project/mirrors-oxlint
-    rev: v1.74.0
+    rev: v1.60.0
     hooks:
       - id: oxlint
         verbose: true
@@ -22,7 +22,7 @@ repos:
         # rather than a no-op. This flag makes that case a clean pass instead of a spurious failure.
         args: ["--node-plugin", "--no-error-on-unmatched-pattern"]
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.60.0
+    rev: v0.65.0
     hooks:
       - id: oxfmt
         verbose: false
