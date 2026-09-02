@@ -10,9 +10,9 @@ const WHITE: [number, number, number] = [255, 255, 255];
 const RED: [number, number, number] = [200, 30, 30];
 const YELLOW: [number, number, number] = [240, 210, 40];
 
-function bitmap(width: number, height: number, pixels: [number, number, number][]): Bitmap {
+function bitmap(width: number, height: number, pixels: [number, number, number, number?][]): Bitmap {
   const data = new Uint8Array(width * height * 4);
-  pixels.forEach(([r, g, b], i) => data.set([r, g, b, 255], i * 4));
+  pixels.forEach(([r, g, b, a = 255], i) => data.set([r, g, b, a], i * 4));
   return { width, height, data };
 }
 
@@ -74,5 +74,12 @@ test("gicisky encodeBitmap", async (t) => {
 
   await t.test("throws when the bitmap doesn't match the device's declared size", () => {
     assert.throws(() => encodeBitmap(bitmap(1, 1, [BLACK]), metadata(2, 2, ["black", "white"]), PLAIN));
+  });
+
+  await t.test("a mostly-transparent pixel is sent as white (blank paper), not black - undrawn SVG canvas is RGB (0,0,0) but not meant as ink", () => {
+    const bmp = bitmap(2, 1, [[0, 0, 0, 0], WHITE]);
+    const encoded = encodeBitmap(bmp, metadata(2, 1, ["black", "white"]), PLAIN);
+    // Both pixels set the white-plane bit: the transparent one via the alpha check, the other via its own RGB.
+    assert.equal(encoded[0], 0b11000000);
   });
 });
