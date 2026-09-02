@@ -1,5 +1,12 @@
 # signalk-einklabel-plugin Development
 
+## Pre-reqs
+
+* nodejs
+* npm   
+* pre-commit
+  * `apt install pre-commit`
+
 ## Release
 
 ```bash
