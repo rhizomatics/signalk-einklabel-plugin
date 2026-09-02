@@ -1,6 +1,6 @@
 # 1.2.3
 
-- Improved example tide template for 2.9" Gicisky
+- Improved example tide template for 2.9" Gicisky, and added blank and error templates
 
 # 1.2.2
 
