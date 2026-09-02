@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/LICENSE)
 [![boat tech directory](https://boat-tech-directory.rhizomatics.org.uk/images/badge.svg)](https://boat-tech-directory.rhizomatics.org.uk)
 
-A SignalK plugin to display data from SignalK paths, Resource APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates, or optionally created from a crafted prompt by GenAI if the companion [`@rhizomatics/signalk-einklabel-genai-plugin`](https://github.com/rhizomatics/signalk-einklabel-genai-plugin) is installed.
+A SignalK plugin to display data from SignalK paths, Resource APIs and plugins on Electronic Shelf Labels (ESL) over a Bluetooth Low Energy (BLE) connection using simple SVG templates, or optionally created from a crafted prompt by GenAI if the companion [`@rhizomatics/signalk-einklabel-genai-plugin`](https://github.com/rhizomatics/signalk-einklabel-genai-plugin) is installed. Supports ESLs from two of the major Chinese manufacturers, and requires no firmware or hardware modifications, switch on and go.
 
 ![Companionway Tidal Clock](docs/assets/images/real_tidal_clock.jpg)
 
