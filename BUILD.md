@@ -6,7 +6,8 @@
 * npm   
 * pre-commit
   * `apt install pre-commit`
-
+  * `pre-commit install`
+  
 ## Release
 
 ```bash
