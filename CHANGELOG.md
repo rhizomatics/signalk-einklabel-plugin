@@ -1,4 +1,4 @@
-# 1.3.0
+# 1.2.2
 
 - Fully implemented the backoff and retry logic on failed paint, by default after 30s
 - Auto reframe now happens in main plugin as well as CLI
