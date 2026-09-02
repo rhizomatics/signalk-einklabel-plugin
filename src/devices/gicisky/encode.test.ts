@@ -76,10 +76,13 @@ test("gicisky encodeBitmap", async (t) => {
     assert.throws(() => encodeBitmap(bitmap(1, 1, [BLACK]), metadata(2, 2, ["black", "white"]), PLAIN));
   });
 
-  await t.test("a mostly-transparent pixel is sent as white (blank paper), not black - undrawn SVG canvas is RGB (0,0,0) but not meant as ink", () => {
-    const bmp = bitmap(2, 1, [[0, 0, 0, 0], WHITE]);
-    const encoded = encodeBitmap(bmp, metadata(2, 1, ["black", "white"]), PLAIN);
-    // Both pixels set the white-plane bit: the transparent one via the alpha check, the other via its own RGB.
-    assert.equal(encoded[0], 0b11000000);
-  });
+  await t.test(
+    "a mostly-transparent pixel is sent as white (blank paper), not black - undrawn SVG canvas is RGB (0,0,0) but not meant as ink",
+    () => {
+      const bmp = bitmap(2, 1, [[0, 0, 0, 0], WHITE]);
+      const encoded = encodeBitmap(bmp, metadata(2, 1, ["black", "white"]), PLAIN);
+      // Both pixels set the white-plane bit: the transparent one via the alpha check, the other via its own RGB.
+      assert.equal(encoded[0], 0b11000000);
+    },
+  );
 });

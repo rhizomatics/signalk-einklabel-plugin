@@ -51,10 +51,13 @@ test("encodeBitmap colour quantisation", async (t) => {
     assert.equal(encodeBitmap(solidBitmap(...BLACKISH), bwr)[0], 0b00000000);
   });
 
-  await t.test("a mostly-transparent pixel is sent as white (blank paper), not black - undrawn SVG canvas is RGB (0,0,0) but not meant as ink", () => {
-    const bwr = metadata(["black", "white", "red"]);
-    assert.equal(encodeBitmap(solidBitmap(0, 0, 0, 0), bwr)[0], 0b01010101);
-  });
+  await t.test(
+    "a mostly-transparent pixel is sent as white (blank paper), not black - undrawn SVG canvas is RGB (0,0,0) but not meant as ink",
+    () => {
+      const bwr = metadata(["black", "white", "red"]);
+      assert.equal(encodeBitmap(solidBitmap(0, 0, 0, 0), bwr)[0], 0b01010101);
+    },
+  );
 
   await t.test("a mostly-opaque pixel is still classified by its RGB, not treated as transparent", () => {
     const bwr = metadata(["black", "white", "red"]);

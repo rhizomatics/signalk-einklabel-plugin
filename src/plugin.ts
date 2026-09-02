@@ -67,7 +67,10 @@ export function createPlugin(app: ServerAPI): Plugin {
       // repaint scheduler touch BLE at all - see `waitForAdapter`'s doc comment on the boot-time race
       // this covers. `stopped` is checked after, not just passed as `cancelled`, since the wait can
       // also resolve `true` on its own right as `stop()` runs.
-      void waitForAdapter((message) => app.debug(message), () => stopped).then(() => {
+      void waitForAdapter(
+        (message) => app.debug(message),
+        () => stopped,
+      ).then(() => {
         if (stopped) return;
         if (pluginConfig.scanOnStart) {
           void runStartupScan(app, pluginConfig.scanDurationSeconds);

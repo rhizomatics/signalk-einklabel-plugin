@@ -81,7 +81,13 @@ function packPlane(bitmap: Bitmap, layout: GiciskyLayout, supported: Colour[], p
       const sx = layout.mirrorX ? width - 1 - x : x;
       const sy = layout.mirrorY ? height - 1 - y : y;
       const offset = (sy * width + sx) * 4;
-      const colour = classifyColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], bitmap.data[offset + 3], supported);
+      const colour = classifyColour(
+        bitmap.data[offset],
+        bitmap.data[offset + 1],
+        bitmap.data[offset + 2],
+        bitmap.data[offset + 3],
+        supported,
+      );
       if (predicate(colour)) {
         const byteIndex = y * bytesPerRow + (x >> 3);
         plane[byteIndex] |= 0x80 >> (x % 8);
@@ -104,7 +110,13 @@ function packFourColour(bitmap: Bitmap, layout: GiciskyLayout, supported: Colour
       const sx = layout.mirrorX ? width - 1 - x : x;
       const sy = layout.mirrorY ? height - 1 - y : y;
       const offset = (sy * width + sx) * 4;
-      const colour = classifyColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], bitmap.data[offset + 3], supported);
+      const colour = classifyColour(
+        bitmap.data[offset],
+        bitmap.data[offset + 1],
+        bitmap.data[offset + 2],
+        bitmap.data[offset + 3],
+        supported,
+      );
       const code = FOUR_COLOUR_CODE[colour];
       const byteIndex = y * bytesPerRow + Math.floor(x / pixelsPerByte);
       const shift = 6 - (x % pixelsPerByte) * 2;

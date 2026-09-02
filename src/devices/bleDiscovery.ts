@@ -174,7 +174,12 @@ const MANUFACTURER_DATA_POLL_MS = 500;
  * `device` handle rather than re-resolving it. Bounded by `timeoutMs`; returns undefined rather than
  * throwing if nothing arrives in time, so a caller can fall back to its own error/manual-override path.
  */
-export async function waitForManufacturerData(adapter: Adapter, device: Device, manufacturerId: number, timeoutMs: number): Promise<Buffer | undefined> {
+export async function waitForManufacturerData(
+  adapter: Adapter,
+  device: Device,
+  manufacturerId: number,
+  timeoutMs: number,
+): Promise<Buffer | undefined> {
   const key = manufacturerId.toString();
   const existing = await device.getManufacturerData().catch(() => undefined);
   if (existing?.[key]) {

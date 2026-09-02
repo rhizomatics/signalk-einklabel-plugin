@@ -27,10 +27,7 @@ test("withDiscovery refuses to run on a non-Linux platform", { skip: process.pla
 test("waitForAdapter", async (t) => {
   await t.test("returns false immediately on a non-Linux platform, without retrying", { skip: process.platform === "linux" }, async () => {
     const messages: string[] = [];
-    assert.equal(
-      await waitForAdapter((message) => messages.push(message)),
-      false,
-    );
+    assert.equal(await waitForAdapter((message) => messages.push(message)), false);
     assert.deepEqual(messages, []);
   });
 
@@ -59,7 +56,10 @@ function mockAdapter(overrides: Record<string, unknown> = {}): Adapter {
 test("waitForManufacturerData", async (t) => {
   await t.test("returns cached data immediately, without starting a discovery session", async () => {
     const calls: string[] = [];
-    const adapter = mockAdapter({ startDiscovery: async () => void calls.push("start"), stopDiscovery: async () => void calls.push("stop") });
+    const adapter = mockAdapter({
+      startDiscovery: async () => void calls.push("start"),
+      stopDiscovery: async () => void calls.push("stop"),
+    });
     const device = { getManufacturerData: async () => ({ 0x0157: Buffer.from([1, 2]) }) } as unknown as Device;
     assert.deepEqual(await waitForManufacturerData(adapter, device, 0x0157, 5000), Buffer.from([1, 2]));
     assert.deepEqual(calls, []);
@@ -74,7 +74,10 @@ test("waitForManufacturerData", async (t) => {
       },
     } as unknown as Device;
     const calls: string[] = [];
-    const adapter = mockAdapter({ startDiscovery: async () => void calls.push("start"), stopDiscovery: async () => void calls.push("stop") });
+    const adapter = mockAdapter({
+      startDiscovery: async () => void calls.push("start"),
+      stopDiscovery: async () => void calls.push("stop"),
+    });
     assert.deepEqual(await waitForManufacturerData(adapter, device, 0x0157, 5000), Buffer.from([9]));
     assert.deepEqual(calls, ["start", "stop"]);
     assert.ok(reads >= 2);

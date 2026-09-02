@@ -560,7 +560,7 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               type: "string",
               title: "If the render doesn't match the panel size",
               description:
-                'Crop: place at the top-left, truncating anything too big or leaving the rest blank if too small. Scale: stretch to fit exactly (may distort). Fixed: fail the repaint instead of showing an off-size image.',
+                "Crop: place at the top-left, truncating anything too big or leaving the rest blank if too small. Scale: stretch to fit exactly (may distort). Fixed: fail the repaint instead of showing an off-size image.",
               enum: ["crop", "scale", "fixed"],
               default: "crop",
             },

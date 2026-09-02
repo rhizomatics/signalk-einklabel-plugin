@@ -2,12 +2,12 @@
 
 ## Pre-reqs
 
-* nodejs
-* npm   
-* pre-commit
-  * `apt install pre-commit`
-  * `pre-commit install`
-  
+- nodejs
+- npm
+- pre-commit
+  - `apt install pre-commit`
+  - `pre-commit install`
+
 ## Release
 
 ```bash
