@@ -14,9 +14,19 @@ const FALLBACK: Partial<Record<Colour, Colour>> = {
   red: "black",
 };
 
-function classifyColour(r: number, g: number, b: number, supported: Colour[]): Colour {
+/** Below this, a pixel counts as "blank" rather than whatever colour its (possibly meaningless, for a fully transparent pixel) RGB happens to hold. */
+const TRANSPARENT_ALPHA_THRESHOLD = 128;
+
+/**
+ * A mostly-transparent pixel - undrawn SVG canvas, e.g. a template resized without its background
+ * rect following - classifies as white (blank paper), not the RGB-thresholds' own default of black:
+ * resvg-wasm leaves transparent pixels at RGB (0,0,0), and without this check that reads as
+ * ink-black rather than the blank label surface it actually represents.
+ */
+function classifyColour(r: number, g: number, b: number, a: number, supported: Colour[]): Colour {
   let colour: Colour = "black";
-  if (r > 150 && g > 150 && b > 150) colour = "white";
+  if (a < TRANSPARENT_ALPHA_THRESHOLD) colour = "white";
+  else if (r > 150 && g > 150 && b > 150) colour = "white";
   else if (r > 150 && g > 100 && b < 80) colour = "yellow";
   else if (r > 150 && g < 80 && b < 80) colour = "red";
 
@@ -71,7 +81,7 @@ function packPlane(bitmap: Bitmap, layout: GiciskyLayout, supported: Colour[], p
       const sx = layout.mirrorX ? width - 1 - x : x;
       const sy = layout.mirrorY ? height - 1 - y : y;
       const offset = (sy * width + sx) * 4;
-      const colour = classifyColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], supported);
+      const colour = classifyColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], bitmap.data[offset + 3], supported);
       if (predicate(colour)) {
         const byteIndex = y * bytesPerRow + (x >> 3);
         plane[byteIndex] |= 0x80 >> (x % 8);
@@ -94,7 +104,7 @@ function packFourColour(bitmap: Bitmap, layout: GiciskyLayout, supported: Colour
       const sx = layout.mirrorX ? width - 1 - x : x;
       const sy = layout.mirrorY ? height - 1 - y : y;
       const offset = (sy * width + sx) * 4;
-      const colour = classifyColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], supported);
+      const colour = classifyColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], bitmap.data[offset + 3], supported);
       const code = FOUR_COLOUR_CODE[colour];
       const byteIndex = y * bytesPerRow + Math.floor(x / pixelsPerByte);
       const shift = 6 - (x % pixelsPerByte) * 2;

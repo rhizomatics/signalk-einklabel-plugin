@@ -7,10 +7,10 @@ import { Colour, DeviceMetadata } from "../types";
 /** A 1x4 solid-colour bitmap - narrow enough that the whole encoded output is one byte, with the
  * same pixel colour packed into all four 2-bit slots, so the byte value alone identifies the code
  * `encodeBitmap` chose for that colour. */
-function solidBitmap(r: number, g: number, b: number): Bitmap {
+function solidBitmap(r: number, g: number, b: number, a = 255): Bitmap {
   const data = new Uint8Array(4 * 4);
   for (let i = 0; i < 4; i++) {
-    data.set([r, g, b, 255], i * 4);
+    data.set([r, g, b, a], i * 4);
   }
   return { width: 1, height: 4, data };
 }
@@ -49,5 +49,15 @@ test("encodeBitmap colour quantisation", async (t) => {
     const bwr = metadata(["black", "white", "red"]);
     assert.equal(encodeBitmap(solidBitmap(...WHITE), bwr)[0], 0b01010101);
     assert.equal(encodeBitmap(solidBitmap(...BLACKISH), bwr)[0], 0b00000000);
+  });
+
+  await t.test("a mostly-transparent pixel is sent as white (blank paper), not black - undrawn SVG canvas is RGB (0,0,0) but not meant as ink", () => {
+    const bwr = metadata(["black", "white", "red"]);
+    assert.equal(encodeBitmap(solidBitmap(0, 0, 0, 0), bwr)[0], 0b01010101);
+  });
+
+  await t.test("a mostly-opaque pixel is still classified by its RGB, not treated as transparent", () => {
+    const bwr = metadata(["black", "white", "red"]);
+    assert.equal(encodeBitmap(solidBitmap(...BLACKISH, 200), bwr)[0], 0b00000000);
   });
 });

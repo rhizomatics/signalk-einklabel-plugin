@@ -162,6 +162,46 @@ export async function getOrDiscoverDevice(adapter: Adapter, address: string, tim
   }
 }
 
+const MANUFACTURER_DATA_POLL_MS = 500;
+
+/**
+ * Returns `device`'s manufacturer data under `manufacturerId` if BlueZ already has it cached, else
+ * actively (re)scans for it - covers a device BlueZ already knows about (so `getOrDiscoverDevice`'s
+ * cheap `adapter.getDevice()` path returns it immediately, never triggering a scan) but whose
+ * advertisement cache is empty or stale, e.g. it hasn't actually been seen since `bluetoothd`
+ * restarted. BlueZ updates the *same* `Device` object's properties in place as fresh adverts arrive
+ * during a discovery window, so this just starts one (unless already running) and polls the existing
+ * `device` handle rather than re-resolving it. Bounded by `timeoutMs`; returns undefined rather than
+ * throwing if nothing arrives in time, so a caller can fall back to its own error/manual-override path.
+ */
+export async function waitForManufacturerData(adapter: Adapter, device: Device, manufacturerId: number, timeoutMs: number): Promise<Buffer | undefined> {
+  const key = manufacturerId.toString();
+  const existing = await device.getManufacturerData().catch(() => undefined);
+  if (existing?.[key]) {
+    return existing[key];
+  }
+
+  const wasDiscovering = await adapter.isDiscovering();
+  if (!wasDiscovering) {
+    await adapter.startDiscovery();
+  }
+  try {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const data = await device.getManufacturerData().catch(() => undefined);
+      if (data?.[key]) {
+        return data[key];
+      }
+      await sleep(MANUFACTURER_DATA_POLL_MS);
+    }
+    return undefined;
+  } finally {
+    if (!wasDiscovering) {
+      await adapter.stopDiscovery();
+    }
+  }
+}
+
 const ADAPTER_WAIT_BASE_DELAY_MS = 2_000;
 const ADAPTER_WAIT_MAX_DELAY_MS = 30_000;
 

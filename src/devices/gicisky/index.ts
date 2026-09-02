@@ -1,7 +1,7 @@
 import { Device, GattCharacteristic, GattServer } from "@naugehyde/node-ble";
 import { Bitmap } from "../../render/types";
 import { DeviceMetadata, DiscoveredDevice, VendorDeviceConfig, VendorDriver } from "../types";
-import { connectWithTimeout, createBluetooth, getOrDiscoverDevice } from "../bleDiscovery";
+import { connectWithTimeout, createBluetooth, getOrDiscoverDevice, waitForManufacturerData } from "../bleDiscovery";
 import { GICISKY_PID_METADATA } from "./metadata";
 import { GICISKY_PID_LAYOUT, GiciskyLayout, defaultLayoutFor } from "./layout";
 import { encodeBitmap } from "./encode";
@@ -17,6 +17,8 @@ import {
 } from "./protocol";
 
 const DEVICE_DISCOVERY_TIMEOUT_MS = 30_000;
+/** How long to actively rescan for a fresh advertisement when the cached one is missing/stale - see `waitForManufacturerData`. */
+const MANUFACTURER_DATA_RESCAN_TIMEOUT_MS = 15_000;
 const DEFAULT_PAINT_CONNECT_TIMEOUT_MS = 60_000;
 const ACK_TIMEOUT_MS = 15_000;
 /** Fallback if a device's `requestBlockSize` ack doesn't decode - matches the block size both reference drivers assume. */

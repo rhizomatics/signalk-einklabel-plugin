@@ -4,6 +4,7 @@
 - Auto reframe now happens in main plugin as well as CLI
 - Auto reframe now defaults to `crop` for CLI, can be overidden back to `fixed`
 - Handle Gicisky stale cache paint failures by prompting a re-scan when necessary
+- Improve background default for `crop` reframing
 
 # 1.2.1
 

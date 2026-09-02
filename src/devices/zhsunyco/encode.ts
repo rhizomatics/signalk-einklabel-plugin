@@ -26,10 +26,21 @@ const FALLBACK: Partial<Record<Colour, Colour>> = {
   red: "black",
 };
 
-/** Mirrors the reference driver's `from_pillow` nearest-colour decision tree, then maps the result down onto whatever colours this particular device's panel actually supports (see `DeviceMetadata.colours`). */
-function nearestColour(r: number, g: number, b: number, supported: Colour[]): WolinkColour {
+/** Below this, a pixel counts as "blank" rather than whatever colour its (possibly meaningless, for a fully transparent pixel) RGB happens to hold. */
+const TRANSPARENT_ALPHA_THRESHOLD = 128;
+
+/**
+ * Mirrors the reference driver's `from_pillow` nearest-colour decision tree, then maps the result
+ * down onto whatever colours this particular device's panel actually supports (see
+ * `DeviceMetadata.colours`). A mostly-transparent pixel - undrawn SVG canvas, e.g. a template resized
+ * without its background rect following - classifies as white (blank paper), not the RGB-thresholds'
+ * own default of black: resvg-wasm leaves transparent pixels at RGB (0,0,0), and without this check
+ * that reads as ink-black rather than the blank label surface it actually represents.
+ */
+function nearestColour(r: number, g: number, b: number, a: number, supported: Colour[]): WolinkColour {
   let colour: Colour = "black";
-  if (r > 150 && g > 150 && b > 150) colour = "white";
+  if (a < TRANSPARENT_ALPHA_THRESHOLD) colour = "white";
+  else if (r > 150 && g > 150 && b > 150) colour = "white";
   else if (r > 150 && g > 100 && b < 80) colour = "yellow";
   else if (r > 150 && g < 80 && b < 80) colour = "red";
 
@@ -78,5 +89,5 @@ export function encodeBitmap(bitmap: Bitmap, metadata: DeviceMetadata): Buffer {
 
 function samplePixel(bitmap: Bitmap, x: number, y: number, supported: Colour[]): WolinkColour {
   const offset = (y * bitmap.width + x) * 4;
-  return nearestColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], supported);
+  return nearestColour(bitmap.data[offset], bitmap.data[offset + 1], bitmap.data[offset + 2], bitmap.data[offset + 3], supported);
 }
