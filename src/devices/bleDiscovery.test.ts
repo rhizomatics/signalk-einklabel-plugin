@@ -47,7 +47,7 @@ test("waitForAdapter", async (t) => {
   });
 });
 
-function mockAdapter(overrides: Partial<Adapter> = {}): Adapter {
+function mockAdapter(overrides: Record<string, unknown> = {}): Adapter {
   return {
     isDiscovering: async () => false,
     startDiscovery: async () => {},
