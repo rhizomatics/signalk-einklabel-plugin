@@ -288,11 +288,13 @@ The width, height, vertical offset and colour palette for the device are taken f
 
 Left unset, both `render` and `paint` default `-w/--width`/`--height` to the template's own declared `width`/`height` (or `viewBox`) - neither command connects to a device just to size the render, since that would mean an extra BLE connect ahead of `paint`'s own, and doing two back-to-back is exactly the kind of churn that trips real BLE hardware.
 
-`paint` also takes `--reframe <mode>`, applied once it has connected and identified the device, for when the rendered image doesn't come out the same size as its actual panel:
+`paint` also takes `--reframe <mode>`, applied once it has connected and identified the device, for when the rendered image doesn't come out the same size as its actual panel (see [Reframing](#reframing) above):
 
-- `fixed` (default) - no adjustment; a size mismatch is rejected with an error, as it always has been
+- `crop` (default) - keeps pixels 1:1, placed from the top-left; a bigger render is truncated to fit, a smaller one leaves the extra panel space blank
 - `scale` - stretches the rendered image onto the panel's exact dimensions (independently per axis, not preserving aspect ratio)
-- `crop` - keeps pixels 1:1, placed from the top-left; a bigger render is truncated to fit, a smaller one leaves the extra panel space blank
+- `fixed` - no adjustment; rejects a size mismatch with an error instead
+
+The main SignalK plugin offers the same choice per device (defaulting to `crop` there too) in each device's own config - "If the render doesn't match the panel size".
 
 `esl-cli` can also be extended with new subcommands by a `-r/--require`'d package - see [Extending](#extending) below - which is how [`@rhizomatics/signalk-einklabel-genai-plugin`](#genai-rendering) adds its own `prompt`/`generate` commands for testing prompts without a device.
 
