@@ -3,6 +3,7 @@
 - Fully implemented the backoff and retry logic on failed paint, by default after 30s
 - Auto reframe now happens in main plugin as well as CLI
 - Auto reframe now defaults to `crop` for CLI, can be overidden back to `fixed`
+- Handle Gicisky stale cache paint failures by prompting a re-scan when necessary
 
 # 1.2.1
 
