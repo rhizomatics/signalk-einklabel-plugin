@@ -75,12 +75,12 @@ export class GiciskyDriver implements VendorDriver {
        * Unlike zhsunyco, there's no GATT characteristic that reports the device's PID on demand -
        * the only source for it is the advertisement, cached on the `Device` object by BlueZ from
        * the last time it was seen (the same cache `identifyDevice`/a scan reads, just without
-       * connecting first - see `forEachAdvertisedDevice` in `bleDiscovery.ts`).
+       * connecting first - see `forEachAdvertisedDevice` in `bleDiscovery.ts`). That cache can be
+       * empty or stale (e.g. nothing has actively scanned since `bluetoothd` last restarted) even
+       * though `getOrDiscoverDevice` above found the device instantly via BlueZ's own cache of
+       * *devices* - so rescan for a fresh advertisement here rather than failing on the first read.
        */
-      const manufacturerData = await device
-        .getManufacturerData()
-        .then((data) => data[GICISKY_MANUFACTURER_ID.toString()])
-        .catch(() => undefined);
+      const manufacturerData = await waitForManufacturerData(adapter, device, GICISKY_MANUFACTURER_ID, MANUFACTURER_DATA_RESCAN_TIMEOUT_MS);
       const info = manufacturerData ? decodeAdvertisedInfo(manufacturerData) : undefined;
 
       const metadata: DeviceMetadata | undefined = config.modelOverride
@@ -91,7 +91,8 @@ export class GiciskyDriver implements VendorDriver {
       if (!metadata) {
         throw new Error(
           info === undefined
-            ? "gicisky device has no cached advertisement to identify it from - scan for it first, or pass --width/--height/--voffset/--colours to describe it manually"
+            ? "gicisky device isn't advertising - rescanned but got nothing back (out of range, asleep, or already connected " +
+                "elsewhere) - pass --width/--height/--voffset/--colours to describe it manually"
             : `gicisky device reports unrecognised deviceId 0x${info.deviceId.toString(16).padStart(4, "0")} - ` +
                 "pass --width/--height/--voffset/--colours to describe it manually",
         );

@@ -8,6 +8,7 @@ import {
   getManufacturerId,
   getOrDiscoverDevice,
   waitForAdapter,
+  waitForManufacturerData,
   withDiscovery,
   withRetries,
 } from "./bleDiscovery";
@@ -43,6 +44,58 @@ test("waitForAdapter", async (t) => {
       false,
     );
     assert.deepEqual(messages, []);
+  });
+});
+
+function mockAdapter(overrides: Partial<Adapter> = {}): Adapter {
+  return {
+    isDiscovering: async () => false,
+    startDiscovery: async () => {},
+    stopDiscovery: async () => {},
+    ...overrides,
+  } as unknown as Adapter;
+}
+
+test("waitForManufacturerData", async (t) => {
+  await t.test("returns cached data immediately, without starting a discovery session", async () => {
+    const calls: string[] = [];
+    const adapter = mockAdapter({ startDiscovery: async () => void calls.push("start"), stopDiscovery: async () => void calls.push("stop") });
+    const device = { getManufacturerData: async () => ({ 0x0157: Buffer.from([1, 2]) }) } as unknown as Device;
+    assert.deepEqual(await waitForManufacturerData(adapter, device, 0x0157, 5000), Buffer.from([1, 2]));
+    assert.deepEqual(calls, []);
+  });
+
+  await t.test("starts discovery and polls until the data arrives", async () => {
+    let reads = 0;
+    const device = {
+      getManufacturerData: async () => {
+        reads++;
+        return reads < 2 ? {} : { 0x0157: Buffer.from([9]) };
+      },
+    } as unknown as Device;
+    const calls: string[] = [];
+    const adapter = mockAdapter({ startDiscovery: async () => void calls.push("start"), stopDiscovery: async () => void calls.push("stop") });
+    assert.deepEqual(await waitForManufacturerData(adapter, device, 0x0157, 5000), Buffer.from([9]));
+    assert.deepEqual(calls, ["start", "stop"]);
+    assert.ok(reads >= 2);
+  });
+
+  await t.test("doesn't start/stop discovery if it was already running", async () => {
+    const calls: string[] = [];
+    const adapter = mockAdapter({
+      isDiscovering: async () => true,
+      startDiscovery: async () => void calls.push("start"),
+      stopDiscovery: async () => void calls.push("stop"),
+    });
+    const device = { getManufacturerData: async () => ({}) } as unknown as Device;
+    assert.equal(await waitForManufacturerData(adapter, device, 0x0157, 200), undefined);
+    assert.deepEqual(calls, []);
+  });
+
+  await t.test("returns undefined once the timeout elapses with nothing found", async () => {
+    const adapter = mockAdapter();
+    const device = { getManufacturerData: async () => ({}) } as unknown as Device;
+    assert.equal(await waitForManufacturerData(adapter, device, 0x0157, 200), undefined);
   });
 });
 
