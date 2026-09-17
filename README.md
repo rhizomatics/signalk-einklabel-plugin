@@ -503,6 +503,8 @@ Bluetooth: hci0: Opcode 0x2042 failed: -110
 
 This happens when USB autosuspend cycles the dongle in and out of low-power suspend while idle. When bluetoothd sends an HCI command while the device is suspended or mid-resume, it never gets answered — adapters like the popular ASUS USB-500 lack a GPIO to allow reset and its stuck, and spams logs.
 
+In these examples the dongle is for vendor `0b05` and product `190e`, adapt for your own devices, use `lsusb` to find out, and if there's no `lsusb` command, install the `usbutils` package.
+
 #### Example udev rule fix
 
 Following file created at `/etc/udev/rules.d/99-bt500-no-autosuspend.rules`
@@ -510,6 +512,16 @@ Following file created at `/etc/udev/rules.d/99-bt500-no-autosuspend.rules`
 ```
 # Disable USB autosuspend for the ASUS USB-BT500 (RTL8761BU, 0b05:190e).
 ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0b05", ATTR{idProduct}=="190e", TEST=="power/control", ATTR{power/control}="on"
+```
+
+If `tlp` running to minimize power, it may have its own rules trying to suspend the Bluetooth dongle.
+
+#### Example tlp fix
+
+Following file created at /etc/tlp.d/99-bt500-no-autosuspend.conf
+
+```
+USB_DENYLIST="0b05:190e"
 ```
 
 ## Other ESL and General eInk Resources
