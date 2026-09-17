@@ -8,7 +8,17 @@
   - `apt install pre-commit`
   - `pre-commit install`
 
-## Release
+## Release Beta
+
+```bash
+npm login
+git tag -f beta
+git tag -f v1.2.0-beta
+git push --tags --force
+npm publish --tag beta --access public
+```
+
+## Release Prod
 
 ```bash
 npm login
