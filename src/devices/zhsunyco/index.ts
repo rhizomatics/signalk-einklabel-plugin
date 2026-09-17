@@ -1,7 +1,8 @@
-import { Device } from "@naugehyde/node-ble";
 import { Bitmap } from "../../render/types";
 import { DeviceMetadata, DiscoveredDevice, VendorDeviceConfig, VendorDriver } from "../types";
-import { connectWithTimeout, createBluetooth, getOrDiscoverDevice, sleep } from "../bleDiscovery";
+import { sleep } from "../bleDiscovery";
+import { nodeBleBackend } from "../bleBackend";
+import { GattConnection } from "../gattConnection";
 import { PLUGIN_NAME } from "../../pluginVersion";
 import { ZHSUNYCO_PID_METADATA } from "./metadata";
 import { encodeBitmap } from "./encode";
@@ -25,9 +26,8 @@ const UPLOAD_CHUNK_SIZE = 238;
 const CHUNK_WRITE_DELAY_MS = 20;
 const AUTH_SETTLE_DELAY_MS = 500;
 const STATUS_WAIT_TIMEOUT_MS = 60_000;
-const DEVICE_DISCOVERY_TIMEOUT_MS = 30_000;
-/** Used while identifying a device during a scan - kept short since a scan may be enumerating several devices. */
-const SCAN_CONNECT_TIMEOUT_MS = 10_000;
+/** Bounds `readDeviceDetails`' whole connect+read attempt during a scan - see its doc comment. */
+const IDENTIFY_READ_TIMEOUT_MS = 10_000;
 /** Fallback when `VendorDeviceConfig.connectTimeoutMs` is omitted (e.g. a bare CLI `paint` call) - matches `defaultConfig().paintConnectTimeoutSeconds`. */
 const DEFAULT_PAINT_CONNECT_TIMEOUT_MS = 60_000;
 
@@ -48,14 +48,23 @@ export class ZhsunycoDriver implements VendorDriver {
   }
 
   async identifyDevice(
-    device: Device,
-    address: string,
-    name: string | undefined,
-    manufacturerId: number | undefined,
-    manufacturerData: Buffer | undefined,
+    {
+      address,
+      name,
+      manufacturerId,
+      manufacturerData,
+      rssi,
+    }: {
+      address: string;
+      name: string | undefined;
+      manufacturerId: number | undefined;
+      manufacturerData: Buffer | undefined;
+      rssi: number | undefined;
+    },
+    connect: () => Promise<GattConnection>,
   ): Promise<DiscoveredDevice> {
     const advertisedInfo = manufacturerData ? decodeAdvertisedInfo(manufacturerData) : undefined;
-    const { info, batteryMv } = await readDeviceDetails(device, address, advertisedInfo);
+    const { info, batteryMv } = await readDeviceDetails(address, advertisedInfo, connect);
     return {
       address,
       name,
@@ -65,109 +74,110 @@ export class ZhsunycoDriver implements VendorDriver {
       metadata: info ? this.metadataForPid(info.pid, info.hwVersion) : undefined,
       manufacturerId,
       batteryMv,
-      rssi: await device
-        .getRSSI()
-        .then((value) => (value === undefined ? undefined : Number(value)))
-        .catch(() => undefined),
+      rssi,
     };
   }
 
   async paint(bitmap: Bitmap, config: VendorDeviceConfig): Promise<void> {
     const aesKey = resolveAesKey(config.aesKey);
 
-    const { bluetooth, destroy } = createBluetooth();
+    const backend = config.gattBackend ?? nodeBleBackend();
+    const conn = await backend.connectGatt(config.address, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
     try {
-      const adapter = await bluetooth.defaultAdapter();
-      const device = await getOrDiscoverDevice(adapter, config.address, DEVICE_DISCOVERY_TIMEOUT_MS);
+      const info = decodeAdvertisedInfo(await conn.read(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.config));
+      if (!info) {
+        throw new Error("zhsunyco device did not return valid config data");
+      }
+      const metadata = config.modelOverride ? { pid: info.pid, ...config.modelOverride } : this.metadataForPid(info.pid, info.hwVersion);
+      if (!metadata) {
+        throw new Error(
+          `zhsunyco device reports unrecognised PID 0x${info.pid.toString(16).padStart(4, "0")} - ` +
+            "pass --width/--height/--voffset/--colours to describe it manually",
+        );
+      }
 
-      await connectWithTimeout(device, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
-      try {
-        const gatt = await device.gatt();
-        const service = await gatt.getPrimaryService(WOLINK_SERVICE_UUID);
-        const dataChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.data);
-        const configChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.config);
-        const authChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.authenticate);
-        const statusChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.status);
-
-        const info = decodeAdvertisedInfo(await configChar.readValue());
-        if (!info) {
-          throw new Error("zhsunyco device did not return valid config data");
-        }
-        const metadata = config.modelOverride ? { pid: info.pid, ...config.modelOverride } : this.metadataForPid(info.pid, info.hwVersion);
-        if (!metadata) {
-          throw new Error(
-            `zhsunyco device reports unrecognised PID 0x${info.pid.toString(16).padStart(4, "0")} - ` +
-              "pass --width/--height/--voffset/--colours to describe it manually",
-          );
-        }
-
-        const statusReceived = new Promise<void>((resolve, reject) => {
-          statusChar.once("valuechanged", (data: Buffer) => {
+      const statusReceived = new Promise<void>((resolve, reject) => {
+        conn
+          .startNotifications(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.status, (data) => {
             const { errorCode } = decodeStatus(data);
             if (errorCode === 0) {
               resolve();
             } else {
               reject(new Error(`zhsunyco device reported error 0x${errorCode.toString(16).padStart(2, "0")} after refresh`));
             }
-          });
-        });
-        await statusChar.startNotifications();
+          })
+          .catch(reject);
+      });
 
-        const challenge = await authChar.readValue();
-        await authChar.writeValueWithoutResponse(authResponse(challenge, aesKey));
+      try {
+        const challenge = await conn.read(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.authenticate);
+        await conn.write(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.authenticate, authResponse(challenge, aesKey), false);
         await sleep(AUTH_SETTLE_DELAY_MS);
 
         const framed = reframeBitmap(bitmap, metadata.width, metadata.height - metadata.voffset, config.reframe ?? "crop");
         const pixelData = encodeBitmap(framed, metadata);
         for (let offset = 0; offset < pixelData.length; offset += UPLOAD_CHUNK_SIZE) {
           const chunk = pixelData.subarray(offset, offset + UPLOAD_CHUNK_SIZE);
-          await dataChar.writeValueWithResponse(Buffer.concat([commandHeader(COMMAND.uploadBlock, offset), chunk]));
+          await conn.write(
+            WOLINK_SERVICE_UUID,
+            WOLINK_CHARACTERISTIC_UUIDS.data,
+            Buffer.concat([commandHeader(COMMAND.uploadBlock, offset), chunk]),
+            true,
+          );
           await sleep(CHUNK_WRITE_DELAY_MS);
         }
-        await dataChar.writeValueWithResponse(commandHeader(COMMAND.refreshUncompressed, pixelData.length));
+        await conn.write(
+          WOLINK_SERVICE_UUID,
+          WOLINK_CHARACTERISTIC_UUIDS.data,
+          commandHeader(COMMAND.refreshUncompressed, pixelData.length),
+          true,
+        );
 
-        await Promise.race([statusReceived, sleep(STATUS_WAIT_TIMEOUT_MS)]);
+        // `Promise.race` can't cancel its loser, so once `statusReceived` settles (the common case)
+        // this timer would otherwise sit alive for the rest of its 60s regardless - see the identical
+        // reasoning on `readDeviceDetails`'s own race, below.
+        let statusTimer: ReturnType<typeof setTimeout>;
+        const statusTimeout = new Promise<void>((resolve) => {
+          statusTimer = setTimeout(resolve, STATUS_WAIT_TIMEOUT_MS);
+        });
+        try {
+          await Promise.race([statusReceived, statusTimeout]);
+        } finally {
+          clearTimeout(statusTimer!);
+        }
       } finally {
-        await device.disconnect();
+        await conn.stopNotifications(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.status).catch(() => {});
       }
     } finally {
-      destroy();
+      await conn.disconnect();
     }
   }
 }
 
 /**
  * Battery level needs a connection regardless, so reuse it to also fill in the PID/hwVersion
- * when the advertisement didn't carry decodable manufacturer data - BlueZ's cached
- * advertisement for a device matched purely by its name prefix can lack that, which would
- * otherwise leave a real, nearby device's model (and so its entry in the config UI's
- * device picker - see `deviceOptions()` in `config.ts`) silently missing. Reads the same
- * config characteristic `paint()` reads, just to identify the device rather than to size a
+ * when the advertisement didn't carry decodable manufacturer data - a scan matched purely by name
+ * prefix can lack that, which would otherwise leave a real, nearby device's model (and so its entry
+ * in the config UI's device picker - see `deviceOptions()` in `config.ts`) silently missing. Reads
+ * the same config characteristic `paint()` reads, just to identify the device rather than to size a
  * render.
  */
 async function readDeviceDetails(
-  device: Device,
   address: string,
   advertisedInfo: AdvertisedDeviceInfo | undefined,
+  connect: () => Promise<GattConnection>,
 ): Promise<{ info: AdvertisedDeviceInfo | undefined; batteryMv: number | undefined }> {
   const fallback = { info: advertisedInfo, batteryMv: undefined };
   const read = async () => {
+    let conn: GattConnection | undefined;
     try {
-      await connectWithTimeout(device, SCAN_CONNECT_TIMEOUT_MS);
-      try {
-        const gatt = await device.gatt();
-        const service = await gatt.getPrimaryService(WOLINK_SERVICE_UUID);
-        const batteryChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.battery);
-        const batteryMv = decodeBatteryMv(await batteryChar.readValue());
-        let info = advertisedInfo;
-        if (!info) {
-          const configChar = await service.getCharacteristic(WOLINK_CHARACTERISTIC_UUIDS.config);
-          info = decodeAdvertisedInfo(await configChar.readValue());
-        }
-        return { info, batteryMv };
-      } finally {
-        await device.disconnect();
+      conn = await connect();
+      const batteryMv = decodeBatteryMv(await conn.read(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.battery));
+      let info = advertisedInfo;
+      if (!info) {
+        info = decodeAdvertisedInfo(await conn.read(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.config));
       }
+      return { info, batteryMv };
     } catch (err) {
       // Swallowed rather than thrown - a device that refuses this connect (e.g. busy elsewhere,
       // out of range) should still show up in the scan with whatever the advertisement itself
@@ -175,17 +185,26 @@ async function readDeviceDetails(
       // instead of looking like the read was simply never attempted.
       console.error(`${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read failed: ${(err as Error).message}`);
       return fallback;
+    } finally {
+      await conn?.disconnect().catch(() => {});
     }
   };
-  // `connectWithTimeout` bounds the connect step itself, but a GATT call past that point (e.g.
-  // `getPrimaryService`/`readValue`) has no timeout of its own either - race the whole read so
-  // one unresponsive device can't stall the rest of the scan (see `plugin.ts`'s `scanInProgress`,
-  // which otherwise stays set forever and silently skips every later scan).
-  return Promise.race([
-    read(),
-    sleep(SCAN_CONNECT_TIMEOUT_MS * 3).then(() => {
-      console.error(`${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read timed out after ${SCAN_CONNECT_TIMEOUT_MS * 2}ms`);
-      return fallback;
-    }),
-  ]);
+  // A GATT call has no timeout of its own - race the whole read so one unresponsive device can't
+  // stall the rest of the scan (see `plugin.ts`'s `scanInProgress`, which otherwise stays set forever
+  // and silently skips every later scan). `Promise.race` alone can't cancel its loser, so a `read()`
+  // that settles fast (e.g. `connect` rejecting immediately because the device is busy elsewhere -
+  // exactly the case this function's own doc comment covers) would otherwise leave this timer running
+  // for the rest of its 30s regardless - harmless in the end, but needless to hold onto that long.
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<typeof fallback>((resolve) => {
+    timer = setTimeout(() => {
+      console.error(`${PLUGIN_NAME}: zhsunyco [${address}]: battery/config read timed out after ${IDENTIFY_READ_TIMEOUT_MS * 2}ms`);
+      resolve(fallback);
+    }, IDENTIFY_READ_TIMEOUT_MS * 3);
+  });
+  try {
+    return await Promise.race([read(), timeout]);
+  } finally {
+    clearTimeout(timer!);
+  }
 }

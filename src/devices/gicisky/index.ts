@@ -1,7 +1,7 @@
-import { Device, GattCharacteristic, GattServer } from "@naugehyde/node-ble";
 import { Bitmap } from "../../render/types";
 import { DeviceMetadata, DiscoveredDevice, VendorDeviceConfig, VendorDriver } from "../types";
-import { connectWithTimeout, createBluetooth, getOrDiscoverDevice, waitForManufacturerData } from "../bleDiscovery";
+import { nodeBleBackend } from "../bleBackend";
+import { GattConnection } from "../gattConnection";
 import { GICISKY_PID_METADATA } from "./metadata";
 import { GICISKY_PID_LAYOUT, GiciskyLayout, defaultLayoutFor } from "./layout";
 import { encodeBitmap } from "./encode";
@@ -16,8 +16,7 @@ import {
   writeScreenCommand,
 } from "./protocol";
 
-const DEVICE_DISCOVERY_TIMEOUT_MS = 30_000;
-/** How long to actively rescan for a fresh advertisement when the cached one is missing/stale - see `waitForManufacturerData`. */
+/** How long to actively rescan for a fresh advertisement when the cached one is missing/stale - see `BleBackend.waitForManufacturerData`. */
 const MANUFACTURER_DATA_RESCAN_TIMEOUT_MS = 15_000;
 const DEFAULT_PAINT_CONNECT_TIMEOUT_MS = 60_000;
 const ACK_TIMEOUT_MS = 15_000;
@@ -42,13 +41,19 @@ export class GiciskyDriver implements VendorDriver {
     return GICISKY_PID_METADATA;
   }
 
-  async identifyDevice(
-    device: Device,
-    address: string,
-    name: string | undefined,
-    manufacturerId: number | undefined,
-    manufacturerData: Buffer | undefined,
-  ): Promise<DiscoveredDevice> {
+  async identifyDevice({
+    address,
+    name,
+    manufacturerId,
+    manufacturerData,
+    rssi,
+  }: {
+    address: string;
+    name: string | undefined;
+    manufacturerId: number | undefined;
+    manufacturerData: Buffer | undefined;
+    rssi: number | undefined;
+  }): Promise<DiscoveredDevice> {
     const info = manufacturerData ? decodeAdvertisedInfo(manufacturerData) : undefined;
     return {
       address,
@@ -58,99 +63,134 @@ export class GiciskyDriver implements VendorDriver {
       metadata: info ? this.metadataForPid(info.deviceId) : undefined,
       manufacturerId,
       batteryMv: info?.batteryMv,
-      rssi: await device
-        .getRSSI()
-        .then((value) => (value === undefined ? undefined : Number(value)))
-        .catch(() => undefined),
+      rssi,
     };
   }
 
   async paint(bitmap: Bitmap, config: VendorDeviceConfig): Promise<void> {
-    const { bluetooth, destroy } = createBluetooth();
+    const backend = config.gattBackend ?? nodeBleBackend();
+
+    /**
+     * Unlike zhsunyco, there's no GATT characteristic that reports the device's PID on demand -
+     * the only source for it is the advertisement. That cache can be empty or stale (e.g. nothing
+     * has actively scanned since the adapter/provider last restarted) even though a connect below
+     * would succeed instantly via BlueZ's/the BLE Manager's own device cache - so rescan for a fresh
+     * advertisement here rather than failing on the first read.
+     */
+    const manufacturerData = await backend.waitForManufacturerData(
+      config.address,
+      GICISKY_MANUFACTURER_ID,
+      MANUFACTURER_DATA_RESCAN_TIMEOUT_MS,
+    );
+    const info = manufacturerData ? decodeAdvertisedInfo(manufacturerData) : undefined;
+
+    const metadata: DeviceMetadata | undefined = config.modelOverride
+      ? { pid: info?.deviceId ?? 0, ...config.modelOverride }
+      : info
+        ? this.metadataForPid(info.deviceId)
+        : undefined;
+    if (!metadata) {
+      throw new Error(
+        info === undefined
+          ? "gicisky device isn't advertising - rescanned but got nothing back (out of range, asleep, or already connected " +
+              "elsewhere) - pass --width/--height/--voffset/--colours to describe it manually"
+          : `gicisky device reports unrecognised deviceId 0x${info.deviceId.toString(16).padStart(4, "0")} - ` +
+              "pass --width/--height/--voffset/--colours to describe it manually",
+      );
+    }
+    const layout: GiciskyLayout = (info && GICISKY_PID_LAYOUT[info.deviceId]) || defaultLayoutFor(metadata.colours);
+
+    const framed = reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "crop");
+    const payload = encodeBitmap(framed, metadata, layout);
+
+    const conn = await backend.connectGatt(config.address, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
     try {
-      const adapter = await bluetooth.defaultAdapter();
-      const device = await getOrDiscoverDevice(adapter, config.address, DEVICE_DISCOVERY_TIMEOUT_MS);
-
-      /**
-       * Unlike zhsunyco, there's no GATT characteristic that reports the device's PID on demand -
-       * the only source for it is the advertisement, cached on the `Device` object by BlueZ from
-       * the last time it was seen (the same cache `identifyDevice`/a scan reads, just without
-       * connecting first - see `forEachAdvertisedDevice` in `bleDiscovery.ts`). That cache can be
-       * empty or stale (e.g. nothing has actively scanned since `bluetoothd` last restarted) even
-       * though `getOrDiscoverDevice` above found the device instantly via BlueZ's own cache of
-       * *devices* - so rescan for a fresh advertisement here rather than failing on the first read.
-       */
-      const manufacturerData = await waitForManufacturerData(adapter, device, GICISKY_MANUFACTURER_ID, MANUFACTURER_DATA_RESCAN_TIMEOUT_MS);
-      const info = manufacturerData ? decodeAdvertisedInfo(manufacturerData) : undefined;
-
-      const metadata: DeviceMetadata | undefined = config.modelOverride
-        ? { pid: info?.deviceId ?? 0, ...config.modelOverride }
-        : info
-          ? this.metadataForPid(info.deviceId)
-          : undefined;
-      if (!metadata) {
-        throw new Error(
-          info === undefined
-            ? "gicisky device isn't advertising - rescanned but got nothing back (out of range, asleep, or already connected " +
-                "elsewhere) - pass --width/--height/--voffset/--colours to describe it manually"
-            : `gicisky device reports unrecognised deviceId 0x${info.deviceId.toString(16).padStart(4, "0")} - ` +
-                "pass --width/--height/--voffset/--colours to describe it manually",
-        );
-      }
-      const layout: GiciskyLayout = (info && GICISKY_PID_LAYOUT[info.deviceId]) || defaultLayoutFor(metadata.colours);
-
-      const framed = reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "crop");
-      const payload = encodeBitmap(framed, metadata, layout);
-
-      await connectWithTimeout(device, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
+      const { cmdServiceUuid, cmdUuid, imgServiceUuid, imgUuid } = await findCommandAndImageCharacteristics(conn);
+      const ack = new AckChannel();
+      await conn.startNotifications(cmdServiceUuid, cmdUuid, ack.onNotify);
       try {
-        const gatt = await device.gatt();
-        const { cmd, img } = await findCommandAndImageCharacteristics(gatt);
+        const startAck = await writeAndAwaitAck(conn, cmdServiceUuid, cmdUuid, Buffer.from([0x01]), ack);
+        const chunkSize = (decodeBlockSize(startAck) ?? DEFAULT_BLOCK_SIZE) - PART_INDEX_HEADER_LENGTH;
 
-        await cmd.startNotifications();
-        try {
-          const startAck = await writeAndAwaitAck(cmd, cmd, Buffer.from([0x01]));
-          const chunkSize = (decodeBlockSize(startAck) ?? DEFAULT_BLOCK_SIZE) - PART_INDEX_HEADER_LENGTH;
+        await writeAndAwaitAck(conn, cmdServiceUuid, cmdUuid, writeScreenCommand(payload.length, layout.packing === "chunked"), ack);
 
-          await writeAndAwaitAck(cmd, cmd, writeScreenCommand(payload.length, layout.packing === "chunked"));
+        const startImageAck = await writeAndAwaitAck(conn, cmdServiceUuid, cmdUuid, Buffer.from([0x03]), ack);
+        const started = decodeTransferAck(startImageAck);
+        if (!started?.ok) {
+          throw new Error(`gicisky device rejected start-image-transfer request: ${startImageAck.toString("hex")}`);
+        }
 
-          const startImageAck = await writeAndAwaitAck(cmd, cmd, Buffer.from([0x03]));
-          const started = decodeTransferAck(startImageAck);
-          if (!started?.ok) {
-            throw new Error(`gicisky device rejected start-image-transfer request: ${startImageAck.toString("hex")}`);
+        let part = started.nextPart;
+        let lastPart = -1;
+        let repeats = 0;
+        while (part * chunkSize < payload.length) {
+          const chunk = payload.subarray(part * chunkSize, Math.min(part * chunkSize + chunkSize, payload.length));
+          const ackData = await writeAndAwaitAck(conn, imgServiceUuid, imgUuid, imageChunkPacket(part, chunk), ack);
+          const decoded = decodeTransferAck(ackData);
+          if (!decoded?.ok) {
+            throw new Error(`gicisky device reported an error transferring image part ${part}: ${ackData.toString("hex")}`);
           }
-
-          let part = started.nextPart;
-          let lastPart = -1;
-          let repeats = 0;
-          while (part * chunkSize < payload.length) {
-            const chunk = payload.subarray(part * chunkSize, Math.min(part * chunkSize + chunkSize, payload.length));
-            const ack = await writeAndAwaitAck(img, cmd, imageChunkPacket(part, chunk));
-            const decoded = decodeTransferAck(ack);
-            if (!decoded?.ok) {
-              throw new Error(`gicisky device reported an error transferring image part ${part}: ${ack.toString("hex")}`);
+          if (decoded.nextPart === lastPart) {
+            repeats++;
+            if (repeats >= MAX_STALLED_REPEATS) {
+              throw new Error(`gicisky image transfer stalled - device kept re-requesting part ${decoded.nextPart}`);
             }
-            if (decoded.nextPart === lastPart) {
-              repeats++;
-              if (repeats >= MAX_STALLED_REPEATS) {
-                throw new Error(`gicisky image transfer stalled - device kept re-requesting part ${decoded.nextPart}`);
-              }
-            } else {
-              repeats = 0;
-              lastPart = decoded.nextPart;
-            }
-            part = decoded.nextPart;
+          } else {
+            repeats = 0;
+            lastPart = decoded.nextPart;
           }
-        } finally {
-          await cmd.stopNotifications().catch(() => {});
+          part = decoded.nextPart;
         }
       } finally {
-        await device.disconnect();
+        await conn.stopNotifications(cmdServiceUuid, cmdUuid).catch(() => {});
       }
     } finally {
-      destroy();
+      await conn.disconnect();
     }
   }
+}
+
+/**
+ * Single-slot "await the next notification" dispatcher - the gicisky protocol is strictly
+ * request/response (never more than one write in flight), so a persistent `startNotifications`
+ * callback (`GattConnection`'s shape, unlike node-ble's per-call `.once("valuechanged")`) just needs
+ * to hand its next delivery to whichever `waitForAck` call is currently pending. Mirrors how
+ * signalk-bluetti-plugin's `ProtocolSession.feed()` dispatches notification bytes to a single
+ * pending request.
+ */
+class AckChannel {
+  private pending: { resolve: (data: Buffer) => void; timer: ReturnType<typeof setTimeout> } | undefined;
+
+  onNotify = (data: Buffer): void => {
+    const pending = this.pending;
+    if (!pending) return;
+    this.pending = undefined;
+    clearTimeout(pending.timer);
+    pending.resolve(data);
+  };
+
+  waitForAck(timeoutMs: number): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending = undefined;
+        reject(new Error("gicisky device did not acknowledge in time"));
+      }, timeoutMs);
+      this.pending = { resolve, timer };
+    });
+  }
+}
+
+/** Writes `data` to `(writeServiceUuid, writeUuid)`, then awaits the next ack delivered to `ack`. */
+async function writeAndAwaitAck(
+  conn: GattConnection,
+  writeServiceUuid: string,
+  writeUuid: string,
+  data: Buffer,
+  ack: AckChannel,
+): Promise<Buffer> {
+  const pending = ack.waitForAck(ACK_TIMEOUT_MS);
+  await conn.write(writeServiceUuid, writeUuid, data, false);
+  return pending;
 }
 
 /**
@@ -158,15 +198,16 @@ export class GiciskyDriver implements VendorDriver {
  * 16-bit UUID value - mirrors both reference drivers, which locate their command/image
  * characteristics this way rather than by a hardcoded service UUID (see `protocol.ts`).
  */
-async function findCommandAndImageCharacteristics(gatt: GattServer): Promise<{ cmd: GattCharacteristic; img: GattCharacteristic }> {
-  const candidates: { uuid: string; char: GattCharacteristic }[] = [];
-  for (const serviceUuid of await gatt.services()) {
-    if (!serviceUuid.toLowerCase().startsWith(CANDIDATE_SERVICE_UUID_PREFIX)) {
+async function findCommandAndImageCharacteristics(
+  conn: GattConnection,
+): Promise<{ cmdServiceUuid: string; cmdUuid: string; imgServiceUuid: string; imgUuid: string }> {
+  const candidates: { serviceUuid: string; uuid: string }[] = [];
+  for (const service of await conn.discoverServices()) {
+    if (!service.uuid.toLowerCase().startsWith(CANDIDATE_SERVICE_UUID_PREFIX)) {
       continue;
     }
-    const service = await gatt.getPrimaryService(serviceUuid);
-    for (const charUuid of await service.characteristics()) {
-      candidates.push({ uuid: charUuid, char: await service.getCharacteristic(charUuid) });
+    for (const characteristic of service.characteristics) {
+      candidates.push({ serviceUuid: service.uuid, uuid: characteristic.uuid });
     }
   }
   candidates.sort((a, b) => parseInt(a.uuid.slice(4, 8), 16) - parseInt(b.uuid.slice(4, 8), 16));
@@ -175,21 +216,10 @@ async function findCommandAndImageCharacteristics(gatt: GattServer): Promise<{ c
       `gicisky device exposes ${candidates.length} candidate characteristic(s) under a "0000f..." service, expected at least 2`,
     );
   }
-  return { cmd: candidates[0].char, img: candidates[1].char };
-}
-
-/** Writes `data` to `writeChar`, then awaits the next notification on `notifyChar` (which may be the same characteristic). */
-function writeAndAwaitAck(writeChar: GattCharacteristic, notifyChar: GattCharacteristic, data: Buffer): Promise<Buffer> {
-  const ack = new Promise<Buffer>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      notifyChar.removeListener("valuechanged", onValue);
-      reject(new Error("gicisky device did not acknowledge in time"));
-    }, ACK_TIMEOUT_MS);
-    function onValue(value: Buffer) {
-      clearTimeout(timer);
-      resolve(value);
-    }
-    notifyChar.once("valuechanged", onValue);
-  });
-  return writeChar.writeValueWithoutResponse(data).then(() => ack);
+  return {
+    cmdServiceUuid: candidates[0].serviceUuid,
+    cmdUuid: candidates[0].uuid,
+    imgServiceUuid: candidates[1].serviceUuid,
+    imgUuid: candidates[1].uuid,
+  };
 }

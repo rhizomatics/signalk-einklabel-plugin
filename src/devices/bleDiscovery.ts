@@ -1,4 +1,5 @@
-import { Adapter, Bluetooth, Device, createBluetooth as createBluetoothImpl } from "@naugehyde/node-ble";
+import { Adapter, Bluetooth, Device, GattCharacteristic, GattServer, createBluetooth as createBluetoothImpl } from "@naugehyde/node-ble";
+import { GattConnection } from "./gattConnection";
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -243,4 +244,96 @@ export async function waitForAdapter(logDebug: (message: string) => void, cancel
     }
   }
   return false;
+}
+
+/**
+ * Adapts an already-connected node-ble `Device` to the `GattConnection` facade device drivers
+ * (`zhsunyco`/`gicisky`) talk to - the same shape `app.bleApi.connectGATT()` returns natively (see
+ * `gattConnection.ts`), so a driver's GATT logic runs unchanged under either backend. node-ble
+ * resolves one `GattCharacteristic` object per (service, characteristic) pair and expects callers to
+ * hold onto it for reads/writes/notifications - this caches that resolution keyed by
+ * `"<serviceUuid>:<charUuid>"` so repeated calls (e.g. one `write` per image chunk) don't re-walk
+ * `device.gatt()` every time.
+ */
+export function openNodeBleGattConnection(device: Device): GattConnection {
+  const characteristics = new Map<string, GattCharacteristic>();
+  const notificationListeners = new Map<string, (data: Buffer) => void>();
+  let gattServer: Promise<GattServer> | undefined;
+  let connected = true;
+
+  const key = (serviceUuid: string, charUuid: string) => `${serviceUuid}:${charUuid}`;
+
+  async function resolveCharacteristic(serviceUuid: string, charUuid: string): Promise<GattCharacteristic> {
+    const cacheKey = key(serviceUuid, charUuid);
+    const cached = characteristics.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    gattServer ??= device.gatt();
+    const service = await (await gattServer).getPrimaryService(serviceUuid);
+    const characteristic = await service.getCharacteristic(charUuid);
+    characteristics.set(cacheKey, characteristic);
+    return characteristic;
+  }
+
+  device.on("disconnect", () => {
+    connected = false;
+  });
+
+  return {
+    async read(serviceUuid, charUuid) {
+      const characteristic = await resolveCharacteristic(serviceUuid, charUuid);
+      return characteristic.readValue();
+    },
+    async write(serviceUuid, charUuid, data, withResponse = true) {
+      const characteristic = await resolveCharacteristic(serviceUuid, charUuid);
+      if (withResponse === false) {
+        await characteristic.writeValueWithoutResponse(data);
+      } else {
+        await characteristic.writeValueWithResponse(data);
+      }
+    },
+    async startNotifications(serviceUuid, charUuid, callback) {
+      const characteristic = await resolveCharacteristic(serviceUuid, charUuid);
+      notificationListeners.set(key(serviceUuid, charUuid), callback);
+      characteristic.on("valuechanged", callback);
+      await characteristic.startNotifications();
+    },
+    async stopNotifications(serviceUuid, charUuid) {
+      const cacheKey = key(serviceUuid, charUuid);
+      const characteristic = characteristics.get(cacheKey);
+      const listener = notificationListeners.get(cacheKey);
+      if (characteristic && listener) {
+        characteristic.removeListener("valuechanged", listener);
+        notificationListeners.delete(cacheKey);
+        await characteristic.stopNotifications().catch(() => {});
+      }
+    },
+    async discoverServices() {
+      gattServer ??= device.gatt();
+      const server = await gattServer;
+      const services = [];
+      for (const serviceUuid of await server.services()) {
+        const service = await server.getPrimaryService(serviceUuid);
+        const characteristicInfos = [];
+        for (const charUuid of await service.characteristics()) {
+          const characteristic = await service.getCharacteristic(charUuid);
+          characteristics.set(key(serviceUuid, charUuid), characteristic);
+          const properties = await characteristic.getFlags().catch(() => []);
+          characteristicInfos.push({ uuid: charUuid, properties });
+        }
+        services.push({ uuid: serviceUuid, characteristics: characteristicInfos });
+      }
+      return services;
+    },
+    async disconnect() {
+      await device.disconnect();
+    },
+    get connected() {
+      return connected;
+    },
+    onDisconnect(callback) {
+      device.on("disconnect", () => callback());
+    },
+  };
 }

@@ -7,10 +7,12 @@ import { allDrivers, getDriver, registerDriver } from "../devices/registry";
 import { ZhsunycoDriver } from "../devices/zhsunyco";
 import { GiciskyDriver } from "../devices/gicisky";
 import {
+  connectWithTimeout,
   createBluetooth,
   forEachAdvertisedDevice,
   getManufacturerId,
   getOrDiscoverDevice,
+  openNodeBleGattConnection,
   withDiscovery,
   withRetries,
 } from "../devices/bleDiscovery";
@@ -205,18 +207,20 @@ program
       await forEachAdvertisedDevice(adapter, async ({ device, address, name, manufacturerId, manufacturerData }) => {
         const driver = drivers.find((candidate) => candidate.matchesAdvertisement(name, manufacturerId));
         const mfr = manufacturerId !== undefined ? `0x${manufacturerId.toString(16).padStart(4, "0")}` : "";
+        const rssi = await device
+          .getRSSI()
+          .then((value) => (value === undefined ? undefined : Number(value)))
+          .catch(() => undefined);
         if (!driver) {
           if (opts.allDevices) {
-            const rssi = await device
-              .getRSSI()
-              .then((value) => (value === undefined ? undefined : Number(value)))
-              .catch(() => undefined);
             rows.push(["(unmatched)", address, name ?? "", "", "", "", mfr, "", String(rssi ?? "")]);
           }
           return;
         }
         matchedCount++;
-        const found = await driver.identifyDevice(device, address, name, manufacturerId, manufacturerData);
+        const found = await driver.identifyDevice({ address, name, manufacturerId, manufacturerData, rssi }, () =>
+          connectWithTimeout(device, VENDOR_IDENTIFY_TIMEOUT_MS).then(() => openNodeBleGattConnection(device)),
+        );
         logDebug(`${driver.vendor}: identified ${found.name ?? found.address}`);
         const pid = found.pid !== undefined ? `0x${found.pid.toString(16).padStart(4, "0")}` : "";
         const hwid = found.hwVersion ? `0x${found.hwVersion}` : "";

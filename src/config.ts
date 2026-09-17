@@ -83,6 +83,13 @@ export interface PluginConfig {
   scanOnStart: boolean;
   /** How long the startup scan runs, in seconds. */
   scanDurationSeconds: number;
+  /**
+   * Route BLE access through the SignalK server's BLE Manager API (`app.bleApi`, server >= 2.32.0)
+   * instead of connecting to BlueZ directly, so this plugin shares the adapter with other BLE plugins
+   * instead of contending for it - see `bleBackend.ts`. Off by default, and only ever offered in the
+   * config schema when the running server actually has `app.bleApi` (see `configSchema` below).
+   */
+  useBleApi: boolean;
   /** How long to wait for a device to accept a BLE connection before giving up on a repaint attempt, in seconds. */
   paintConnectTimeoutSeconds: number;
   /** How many times to attempt a repaint (including the first try) before giving up and reporting failure. */
@@ -146,6 +153,7 @@ export function defaultConfig(): PluginConfig {
     templatesDir: "",
     scanOnStart: false,
     scanDurationSeconds: 20,
+    useBleApi: false,
     paintConnectTimeoutSeconds: 30,
     paintRetries: 3,
     settleSeconds: 120,
@@ -157,6 +165,7 @@ const PLUGIN_CONFIG_KEYS = [
   "templatesDir",
   "scanOnStart",
   "scanDurationSeconds",
+  "useBleApi",
   "paintConnectTimeoutSeconds",
   "paintRetries",
   "settleSeconds",
@@ -465,6 +474,19 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         minimum: 1,
         default: defaults.scanDurationSeconds,
       },
+      ...(app.bleApi
+        ? {
+            useBleApi: {
+              type: "boolean",
+              title: "Use the SignalK BLE Manager API",
+              description:
+                "Route Bluetooth access through SignalK server's BLE Manager API (server >= 2.32.0) instead of connecting to " +
+                "BlueZ directly, so this plugin shares the adapter with other BLE plugins instead of contending for it. Requires " +
+                "the server to have a local Bluetooth adapter or BLE gateway available (Server → Settings → Bluetooth).",
+              default: defaults.useBleApi,
+            },
+          }
+        : {}),
       paintConnectTimeoutSeconds: {
         type: "number",
         title: "Paint connect timeout (seconds)",

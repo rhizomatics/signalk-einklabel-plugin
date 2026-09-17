@@ -9,7 +9,7 @@ import { loadDiscoveredDevices } from "./devices/discoveredDevicesStore";
 import { startRepaintScheduler, RepaintScheduler } from "./repaintScheduler";
 
 /** Mirrors signalk-bluetti-plugin's convention: scan briefly, report finds via plugin status for the user to copy-paste. */
-async function runStartupScan(app: ServerAPI, durationSeconds: number): Promise<void> {
+async function runStartupScan(app: ServerAPI, durationSeconds: number, useBleApi: boolean): Promise<void> {
   const alreadyRunning = scanInProgressSince();
   if (alreadyRunning !== undefined) {
     const elapsedSeconds = ((Date.now() - alreadyRunning) / 1000).toFixed(0);
@@ -23,7 +23,7 @@ async function runStartupScan(app: ServerAPI, durationSeconds: number): Promise<
     app.setPluginStatus(`Scanning for ESL devices for ${durationSeconds}s...`);
   }
   const startedAt = Date.now();
-  const { foundThisScan } = await ensureScan(app, durationSeconds).catch((err) => {
+  const { foundThisScan } = await ensureScan(app, durationSeconds, useBleApi).catch((err) => {
     app.debug(`startup scan failed: ${err.message}`);
     return { foundThisScan: [] };
   });
@@ -41,6 +41,11 @@ async function runStartupScan(app: ServerAPI, durationSeconds: number): Promise<
 export function createPlugin(app: ServerAPI): Plugin {
   registerDriver(new ZhsunycoDriver());
   registerDriver(new GiciskyDriver());
+
+  // Present on SignalK server >= 2.32.0 (the BLE Provider/Consumer API - "BLE Manager" in the admin
+  // UI); `ServerAPI`'s own type says this is always defined, but that's only true on servers new
+  // enough to have added it - checked at runtime rather than trusted from the type.
+  const bleApiAvailable = !!app.bleApi;
 
   let scheduler: RepaintScheduler | undefined;
   let stopped = false;
@@ -63,20 +68,37 @@ export function createPlugin(app: ServerAPI): Plugin {
       healNestedConfig(app);
       stopped = false;
 
-      // Waits (with backoff, indefinitely on Linux) for a BLE adapter before the startup scan or the
-      // repaint scheduler touch BLE at all - see `waitForAdapter`'s doc comment on the boot-time race
-      // this covers. `stopped` is checked after, not just passed as `cancelled`, since the wait can
-      // also resolve `true` on its own right as `stop()` runs.
-      void waitForAdapter(
-        (message) => app.debug(message),
-        () => stopped,
-      ).then(() => {
+      const useBleApi = pluginConfig.useBleApi && bleApiAvailable;
+      if (pluginConfig.useBleApi && !bleApiAvailable) {
+        app.debug(
+          "useBleApi is enabled but this SignalK server has no BLE Manager API (requires >= 2.32.0) - falling back to direct BlueZ access",
+        );
+      }
+      app.debug(useBleApi ? "using the SignalK BLE Manager API for Bluetooth access" : "using direct BlueZ access for Bluetooth");
+
+      const start = () => {
         if (stopped) return;
         if (pluginConfig.scanOnStart) {
-          void runStartupScan(app, pluginConfig.scanDurationSeconds);
+          void runStartupScan(app, pluginConfig.scanDurationSeconds, useBleApi);
         }
         scheduler = startRepaintScheduler(app, pluginConfig);
-      });
+      };
+
+      if (useBleApi) {
+        // The server/provider governs its own local-adapter readiness once BLE Manager mode owns
+        // `hci0` (or has none at all, behind a remote gateway) - waiting on a *local* BlueZ adapter
+        // here would be waiting on something this mode may never even need.
+        start();
+      } else {
+        // Waits (with backoff, indefinitely on Linux) for a BLE adapter before the startup scan or
+        // the repaint scheduler touch BLE at all - see `waitForAdapter`'s doc comment on the
+        // boot-time race this covers. `stopped` is checked again inside `start()`, not just passed
+        // as `cancelled`, since the wait can also resolve `true` on its own right as `stop()` runs.
+        void waitForAdapter(
+          (message) => app.debug(message),
+          () => stopped,
+        ).then(start);
+      }
     },
     stop() {
       stopped = true;

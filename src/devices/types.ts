@@ -1,6 +1,7 @@
-import { Device } from "@naugehyde/node-ble";
 import { Bitmap } from "../render/types";
 import { ReframeMode } from "../render/reframe";
+import { BleBackend } from "./bleBackend";
+import { GattConnection } from "./gattConnection";
 
 export type Colour = "black" | "white" | "red" | "yellow";
 
@@ -65,6 +66,14 @@ export interface VendorDeviceConfig {
   connectTimeoutMs?: number;
   /** How to fit the bitmap onto the panel when its size doesn't already match - see `ReframeMode`. Defaults to `"crop"` - a live label showing *something*, even off-size, beats a repaint that just fails outright; pass `"fixed"` explicitly to get the old reject-the-mismatch behaviour back. */
   reframe?: ReframeMode;
+  /**
+   * How `paint()` reaches the device's BLE hardware - omitted (always true for the CLI, which has no
+   * `ServerAPI`/`app.bleApi` to source one from) means direct BlueZ access via a fresh
+   * `nodeBleBackend()` (`bleBackend.ts`). The SignalK plugin (`plugin.ts`/`repaintScheduler.ts`) passes
+   * a `bleApiBackend()` here instead when the user has opted into the SignalK BLE Manager API
+   * (`PluginConfig.useBleApi`) and the server offers `app.bleApi`.
+   */
+  gattBackend?: BleBackend;
 }
 
 export interface VendorDriver {
@@ -80,17 +89,25 @@ export interface VendorDriver {
   supportedDevices(): DeviceMetadata[];
 
   /**
-   * Identifies one device the shared caller (see `bleDiscovery.ts`'s `forEachAdvertisedDevice`)
-   * has already matched to this vendor via `matchesAdvertisement` - only called for matches, so a
-   * device gets at most one vendor-specific connect/read regardless of how many drivers are
-   * registered, not one attempt per driver.
+   * Identifies one device the shared caller (`discoveryCoordinator.ts`'s `runScan`, backed by either
+   * `forEachAdvertisedDevice` over direct BlueZ or the BLE Manager API's advertisement stream) has
+   * already matched to this vendor via `matchesAdvertisement` - only called for matches, so a device
+   * gets at most one vendor-specific connect/read regardless of how many drivers are registered, not
+   * one attempt per driver.
+   *
+   * `connect` opens a `GattConnection` to this device on whichever backend the scan is using - call it
+   * lazily, only when the advertisement alone doesn't carry enough to identify the device (e.g.
+   * zhsunyco's battery/config read fallback); most matches never need it.
    */
   identifyDevice(
-    device: Device,
-    address: string,
-    name: string | undefined,
-    manufacturerId: number | undefined,
-    manufacturerData: Buffer | undefined,
+    advertisement: {
+      address: string;
+      name: string | undefined;
+      manufacturerId: number | undefined;
+      manufacturerData: Buffer | undefined;
+      rssi: number | undefined;
+    },
+    connect: () => Promise<GattConnection>,
   ): Promise<DiscoveredDevice>;
 
   /** Quantise the common bitmap to this device's palette/encoding and send it over BLE. */

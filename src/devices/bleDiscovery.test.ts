@@ -1,12 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Adapter, Device } from "@naugehyde/node-ble";
+import { EventEmitter } from "node:events";
+import { Adapter, Device, GattCharacteristic, GattServer } from "@naugehyde/node-ble";
 import {
   connectWithTimeout,
   createBluetooth,
   forEachAdvertisedDevice,
   getManufacturerId,
   getOrDiscoverDevice,
+  openNodeBleGattConnection,
   waitForAdapter,
   waitForManufacturerData,
   withDiscovery,
@@ -345,5 +347,128 @@ test("connectWithTimeout", async (t) => {
       disconnect: async () => {},
     } as unknown as Device;
     await assert.rejects(connectWithTimeout(device, 1000), /no route to device/);
+  });
+});
+
+function fakeCharacteristic(overrides: Record<string, unknown> = {}): GattCharacteristic {
+  const emitter = new EventEmitter();
+  return Object.assign(emitter, {
+    readValue: async () => Buffer.from([]),
+    writeValueWithResponse: async () => {},
+    writeValueWithoutResponse: async () => {},
+    startNotifications: async () => {},
+    stopNotifications: async () => {},
+    getFlags: async () => [],
+    ...overrides,
+  }) as unknown as GattCharacteristic;
+}
+
+function fakeDevice(services: Record<string, Record<string, GattCharacteristic>>): { device: Device; calls: string[] } {
+  const calls: string[] = [];
+  const emitter = new EventEmitter();
+  const gattServer: GattServer = {
+    services: async () => Object.keys(services),
+    getPrimaryService: async (serviceUuid: string) => {
+      calls.push(`getPrimaryService:${serviceUuid}`);
+      return {
+        isPrimary: async () => true,
+        getUUID: async () => serviceUuid,
+        toString: async () => serviceUuid,
+        characteristics: async () => Object.keys(services[serviceUuid]),
+        getCharacteristic: async (charUuid: string) => {
+          calls.push(`getCharacteristic:${serviceUuid}:${charUuid}`);
+          return services[serviceUuid][charUuid];
+        },
+      };
+    },
+  } as unknown as GattServer;
+  const device = Object.assign(emitter, {
+    gatt: async () => gattServer,
+    disconnect: async () => {
+      calls.push("disconnect");
+      emitter.emit("disconnect", { connected: false });
+    },
+  }) as unknown as Device;
+  return { device, calls };
+}
+
+test("openNodeBleGattConnection", async (t) => {
+  await t.test("read resolves the characteristic once and reads its value", async () => {
+    const char = fakeCharacteristic({ readValue: async () => Buffer.from([1, 2, 3]) });
+    const { device, calls } = fakeDevice({ "svc-1": { "char-1": char } });
+    const conn = openNodeBleGattConnection(device);
+
+    assert.deepEqual(await conn.read("svc-1", "char-1"), Buffer.from([1, 2, 3]));
+    await conn.read("svc-1", "char-1");
+    assert.deepEqual(
+      calls.filter((c) => c.startsWith("get")),
+      ["getPrimaryService:svc-1", "getCharacteristic:svc-1:char-1"],
+    );
+  });
+
+  await t.test("write withResponse=false uses writeValueWithoutResponse", async () => {
+    const writes: string[] = [];
+    const char = fakeCharacteristic({
+      writeValueWithoutResponse: async (data: Buffer) => void writes.push(`withoutResponse:${data.toString("hex")}`),
+      writeValueWithResponse: async (data: Buffer) => void writes.push(`withResponse:${data.toString("hex")}`),
+    });
+    const { device } = fakeDevice({ "svc-1": { "char-1": char } });
+    const conn = openNodeBleGattConnection(device);
+
+    await conn.write("svc-1", "char-1", Buffer.from([0xaa]), false);
+    await conn.write("svc-1", "char-1", Buffer.from([0xbb]));
+    assert.deepEqual(writes, ["withoutResponse:aa", "withResponse:bb"]);
+  });
+
+  await t.test("startNotifications registers a listener and enables notifications, delivering values to the callback", async () => {
+    const char = fakeCharacteristic();
+    const { device } = fakeDevice({ "svc-1": { "char-1": char } });
+    const conn = openNodeBleGattConnection(device);
+
+    const received: Buffer[] = [];
+    await conn.startNotifications("svc-1", "char-1", (data) => received.push(data));
+    (char as unknown as EventEmitter).emit("valuechanged", Buffer.from([9]));
+    assert.deepEqual(received, [Buffer.from([9])]);
+  });
+
+  await t.test("stopNotifications removes the listener so later events are ignored", async () => {
+    const char = fakeCharacteristic();
+    const { device } = fakeDevice({ "svc-1": { "char-1": char } });
+    const conn = openNodeBleGattConnection(device);
+
+    const received: Buffer[] = [];
+    await conn.startNotifications("svc-1", "char-1", (data) => received.push(data));
+    await conn.stopNotifications("svc-1", "char-1");
+    (char as unknown as EventEmitter).emit("valuechanged", Buffer.from([9]));
+    assert.deepEqual(received, []);
+  });
+
+  await t.test("discoverServices walks every service and characteristic", async () => {
+    const { device } = fakeDevice({
+      "svc-1": { "char-1": fakeCharacteristic({ getFlags: async () => ["read", "write"] }) },
+      "svc-2": { "char-2": fakeCharacteristic(), "char-3": fakeCharacteristic() },
+    });
+    const conn = openNodeBleGattConnection(device);
+
+    assert.deepEqual(await conn.discoverServices(), [
+      { uuid: "svc-1", characteristics: [{ uuid: "char-1", properties: ["read", "write"] }] },
+      {
+        uuid: "svc-2",
+        characteristics: [
+          { uuid: "char-2", properties: [] },
+          { uuid: "char-3", properties: [] },
+        ],
+      },
+    ]);
+  });
+
+  await t.test("disconnect calls through to the device and connected reflects the disconnect event", async () => {
+    const { device, calls } = fakeDevice({});
+    const conn = openNodeBleGattConnection(device);
+
+    assert.equal(conn.connected, true);
+    await conn.disconnect();
+    assert.deepEqual(calls, ["disconnect"]);
+    assert.equal(conn.connected, false);
   });
 });

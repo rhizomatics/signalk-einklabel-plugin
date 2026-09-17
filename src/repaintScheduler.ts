@@ -14,6 +14,7 @@ import {
   resolveTemplatesDir,
 } from "./config";
 import { withRetries } from "./devices/bleDiscovery";
+import { bleApiBackend } from "./devices/bleBackend";
 import { loadDiscoveredDevices, touchDiscoveredDevice } from "./devices/discoveredDevicesStore";
 import { ensureScan } from "./devices/discoveryCoordinator";
 import { getDriver } from "./devices/registry";
@@ -27,7 +28,7 @@ import { unwrapSignalkTree } from "./render/unwrapSignalkTree";
 import { fetchCategoryDisplayUnits } from "./unitCategories";
 import { fetchPathMeta } from "./pathMeta";
 import { createApiUrlResolver } from "./resolveApiUrl";
-import { PLUGIN_VERSION } from "./pluginVersion";
+import { PLUGIN_NAME, PLUGIN_VERSION } from "./pluginVersion";
 import { fetchJson } from "./httpJson";
 
 const INTERVAL_POLL_MS = 60_000;
@@ -255,7 +256,7 @@ async function resolveTargets(app: ServerAPI, config: PluginConfig, device: Devi
       app.debug(
         `"${device.friendlyName}": device is "${ALL_DEVICES}" and nothing discovered yet - scanning for ${config.scanDurationSeconds}s`,
       );
-      records = (await ensureScan(app, config.scanDurationSeconds)).merged;
+      records = (await ensureScan(app, config.scanDurationSeconds, config.useBleApi && !!app.bleApi)).merged;
     }
     const targets: RepaintTarget[] = [];
     for (const record of Object.values(records)) {
@@ -427,7 +428,8 @@ async function considerRepaint(
       app.debug(`${label}: attempting paint ${attempt}/${config.paintRetries}`);
     }
     const startedAt = Date.now();
-    await driver.paint(bitmap, { address, aesKey: device.aesKey, connectTimeoutMs, reframe: device.reframe });
+    const gattBackend = config.useBleApi && app.bleApi ? bleApiBackend(app.bleApi, PLUGIN_NAME) : undefined;
+    await driver.paint(bitmap, { address, aesKey: device.aesKey, connectTimeoutMs, reframe: device.reframe, gattBackend });
     paintDurationMs = Date.now() - startedAt;
   });
 

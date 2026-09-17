@@ -24,14 +24,19 @@ Being battery operated, they can be stuck on anywhere without wiring - the only 
 
 Unlike some eInk projects, this plugin doesn't require any physical modification to the labels, or loading any new firmware. It can send an image to a supported shelf label fresh out of the box.
 
-Most of requirements below are to make SignalK work with Bluetooth Low Energy, which is good thing to have anyway, since vendors like Victron, Switchbot, Ruuvi and others have BLE enabled hardware that's useful to have on a boat. [Direct BLE support](https://github.com/SignalK/signalk-server/issues/2411) in SignalK is being planned in 2026 and this plugin will support that when it comes.
+Most of requirements below are to make SignalK work with Bluetooth Low Energy, which is good thing to have anyway, since vendors like Victron, Switchbot, Ruuvi and others have BLE enabled hardware that's useful to have on a boat.
 
-1. A SignalK server, **running Linux**
+This plugin can reach BLE hardware two ways - pick whichever fits your setup:
 
-- MacOS and Windows aren't supported by the [BLE interface layer](https://www.npmjs.com/package/@naugehyde/node-ble), however they can be used for template development and
+- **Direct BlueZ access** (default) - the plugin talks to BlueZ over D-Bus itself. Requirements 1-3 below apply.
+- **SignalK BLE Manager API** (opt-in) - SignalK server >= 2.32.0 ships a [BLE Provider/Consumer API](https://github.com/SignalK/signalk-server/issues/2411) (admin UI: "BLE Manager") that arbitrates adapter access across every BLE-consuming plugin instead of each one grabbing `hci0` for itself, and can source BLE over a remote gateway instead of local hardware at all. Enable the "Use the SignalK BLE Manager API" setting in this plugin's config once it's available (it only appears once the running server has it) - requirements 1-3 below then become the SignalK server's problem, under its own Bluetooth admin settings, not this plugin's.
+
+1. A SignalK server, **running Linux** (direct BlueZ mode only - BLE Manager mode with a remote gateway provider has no such requirement)
+
+- MacOS and Windows aren't supported by the [BLE interface layer](https://www.npmjs.com/package/@naugehyde/node-ble) in direct BlueZ mode, however they can be used for template development and
   debugging (everything except `scan` and `paint`)
 
-2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy).
+2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy) - direct BlueZ mode only; in BLE Manager mode this is whatever the server's own Bluetooth settings provide.
 
 - Bluetooth adapters for Linux can be tricky
 - TP-Link UB400 and Asus USB-BT500 are two well-known and available ones, though the ASUS USB-BT500 one can have problems with some Pi type boards
@@ -43,7 +48,7 @@ Most of requirements below are to make SignalK work with Bluetooth Low Energy, w
 > - Don't worry about the very latest Bluetooth versions, 4.0 is minimum for BLE, 5.0 is nice
 > - Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
 
-3. `bluez` package installed in Linux
+3. `bluez` package installed in Linux - direct BlueZ mode only
 
 - No need to do this if you have a Raspberry Pi with recent Raspian version, since bluez comes built in.
 - If you're not running a Raspberry Pi, then ensure that the `dbus` package is installed
@@ -468,6 +473,8 @@ Check if the text boxes are normal text or flowed text, and correct to normal te
 That's the bundled fallback warning, not necessarily an error in this plugin - it means the most recent repaint failed, whatever produced the content (a broken hand-authored template, or a `TemplateProvider` extension like [`@rhizomatics/signalk-einklabel-genai-plugin`](#genai-rendering) - e.g. its LLM call failing on no network/API access, an invalid API key, or a response that wasn't a renderable SVG, after using up its configured retries). Check the SignalK server logs (debug logging on for this plugin) for the specific error, and if it's a GenAI device, check that plugin's own provider/API key/model settings. This plugin deliberately never leaves old content on screen when a repaint fails - it retries automatically at the next scheduled interval.
 
 ### SignalK starts before the Bluetooth daemon — does the plugin need `bluetoothd` running at boot?
+
+This and the next entry are about direct BlueZ mode only - if the "Use the SignalK BLE Manager API" setting is enabled, adapter/dongle lifecycle is the SignalK server's problem to manage once, for every BLE-consuming plugin, not this plugin's.
 
 The plugin retries BLE adapter initialisation with backoff (starting at 2s, capping at 30s) if `bluetoothd`/D-Bus isn't up yet when the plugin starts, so a slow-starting Bluetooth stack on boot will no longer strand it — it keeps retrying until the adapter appears rather than failing once and giving up. You'll see `BLE adapter not ready … — retrying in Ns …` in the SignalK logs in the meantime.
 
