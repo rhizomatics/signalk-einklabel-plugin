@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { BLEApi, BLEGattConnection } from "@signalk/server-api";
-import { bleApiBackend } from "./bleBackend";
+import { bleApiBackend, withSessionWatchdog } from "./bleBackend";
 
 function fakeGattConnection(overrides: Record<string, unknown> = {}): BLEGattConnection {
   return {
@@ -20,7 +20,7 @@ function fakeGattConnection(overrides: Record<string, unknown> = {}): BLEGattCon
 test("bleApiBackend.connectGatt", async (t) => {
   await t.test("releases any stale claim before connecting, then returns the connection", async () => {
     const calls: string[] = [];
-    const conn = fakeGattConnection();
+    const conn = fakeGattConnection({ disconnect: async () => void calls.push("disconnect") });
     const bleApi = {
       releaseGATTDevice: async (mac: string, pluginId: string) => {
         calls.push(`release:${mac}:${pluginId}`);
@@ -32,8 +32,11 @@ test("bleApiBackend.connectGatt", async (t) => {
     } as unknown as BLEApi;
 
     const result = await bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 1000);
-    assert.equal(result, conn);
-    assert.deepEqual(calls, ["release:AA:BB:CC:DD:EE:FF:my-plugin", "connect:AA:BB:CC:DD:EE:FF:my-plugin"]);
+    // `connectGatt` now wraps the raw connection in a session watchdog (see `withSessionWatchdog`),
+    // so the result is no longer the same object - check it delegates to `conn` instead.
+    assert.equal(result.connected, conn.connected);
+    await result.disconnect();
+    assert.deepEqual(calls, ["release:AA:BB:CC:DD:EE:FF:my-plugin", "connect:AA:BB:CC:DD:EE:FF:my-plugin", "disconnect"]);
   });
 
   await t.test("proceeds even when releasing a stale claim fails (nothing to release)", async () => {
@@ -45,7 +48,8 @@ test("bleApiBackend.connectGatt", async (t) => {
       connectGATT: async () => conn,
     } as unknown as BLEApi;
 
-    assert.equal(await bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 1000), conn);
+    const result = await bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 1000);
+    assert.equal(result.connected, true);
   });
 
   await t.test("rejects once the timeout elapses, releasing the claim and disconnecting if it resolves later", async () => {
@@ -71,6 +75,52 @@ test("bleApiBackend.connectGatt", async (t) => {
     resolveConnect!(fakeGattConnection({ disconnect: async () => void (disconnected = true) }));
     await new Promise((resolve) => setTimeout(resolve, 10));
     assert.equal(disconnected, true);
+  });
+});
+
+test("withSessionWatchdog", async (t) => {
+  await t.test("delegates calls through while the session stays within its timeout", async () => {
+    let forceClosed = false;
+    const conn = fakeGattConnection({ read: async () => Buffer.from([1, 2, 3]) });
+    const gatt = withSessionWatchdog(conn, 1000, async () => void (forceClosed = true));
+
+    assert.deepEqual(await gatt.read("service", "char"), Buffer.from([1, 2, 3]));
+    assert.equal(gatt.connected, true);
+    await gatt.disconnect();
+    assert.equal(forceClosed, false);
+  });
+
+  await t.test("forces the connection closed and fails a hung call once the watchdog fires", async () => {
+    const forceCloseCalls: string[] = [];
+    const conn = fakeGattConnection({
+      // Never settles - simulates a `write()`/`discoverServices()` that hangs against a flaky
+      // device, which is exactly what the watchdog exists to bound.
+      write: () => new Promise<void>(() => {}),
+    });
+    const gatt = withSessionWatchdog(conn, 20, async () => void forceCloseCalls.push("closed"));
+
+    await assert.rejects(gatt.write("service", "char", Buffer.from([]), false), /watchdog fired after 20ms/);
+    assert.deepEqual(forceCloseCalls, ["closed"]);
+
+    // Any later call on the same connection fails immediately too, rather than issuing another
+    // real operation against a connection the watchdog has already torn down.
+    await assert.rejects(gatt.read("service", "char"), /watchdog fired after 20ms/);
+  });
+
+  await t.test("disconnecting after the watchdog already fired is a no-op, not a second force-close", async () => {
+    let forceCloseCount = 0;
+    let underlyingDisconnectCount = 0;
+    const conn = fakeGattConnection({
+      discoverServices: () => new Promise<never>(() => {}),
+      disconnect: async () => void underlyingDisconnectCount++,
+    });
+    const gatt = withSessionWatchdog(conn, 20, async () => void forceCloseCount++);
+
+    await assert.rejects(gatt.discoverServices());
+    await gatt.disconnect();
+
+    assert.equal(forceCloseCount, 1);
+    assert.equal(underlyingDisconnectCount, 0);
   });
 });
 

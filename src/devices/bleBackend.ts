@@ -1,5 +1,6 @@
 import { BLEApi } from "@signalk/server-api";
 import { GattConnection } from "./gattConnection";
+import { PLUGIN_NAME } from "../pluginVersion";
 import {
   connectWithTimeout,
   createBluetooth,
@@ -25,6 +26,75 @@ export interface BleBackend {
 /** How long to wait for BlueZ to have (or acquire) a `Device` object for the target address before giving up - a separate budget from the connect step itself, matching both drivers' previous hardcoded constant. */
 const DEVICE_DISCOVERY_TIMEOUT_MS = 30_000;
 
+/**
+ * Bounds the whole post-connect GATT session (service discovery, every read/write/notification a
+ * driver's `paint()` makes until it calls `disconnect()`), not just the connect step above - unlike
+ * `connectWithTimeout`/`bleApiBackend`'s connect race, neither backend's underlying `write()` or
+ * `discoverServices()` has any timeout of its own, so a hang there (plausible against a flaky real
+ * device) would otherwise sit forever with the connection, and any BLE Manager GATT claim, held open
+ * - see `withSessionWatchdog`. Generous relative to any single driver operation's own timeout (e.g.
+ * gicisky's 15s per-chunk ack) since it has to cover a whole multi-chunk image transfer, not one step
+ * of it; it's a last-resort backstop, not a normal-path budget.
+ */
+const GATT_SESSION_WATCHDOG_MS = 5 * 60_000;
+
+/**
+ * Wraps a connected `GattConnection` so the session as a whole - not just the connect step - can't
+ * hang forever. Starts a single timer when the connection opens; if `disconnect()` hasn't been
+ * called (i.e. the caller's `paint()` hasn't finished, successfully or not) by the time it fires,
+ * treats the session as stuck: calls `forceClose` (which must tear down the connection and, for a
+ * shared backend, release any claim on it) and fails every call still outstanding or made afterwards.
+ * `Promise.race`ing each call against that same failure - rather than just refusing new calls once
+ * killed - is what actually unblocks a caller `await`ing a hung `write()`/`discoverServices()`:
+ * forcing the underlying connection closed doesn't guarantee the hung call's own promise ever
+ * settles, so the caller needs a second, independent way to move on.
+ */
+export function withSessionWatchdog(conn: GattConnection, timeoutMs: number, forceClose: () => Promise<void>): GattConnection {
+  let killedError: Error | undefined;
+  let resolveKilled: (err: Error) => void;
+  const killed = new Promise<Error>((resolve) => {
+    resolveKilled = resolve;
+  });
+  let settled = false;
+
+  // `unref()` so this backstop timer never itself keeps the process alive (e.g. the CLI's `paint`
+  // command exiting naturally once its work is done) - it only ever needs to fire while something
+  // else is already keeping the event loop running anyway.
+  const timer = setTimeout(() => {
+    if (settled) return;
+    killedError = new Error(`GATT session watchdog fired after ${timeoutMs}ms with no completion - forcing disconnect`);
+    console.error(`${PLUGIN_NAME}: ${killedError.message}`);
+    resolveKilled(killedError);
+    void forceClose().catch(() => {});
+  }, timeoutMs).unref();
+
+  function guard<T>(op: () => Promise<T>): Promise<T> {
+    if (killedError) return Promise.reject(killedError);
+    const result = op();
+    result.catch(() => {}); // observed here too, so losing the race below never surfaces as an unhandled rejection
+    return Promise.race([result, killed.then((err) => Promise.reject(err))]);
+  }
+
+  return {
+    read: (serviceUuid, charUuid) => guard(() => conn.read(serviceUuid, charUuid)),
+    write: (serviceUuid, charUuid, data, withResponse) => guard(() => conn.write(serviceUuid, charUuid, data, withResponse)),
+    startNotifications: (serviceUuid, charUuid, callback) => guard(() => conn.startNotifications(serviceUuid, charUuid, callback)),
+    stopNotifications: (serviceUuid, charUuid) => guard(() => conn.stopNotifications(serviceUuid, charUuid)),
+    discoverServices: () => guard(() => conn.discoverServices()),
+    onDisconnect: conn.onDisconnect.bind(conn),
+    get connected() {
+      return conn.connected;
+    },
+    async disconnect() {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (killedError) return; // already forced closed by the watchdog above
+      await conn.disconnect();
+    },
+  };
+}
+
 export function nodeBleBackend(): BleBackend {
   return {
     async connectGatt(address, timeoutMs) {
@@ -34,7 +104,13 @@ export function nodeBleBackend(): BleBackend {
         const device = await getOrDiscoverDevice(adapter, address, DEVICE_DISCOVERY_TIMEOUT_MS);
         await connectWithTimeout(device, timeoutMs);
         const conn = openNodeBleGattConnection(device);
-        return {
+        let destroyed = false;
+        const destroyOnce = () => {
+          if (destroyed) return;
+          destroyed = true;
+          destroy();
+        };
+        const gatt: GattConnection = {
           read: conn.read.bind(conn),
           write: conn.write.bind(conn),
           startNotifications: conn.startNotifications.bind(conn),
@@ -45,10 +121,21 @@ export function nodeBleBackend(): BleBackend {
             return conn.connected;
           },
           async disconnect() {
-            await conn.disconnect();
-            destroy();
+            try {
+              await conn.disconnect();
+            } finally {
+              destroyOnce();
+            }
           },
         };
+        return withSessionWatchdog(gatt, GATT_SESSION_WATCHDOG_MS, async () => {
+          // `device.disconnect()` can hang for the same underlying reason the operations
+          // `withSessionWatchdog` already guards can (see its doc comment) - race it briefly rather
+          // than awaiting it unbounded here too, but tear down the D-Bus connection either way so
+          // those resources don't leak even if BlueZ's disconnect itself never completes.
+          await Promise.race([gatt.disconnect(), sleep(5_000)]);
+          destroyOnce();
+        });
       } catch (err) {
         destroy();
         throw err;
@@ -98,7 +185,12 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
           .then(() => connecting.then((c) => c.disconnect()).catch(() => {}));
         throw new Error(`connecting to device timed out after ${timeoutMs}ms`);
       }
-      return conn;
+      return withSessionWatchdog(conn, GATT_SESSION_WATCHDOG_MS, async () => {
+        // Belt-and-suspenders, matching the timeout-cleanup above: `releaseGATTDevice` is the
+        // authoritative claim release, `disconnect()` a secondary teardown of this specific handle -
+        // do both regardless of which (if either) itself hangs or rejects.
+        await Promise.allSettled([bleApi.releaseGATTDevice(address, pluginId), conn.disconnect()]);
+      });
     },
     async waitForManufacturerData(address, manufacturerId, timeoutMs) {
       // Unlike node-ble's `device.getManufacturerData()`, there's no cached-instant-read path here -
