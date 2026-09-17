@@ -450,6 +450,19 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
   return {
     type: "object",
     properties: {
+      ...(app.bleApi
+        ? {
+            useBleApi: {
+              type: "boolean",
+              title: "Use the SignalK BLE Manager API",
+              description:
+                "Route Bluetooth access through SignalK server's BLE Manager API (server >= 2.32.0) instead of connecting to " +
+                "BlueZ directly, so this plugin shares the adapter with other BLE plugins instead of contending for it. Requires " +
+                "the server to have a local Bluetooth adapter or BLE gateway available (Server → Settings → Bluetooth).",
+              default: defaults.useBleApi,
+            },
+          }
+        : {}),
       templatesDir: {
         type: "string",
         title: "Templates directory",
@@ -474,19 +487,6 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         minimum: 1,
         default: defaults.scanDurationSeconds,
       },
-      ...(app.bleApi
-        ? {
-            useBleApi: {
-              type: "boolean",
-              title: "Use the SignalK BLE Manager API",
-              description:
-                "Route Bluetooth access through SignalK server's BLE Manager API (server >= 2.32.0) instead of connecting to " +
-                "BlueZ directly, so this plugin shares the adapter with other BLE plugins instead of contending for it. Requires " +
-                "the server to have a local Bluetooth adapter or BLE gateway available (Server → Settings → Bluetooth).",
-              default: defaults.useBleApi,
-            },
-          }
-        : {}),
       paintConnectTimeoutSeconds: {
         type: "number",
         title: "Paint connect timeout (seconds)",

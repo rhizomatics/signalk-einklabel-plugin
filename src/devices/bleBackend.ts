@@ -69,8 +69,7 @@ export function nodeBleBackend(): BleBackend {
 
 /**
  * `bleApi.connectGATT()` has no timeout of its own, same story as node-ble's `Device#connect()` (see
- * `connectWithTimeout` in `bleDiscovery.ts`) - races it against `timeoutMs` and disconnects in the
- * background if it eventually resolves after the caller has already given up.
+ * `connectWithTimeout` in `bleDiscovery.ts`) - races it against `timeoutMs`.
  */
 export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
   return {
@@ -85,7 +84,18 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
       let timedOut = false;
       const conn = await Promise.race([connecting, sleep(timeoutMs).then(() => void (timedOut = true))]);
       if (timedOut || !conn) {
-        connecting.then((c) => c.disconnect()).catch(() => {});
+        // The server registers the claim as soon as `connectGATT()` is called, not once it succeeds -
+        // giving up here without releasing it would leave the claim (and, once/if the connect attempt
+        // does eventually land server-side, a live connection) orphaned indefinitely, since this
+        // plugin never gets a handle back to disconnect it itself. `releaseGATTDevice` tears down
+        // whatever the claim currently is, connected or still connecting, regardless of how the
+        // original `connectGATT()` promise eventually settles - disconnecting it too if it does still
+        // resolve afterwards, harmlessly, since a connection the server already released is a no-op to
+        // disconnect again.
+        void bleApi
+          .releaseGATTDevice(address, pluginId)
+          .catch(() => {})
+          .then(() => connecting.then((c) => c.disconnect()).catch(() => {}));
         throw new Error(`connecting to device timed out after ${timeoutMs}ms`);
       }
       return conn;

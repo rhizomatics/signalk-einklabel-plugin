@@ -48,11 +48,14 @@ test("bleApiBackend.connectGatt", async (t) => {
     assert.equal(await bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 1000), conn);
   });
 
-  await t.test("rejects once the timeout elapses, then disconnects the connection if it resolves later", async () => {
+  await t.test("rejects once the timeout elapses, releasing the claim and disconnecting if it resolves later", async () => {
     let disconnected = false;
+    const releaseCalls: string[] = [];
     let resolveConnect: (conn: BLEGattConnection) => void;
     const bleApi = {
-      releaseGATTDevice: async () => {},
+      releaseGATTDevice: async (mac: string) => {
+        releaseCalls.push(mac);
+      },
       connectGATT: () =>
         new Promise<BLEGattConnection>((resolve) => {
           resolveConnect = resolve;
@@ -60,6 +63,10 @@ test("bleApiBackend.connectGatt", async (t) => {
     } as unknown as BLEApi;
 
     await assert.rejects(bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 20), /timed out after 20ms/);
+    // Once before connecting (clearing any stale claim), once again on timeout - the server registers
+    // the claim as soon as connectGATT() is called, not once it succeeds, so giving up without
+    // releasing it would leave the claim orphaned.
+    assert.deepEqual(releaseCalls, ["AA:BB:CC:DD:EE:FF", "AA:BB:CC:DD:EE:FF"]);
 
     resolveConnect!(fakeGattConnection({ disconnect: async () => void (disconnected = true) }));
     await new Promise((resolve) => setTimeout(resolve, 10));
