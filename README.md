@@ -33,7 +33,9 @@ Most of requirements below are to make SignalK work with Bluetooth Low Energy, w
 
 2. A Bluetooth adapter, that can handle BLE (Bluetooth Low Energy).
 
-- Bluetooth adapters for Linux can be tricky, TP-Link UB400 and Asus USB-BT500 are two well-known and available ones
+- Bluetooth adapters for Linux can be tricky
+- TP-Link UB400 and Asus USB-BT500 are two well-known and available ones, though the USB-BT500 one can have problems with some Pi type boards
+- CSR4.0 dongles (CSR8510 chip) have had kernel support for years, and there are well known work arounds for some of them, including in the Linux kernel since v5.17
 - Some Raspberry Pi models come with suitable Bluetooth built in
 
 > - Don't worry about the very latest Bluetooth versions, 4.0 is minimum for BLE, 5.0 is nice
