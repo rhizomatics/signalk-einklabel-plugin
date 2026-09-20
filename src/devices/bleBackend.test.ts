@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { BLEApi, BLEGattConnection } from "@signalk/server-api";
-import { bleApiBackend, withSessionWatchdog } from "./bleBackend";
+import { bleApiBackend, ensureDeviceVisible, withSessionWatchdog } from "./bleBackend";
 
 function fakeGattConnection(overrides: Record<string, unknown> = {}): BLEGattConnection {
   return {
@@ -22,6 +22,7 @@ test("bleApiBackend.connectGatt", async (t) => {
     const calls: string[] = [];
     const conn = fakeGattConnection({ disconnect: async () => void calls.push("disconnect") });
     const bleApi = {
+      getDevice: async (mac: string) => ({ mac }),
       releaseGATTDevice: async (mac: string, pluginId: string) => {
         calls.push(`release:${mac}:${pluginId}`);
       },
@@ -42,6 +43,7 @@ test("bleApiBackend.connectGatt", async (t) => {
   await t.test("proceeds even when releasing a stale claim fails (nothing to release)", async () => {
     const conn = fakeGattConnection();
     const bleApi = {
+      getDevice: async (mac: string) => ({ mac }),
       releaseGATTDevice: async () => {
         throw new Error("not claimed");
       },
@@ -57,6 +59,7 @@ test("bleApiBackend.connectGatt", async (t) => {
     const releaseCalls: string[] = [];
     let resolveConnect: (conn: BLEGattConnection) => void;
     const bleApi = {
+      getDevice: async (mac: string) => ({ mac }),
       releaseGATTDevice: async (mac: string) => {
         releaseCalls.push(mac);
       },
@@ -75,6 +78,53 @@ test("bleApiBackend.connectGatt", async (t) => {
     resolveConnect!(fakeGattConnection({ disconnect: async () => void (disconnected = true) }));
     await new Promise((resolve) => setTimeout(resolve, 10));
     assert.equal(disconnected, true);
+  });
+
+  await t.test("waits for the device to show up on the advertisement stream when the manager doesn't know it yet", async () => {
+    let deliver: ((adv: unknown) => void) | undefined;
+    const conn = fakeGattConnection();
+    const bleApi = {
+      getDevice: async () => null,
+      onAdvertisement: (_pluginId: string, cb: (adv: unknown) => void) => {
+        deliver = cb;
+        return () => {};
+      },
+      releaseGATTDevice: async () => {},
+      connectGATT: async () => conn,
+    } as unknown as BLEApi;
+
+    const pending = bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 1000);
+    // Give the pending chain of awaits (release claim, then getDevice) a tick to reach the
+    // onAdvertisement subscription before delivering.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    deliver!({ mac: "11:22:33:44:55:66" });
+    deliver!({ mac: "AA:BB:CC:DD:EE:FF" });
+
+    const result = await pending;
+    assert.equal(result.connected, conn.connected);
+  });
+
+});
+
+test("ensureDeviceVisible", async (t) => {
+  await t.test("resolves immediately when the BLE Manager already knows the device", async () => {
+    const bleApi = {
+      getDevice: async (mac: string) => ({ mac }),
+      onAdvertisement: () => {
+        throw new Error("should not subscribe when already known");
+      },
+    } as unknown as BLEApi;
+
+    await ensureDeviceVisible(bleApi, "my-plugin", "AA:BB:CC:DD:EE:FF", 1000);
+  });
+
+  await t.test("fails with a clear error if the device never becomes visible in time", async () => {
+    const bleApi = {
+      getDevice: async () => null,
+      onAdvertisement: () => () => {},
+    } as unknown as BLEApi;
+
+    await assert.rejects(ensureDeviceVisible(bleApi, "my-plugin", "AA:BB:CC:DD:EE:FF", 20), /isn't visible/);
   });
 });
 
@@ -129,6 +179,7 @@ test("bleApiBackend.waitForManufacturerData", async (t) => {
     let deliver: ((adv: unknown) => void) | undefined;
     let unsubscribed = false;
     const bleApi = {
+      releaseGATTDevice: async () => {},
       onAdvertisement: (_pluginId: string, cb: (adv: unknown) => void) => {
         deliver = cb;
         return () => void (unsubscribed = true);
@@ -136,6 +187,7 @@ test("bleApiBackend.waitForManufacturerData", async (t) => {
     } as unknown as BLEApi;
 
     const pending = bleApiBackend(bleApi, "my-plugin").waitForManufacturerData("AA:BB:CC:DD:EE:FF", 0x0157, 1000);
+    await new Promise((resolve) => setTimeout(resolve, 10));
     deliver!({ mac: "AA:BB:CC:DD:EE:FF", manufacturerData: { [0x0157]: "0102" } });
 
     assert.deepEqual(await pending, Buffer.from([1, 2]));
@@ -145,6 +197,7 @@ test("bleApiBackend.waitForManufacturerData", async (t) => {
   await t.test("ignores advertisements from a different device or without the target manufacturer ID", async () => {
     let deliver: ((adv: unknown) => void) | undefined;
     const bleApi = {
+      releaseGATTDevice: async () => {},
       onAdvertisement: (_pluginId: string, cb: (adv: unknown) => void) => {
         deliver = cb;
         return () => {};
@@ -152,6 +205,7 @@ test("bleApiBackend.waitForManufacturerData", async (t) => {
     } as unknown as BLEApi;
 
     const pending = bleApiBackend(bleApi, "my-plugin").waitForManufacturerData("AA:BB:CC:DD:EE:FF", 0x0157, 50);
+    await new Promise((resolve) => setTimeout(resolve, 10));
     deliver!({ mac: "11:22:33:44:55:66", manufacturerData: { [0x0157]: "0102" } });
     deliver!({ mac: "AA:BB:CC:DD:EE:FF", manufacturerData: { 0x9999: "ff" } });
 
@@ -161,10 +215,24 @@ test("bleApiBackend.waitForManufacturerData", async (t) => {
   await t.test("resolves undefined and unsubscribes once the timeout elapses with nothing matching", async () => {
     let unsubscribed = false;
     const bleApi = {
+      releaseGATTDevice: async () => {},
       onAdvertisement: () => () => void (unsubscribed = true),
     } as unknown as BLEApi;
 
     assert.equal(await bleApiBackend(bleApi, "my-plugin").waitForManufacturerData("AA:BB:CC:DD:EE:FF", 0x0157, 20), undefined);
     assert.equal(unsubscribed, true);
+  });
+
+  await t.test("releases a stale claim under our own pluginId before waiting - a device we're still claiming stops advertising", async () => {
+    const releaseCalls: string[] = [];
+    const bleApi = {
+      releaseGATTDevice: async (mac: string, pluginId: string) => {
+        releaseCalls.push(`${mac}:${pluginId}`);
+      },
+      onAdvertisement: () => () => {},
+    } as unknown as BLEApi;
+
+    await bleApiBackend(bleApi, "my-plugin").waitForManufacturerData("AA:BB:CC:DD:EE:FF", 0x0157, 20);
+    assert.deepEqual(releaseCalls, ["AA:BB:CC:DD:EE:FF:my-plugin"]);
   });
 });

@@ -2,6 +2,9 @@
 
 First implementation of using new SignalK BLE Manager rather than directly using the `bluez` services. Off by default until longer term stability demonstrated.
 
+- Fix BLE Manager mode requiring "Scan for devices on plugin start" to be enabled before a specifically-addressed device would paint at all - it now self-heals by waiting for the device to appear on the advertisement stream before connecting, same as direct BlueZ mode already did
+- Fix a stale GATT claim (left behind by a crash/reload mid-paint) permanently wedging a Gicisky device's repaints in BLE Manager mode - a device still claimed under our own pluginId stops advertising, so the manufacturer-data wait `paint()` needs before it ever reaches the connect step (which is where the existing stale-claim release lived) would time out forever; the same defensive release now also runs before that wait
+
 # 1.2.3
 
 - Improved example tide template for 2.9" Gicisky, and added blank and error templates

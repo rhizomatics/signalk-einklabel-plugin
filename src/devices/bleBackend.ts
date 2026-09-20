@@ -155,6 +155,36 @@ export function nodeBleBackend(): BleBackend {
 }
 
 /**
+ * Waits for the BLE Manager to know about `address` before a GATT connect is attempted against it -
+ * mirrors `getOrDiscoverDevice` in `bleDiscovery.ts`, which gives `nodeBleBackend` the same guarantee
+ * against BlueZ directly. Without this, a specifically-addressed device that the manager hasn't seen
+ * yet (e.g. this plugin's own `scanOnStart` is off and no other BLE plugin happens to be scanning)
+ * would sit on `bleApi.connectGATT()` until that call's own `timeoutMs` gives up, rather than the
+ * plugin quietly rediscovering it the way the direct-BlueZ backend already does.
+ */
+export async function ensureDeviceVisible(bleApi: BLEApi, pluginId: string, address: string, timeoutMs: number): Promise<void> {
+  const known = await bleApi.getDevice(address).catch(() => null);
+  if (known) return;
+  const seen = await new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => {
+      unsubscribe();
+      resolve(false);
+    }, timeoutMs);
+    const unsubscribe = bleApi.onAdvertisement(pluginId, (adv) => {
+      if (adv.mac !== address) return;
+      clearTimeout(timer);
+      unsubscribe();
+      resolve(true);
+    });
+  });
+  if (!seen) {
+    throw new Error(
+      `device ${address} isn't visible to the SignalK BLE Manager yet (out of range, asleep, or never seen) after waiting ${timeoutMs}ms`,
+    );
+  }
+}
+
+/**
  * `bleApi.connectGATT()` has no timeout of its own, same story as node-ble's `Device#connect()` (see
  * `connectWithTimeout` in `bleDiscovery.ts`) - races it against `timeoutMs`.
  */
@@ -166,6 +196,7 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
       // "already claimed" until the server restarts - see signalk-bluetti-plugin's BleManagerDevice
       // for the same defensive call. A no-op if we don't currently hold the claim.
       await bleApi.releaseGATTDevice(address, pluginId).catch(() => {});
+      await ensureDeviceVisible(bleApi, pluginId, address, DEVICE_DISCOVERY_TIMEOUT_MS);
 
       const connecting = bleApi.connectGATT(address, pluginId);
       let timedOut = false;
@@ -197,6 +228,14 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
       // `BLEDeviceInfo` (from `getDevices()`/`getDevice()`) carries mac/name/rssi/seenBy but not
       // manufacturer data (see `BLEDeviceInfoSchema` in `@signalk/server-api`'s `ble-schemas.ts`) -
       // only the streamed `BLEAdvertisement` does. So this always actively waits on the stream.
+      //
+      // Same defensive release as `connectGatt`, and just as necessary here: a device the BLE Manager
+      // still thinks *we* hold a GATT claim on (e.g. from a crash/reload mid-paint, before this call
+      // ever reaches `connectGatt` below) stops advertising while claimed - which would otherwise wedge
+      // this wait forever, since nothing else in this path ever calls `connectGatt` (and so never gets a
+      // chance to release the stale claim) unless a fresh advertisement shows up first. A no-op if we
+      // don't currently hold the claim.
+      await bleApi.releaseGATTDevice(address, pluginId).catch(() => {});
       return new Promise<Buffer | undefined>((resolve) => {
         const timer = setTimeout(() => {
           unsubscribe();
