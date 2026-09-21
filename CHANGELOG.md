@@ -2,7 +2,6 @@
 
 First implementation of using new SignalK BLE Manager rather than directly using the `bluez` services. Off by default until longer term stability demonstrated.
 
-
 # 1.2.3
 
 - Improved example tide template for 2.9" Gicisky, and added blank and error templates

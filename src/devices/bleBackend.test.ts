@@ -103,7 +103,6 @@ test("bleApiBackend.connectGatt", async (t) => {
     const result = await pending;
     assert.equal(result.connected, conn.connected);
   });
-
 });
 
 test("ensureDeviceVisible", async (t) => {
@@ -223,16 +222,19 @@ test("bleApiBackend.waitForManufacturerData", async (t) => {
     assert.equal(unsubscribed, true);
   });
 
-  await t.test("releases a stale claim under our own pluginId before waiting - a device we're still claiming stops advertising", async () => {
-    const releaseCalls: string[] = [];
-    const bleApi = {
-      releaseGATTDevice: async (mac: string, pluginId: string) => {
-        releaseCalls.push(`${mac}:${pluginId}`);
-      },
-      onAdvertisement: () => () => {},
-    } as unknown as BLEApi;
+  await t.test(
+    "releases a stale claim under our own pluginId before waiting - a device we're still claiming stops advertising",
+    async () => {
+      const releaseCalls: string[] = [];
+      const bleApi = {
+        releaseGATTDevice: async (mac: string, pluginId: string) => {
+          releaseCalls.push(`${mac}:${pluginId}`);
+        },
+        onAdvertisement: () => () => {},
+      } as unknown as BLEApi;
 
-    await bleApiBackend(bleApi, "my-plugin").waitForManufacturerData("AA:BB:CC:DD:EE:FF", 0x0157, 20);
-    assert.deepEqual(releaseCalls, ["AA:BB:CC:DD:EE:FF:my-plugin"]);
-  });
+      await bleApiBackend(bleApi, "my-plugin").waitForManufacturerData("AA:BB:CC:DD:EE:FF", 0x0157, 20);
+      assert.deepEqual(releaseCalls, ["AA:BB:CC:DD:EE:FF:my-plugin"]);
+    },
+  );
 });
