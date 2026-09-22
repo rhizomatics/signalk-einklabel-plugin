@@ -184,6 +184,21 @@ export async function ensureDeviceVisible(bleApi: BLEApi, pluginId: string, addr
   }
 }
 
+let bleManagerQueue: Promise<unknown> = Promise.resolve();
+
+/**
+ * Runs `fn` only once every earlier caller has finished, so paints to different devices never hold
+ * BLE Manager GATT slots at the same time. The server's local provider defaults to just a couple of
+ * slots shared with every other BLE plugin (e.g. Bluetti), so two concurrent connects can leave the
+ * second with none free - which the server reports as the misleading "No provider with GATT support
+ * can see <mac>".
+ */
+export function exclusiveBleManagerAccess<T>(fn: () => Promise<T>): Promise<T> {
+  const run = bleManagerQueue.then(fn, fn);
+  bleManagerQueue = run.catch(() => {});
+  return run;
+}
+
 /**
  * `bleApi.connectGATT()` has no timeout of its own, same story as node-ble's `Device#connect()` (see
  * `connectWithTimeout` in `bleDiscovery.ts`) - races it against `timeoutMs`.

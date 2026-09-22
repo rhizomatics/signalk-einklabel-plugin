@@ -236,3 +236,23 @@ test("bleApiBackend.waitForManufacturerData", async (t) => {
     assert.deepEqual(releaseCalls, ["AA:BB:CC:DD:EE:FF:my-plugin"]);
   });
 });
+
+test("exclusiveBleManagerAccess", async (t) => {
+  await t.test("runs callers one at a time, in order, even when an earlier one fails", async () => {
+    const events: string[] = [];
+    const job = (name: string, ms: number, fail = false) => () =>
+      new Promise<string>((resolve, reject) => {
+        events.push(`start:${name}`);
+        setTimeout(() => {
+          events.push(`end:${name}`);
+          fail ? reject(new Error(name)) : resolve(name);
+        }, ms);
+      });
+
+    const a = exclusiveBleManagerAccess(job("a", 30, true));
+    const b = exclusiveBleManagerAccess(job("b", 5));
+    await assert.rejects(a, /a/);
+    assert.equal(await b, "b");
+    assert.deepEqual(events, ["start:a", "end:a", "start:b", "end:b"]);
+  });
+});

@@ -14,7 +14,7 @@ import {
   resolveTemplatesDir,
 } from "./config";
 import { withRetries } from "./devices/bleDiscovery";
-import { bleApiBackend } from "./devices/bleBackend";
+import { bleApiBackend, exclusiveBleManagerAccess } from "./devices/bleBackend";
 import { loadDiscoveredDevices, touchDiscoveredDevice } from "./devices/discoveredDevicesStore";
 import { ensureScan } from "./devices/discoveryCoordinator";
 import { getDriver } from "./devices/registry";
@@ -423,15 +423,17 @@ async function considerRepaint(
   }
 
   const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;
-  await withRetries(config.paintRetries, async (attempt) => {
-    if (attempt > 1) {
-      app.debug(`${label}: attempting paint ${attempt}/${config.paintRetries}`);
-    }
-    const startedAt = Date.now();
-    const gattBackend = config.useBleApi && app.bleApi ? bleApiBackend(app.bleApi, PLUGIN_NAME) : undefined;
-    await driver.paint(bitmap, { address, aesKey: device.aesKey, connectTimeoutMs, reframe: device.reframe, gattBackend });
-    paintDurationMs = Date.now() - startedAt;
-  });
+  const gattBackend = config.useBleApi && app.bleApi ? bleApiBackend(app.bleApi, PLUGIN_NAME) : undefined;
+  const paintWithRetries = () =>
+    withRetries(config.paintRetries, async (attempt) => {
+      if (attempt > 1) {
+        app.debug(`${label}: attempting paint ${attempt}/${config.paintRetries}`);
+      }
+      const startedAt = Date.now();
+      await driver.paint(bitmap, { address, aesKey: device.aesKey, connectTimeoutMs, reframe: device.reframe, gattBackend });
+      paintDurationMs = Date.now() - startedAt;
+    });
+  await (gattBackend ? exclusiveBleManagerAccess(paintWithRetries) : paintWithRetries());
 
   touchDiscoveredDevice(app, { address, vendor: target.vendor, pid: target.pid, hwVersion: target.hwVersion, metadata });
   // Only a successful render counts as "repainted" for dedup/catch-up purposes - a failure must not be
