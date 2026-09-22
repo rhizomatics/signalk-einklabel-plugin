@@ -1,4 +1,5 @@
 [tools]
+github-cli = "latest"
 node = "latest"
 npm = "latest"
 oxfmt = "latest"
