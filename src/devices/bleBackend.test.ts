@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { BLEApi, BLEGattConnection } from "@signalk/server-api";
-import { bleApiBackend, ensureDeviceVisible, withSessionWatchdog } from "./bleBackend";
+import { bleApiBackend, ensureDeviceVisible, exclusiveBleManagerAccess, withSessionWatchdog } from "./bleBackend";
 
 function fakeGattConnection(overrides: Record<string, unknown> = {}): BLEGattConnection {
   return {
@@ -103,7 +103,6 @@ test("bleApiBackend.connectGatt", async (t) => {
     const result = await pending;
     assert.equal(result.connected, conn.connected);
   });
-
 });
 
 test("ensureDeviceVisible", async (t) => {
@@ -223,31 +222,36 @@ test("bleApiBackend.waitForManufacturerData", async (t) => {
     assert.equal(unsubscribed, true);
   });
 
-  await t.test("releases a stale claim under our own pluginId before waiting - a device we're still claiming stops advertising", async () => {
-    const releaseCalls: string[] = [];
-    const bleApi = {
-      releaseGATTDevice: async (mac: string, pluginId: string) => {
-        releaseCalls.push(`${mac}:${pluginId}`);
-      },
-      onAdvertisement: () => () => {},
-    } as unknown as BLEApi;
+  await t.test(
+    "releases a stale claim under our own pluginId before waiting - a device we're still claiming stops advertising",
+    async () => {
+      const releaseCalls: string[] = [];
+      const bleApi = {
+        releaseGATTDevice: async (mac: string, pluginId: string) => {
+          releaseCalls.push(`${mac}:${pluginId}`);
+        },
+        onAdvertisement: () => () => {},
+      } as unknown as BLEApi;
 
-    await bleApiBackend(bleApi, "my-plugin").waitForManufacturerData("AA:BB:CC:DD:EE:FF", 0x0157, 20);
-    assert.deepEqual(releaseCalls, ["AA:BB:CC:DD:EE:FF:my-plugin"]);
-  });
+      await bleApiBackend(bleApi, "my-plugin").waitForManufacturerData("AA:BB:CC:DD:EE:FF", 0x0157, 20);
+      assert.deepEqual(releaseCalls, ["AA:BB:CC:DD:EE:FF:my-plugin"]);
+    },
+  );
 });
 
 test("exclusiveBleManagerAccess", async (t) => {
   await t.test("runs callers one at a time, in order, even when an earlier one fails", async () => {
     const events: string[] = [];
-    const job = (name: string, ms: number, fail = false) => () =>
-      new Promise<string>((resolve, reject) => {
-        events.push(`start:${name}`);
-        setTimeout(() => {
-          events.push(`end:${name}`);
-          fail ? reject(new Error(name)) : resolve(name);
-        }, ms);
-      });
+    const job =
+      (name: string, ms: number, fail = false) =>
+      () =>
+        new Promise<string>((resolve, reject) => {
+          events.push(`start:${name}`);
+          setTimeout(() => {
+            events.push(`end:${name}`);
+            fail ? reject(new Error(name)) : resolve(name);
+          }, ms);
+        });
 
     const a = exclusiveBleManagerAccess(job("a", 30, true));
     const b = exclusiveBleManagerAccess(job("b", 5));

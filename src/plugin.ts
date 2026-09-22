@@ -3,10 +3,11 @@ import { configSchema, configUiSchema, defaultConfig, healNestedConfig, PluginCo
 import { registerDriver } from "./devices/registry";
 import { ZhsunycoDriver } from "./devices/zhsunyco";
 import { GiciskyDriver } from "./devices/gicisky";
-import { ensureScan, scanInProgressSince } from "./devices/discoveryCoordinator";
+import { ensureScan, scanInProgressSince, startBleApiDiscoveryListener } from "./devices/discoveryCoordinator";
 import { waitForAdapter } from "./devices/bleDiscovery";
 import { loadDiscoveredDevices } from "./devices/discoveredDevicesStore";
 import { startRepaintScheduler, RepaintScheduler } from "./repaintScheduler";
+import { PLUGIN_NAME } from "./pluginVersion";
 
 /** Mirrors signalk-bluetti-plugin's convention: scan briefly, report finds via plugin status for the user to copy-paste. */
 async function runStartupScan(app: ServerAPI, durationSeconds: number, useBleApi: boolean): Promise<void> {
@@ -48,6 +49,7 @@ export function createPlugin(app: ServerAPI): Plugin {
   const bleApiAvailable = !!app.bleApi;
 
   let scheduler: RepaintScheduler | undefined;
+  let stopDiscoveryListener: (() => void) | undefined;
   let stopped = false;
 
   const plugin: Plugin = {
@@ -85,6 +87,11 @@ export function createPlugin(app: ServerAPI): Plugin {
       };
 
       if (useBleApi) {
+        // BLE Manager already runs its own continuous scan server-side (that's what populates its own
+        // admin UI device list) - unlike direct BlueZ access below, discovery here doesn't need a
+        // bounded scan window at all, so this listens for as long as the plugin runs rather than only
+        // during `scanOnStart`/an on-demand `ALL_DEVICES` scan. See its own doc comment.
+        stopDiscoveryListener = startBleApiDiscoveryListener(app, PLUGIN_NAME);
         // The server/provider governs its own local-adapter readiness once BLE Manager mode owns
         // `hci0` (or has none at all, behind a remote gateway) - waiting on a *local* BlueZ adapter
         // here would be waiting on something this mode may never even need.
@@ -104,6 +111,8 @@ export function createPlugin(app: ServerAPI): Plugin {
       stopped = true;
       scheduler?.stop();
       scheduler = undefined;
+      stopDiscoveryListener?.();
+      stopDiscoveryListener = undefined;
       app.debug("stopped");
     },
   };

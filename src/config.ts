@@ -79,6 +79,9 @@ export interface PluginConfig {
    * signalk-bluetti-plugin does. Off by default - a `device: ALL_DEVICES` entry scans on demand the
    * first time it has nothing discovered yet (see `resolveTargets` in `repaintScheduler.ts`), and an
    * explicit device selection only ever needed this to populate the dropdown once at initial setup.
+   * Also unnecessary with `useBleApi` on, which discovers continuously in the background instead (see
+   * `startBleApiDiscoveryListener` in `discoveryCoordinator.ts`) - kept meaningful mainly for direct
+   * BlueZ access, which has no continuous-scan equivalent to piggyback on.
    */
   scanOnStart: boolean;
   /** How long the startup scan runs, in seconds. */
@@ -477,7 +480,8 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         title: "Scan for devices on plugin start",
         description:
           'Runs a short BLE scan so discovered devices show up in a device\'s "Device" picker below. ' +
-          'Not needed if every device uses "All discovered devices" - that scans on demand instead.',
+          'Not needed if every device uses "All discovered devices" (that scans on demand instead), or if ' +
+          '"Use BLE Manager" below is on (that discovers continuously in the background instead of needing a scan).',
         default: defaults.scanOnStart,
       },
       scanDurationSeconds: {
