@@ -33,6 +33,8 @@ import { fetchJson } from "./httpJson";
 
 const INTERVAL_POLL_MS = 60_000;
 const SUBSCRIPTION_DEBOUNCE_MS = 2_000;
+/** Pause between paint attempts - see `withRetries`' `delayMs`. */
+const PAINT_RETRY_DELAY_MS = 5_000;
 const RESOURCES_API_PATH = "/signalk/v2/api/resources";
 
 export interface RepaintScheduler {
@@ -424,15 +426,28 @@ async function considerRepaint(
 
   const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;
   const gattBackend = config.useBleApi && app.bleApi ? bleApiBackend(app.bleApi, PLUGIN_NAME) : undefined;
+  const attempts = Math.max(1, config.paintRetries);
   const paintWithRetries = () =>
-    withRetries(config.paintRetries, async (attempt) => {
-      if (attempt > 1) {
-        app.debug(`${label}: attempting paint ${attempt}/${config.paintRetries}`);
-      }
-      const startedAt = Date.now();
-      await driver.paint(bitmap, { address, aesKey: device.aesKey, connectTimeoutMs, reframe: device.reframe, gattBackend });
-      paintDurationMs = Date.now() - startedAt;
-    });
+    withRetries(
+      attempts,
+      async (attempt) => {
+        app.debug(`${label}: attempting paint ${attempt}/${attempts}`);
+        const startedAt = Date.now();
+        await driver.paint(bitmap, {
+          address,
+          pid: target.pid,
+          aesKey: device.aesKey,
+          connectTimeoutMs,
+          reframe: device.reframe,
+          gattBackend,
+        });
+        paintDurationMs = Date.now() - startedAt;
+      },
+      {
+        delayMs: PAINT_RETRY_DELAY_MS,
+        onError: (err, attempt) => app.debug(`${label}: paint attempt ${attempt}/${attempts} failed: ${(err as Error).message}`),
+      },
+    );
   await (gattBackend ? exclusiveBleManagerAccess(paintWithRetries) : paintWithRetries());
 
   touchDiscoveredDevice(app, { address, vendor: target.vendor, pid: target.pid, hwVersion: target.hwVersion, metadata });

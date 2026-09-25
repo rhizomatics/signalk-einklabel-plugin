@@ -224,11 +224,11 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
         // whatever the claim currently is, connected or still connecting, regardless of how the
         // original `connectGATT()` promise eventually settles - disconnecting it too if it does still
         // resolve afterwards, harmlessly, since a connection the server already released is a no-op to
-        // disconnect again.
-        void bleApi
-          .releaseGATTDevice(address, pluginId)
-          .catch(() => {})
-          .then(() => connecting.then((c) => c.disconnect()).catch(() => {}));
+        // disconnect again. The release is awaited (only the late disconnect is left in the
+        // background) so a caller retrying straight away - `withRetries` - can't race it with a new
+        // `connectGATT()` and get rejected with "has a GATT claim in progress" for its trouble.
+        await bleApi.releaseGATTDevice(address, pluginId).catch(() => {});
+        void connecting.then((c) => c.disconnect()).catch(() => {});
         throw new Error(`connecting to device timed out after ${timeoutMs}ms`);
       }
       return withSessionWatchdog(conn, GATT_SESSION_WATCHDOG_MS, async () => {

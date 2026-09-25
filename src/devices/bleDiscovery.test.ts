@@ -313,6 +313,25 @@ test("withRetries", async (t) => {
     assert.equal(calls, 3);
   });
 
+  await t.test("reports every failed attempt to onError and pauses between attempts but not after the last", async () => {
+    const errors: string[] = [];
+    const startedAt = Date.now();
+    await assert.rejects(
+      withRetries(
+        3,
+        async (attempt) => {
+          throw new Error(`fail ${attempt}`);
+        },
+        { delayMs: 20, onError: (err, attempt) => errors.push(`${attempt}:${(err as Error).message}`) },
+      ),
+      /fail 3/,
+    );
+    const elapsedMs = Date.now() - startedAt;
+    assert.deepEqual(errors, ["1:fail 1", "2:fail 2", "3:fail 3"]);
+    assert.ok(elapsedMs >= 40, `expected two 20ms pauses, took ${elapsedMs}ms`);
+    assert.ok(elapsedMs < 60, `expected no pause after the last attempt, took ${elapsedMs}ms`);
+  });
+
   await t.test("treats anything less than 1 as a single attempt", async () => {
     let calls = 0;
     await assert.rejects(

@@ -16,7 +16,11 @@ const IMG_CHAR = "0000fef2-0000-1000-8000-00805f9b34fb";
  * registered - mirrors the real device's behaviour closely enough to exercise `AckChannel`'s
  * single-slot dispatch and the chunked-transfer loop in `paint()` without a real GATT connection.
  */
-function fakeGiciskyConnection(deviceChunkSize: number): { conn: GattConnection; writes: { charUuid: string; data: Buffer }[] } {
+function fakeGiciskyConnection(
+  deviceChunkSize: number,
+  /** Answers the image chunk at part index `afterPart` with `ack` instead of the usual "next part" ack. */
+  override?: { afterPart: number; ack: Buffer },
+): { conn: GattConnection; writes: { charUuid: string; data: Buffer }[] } {
   const writes: { charUuid: string; data: Buffer }[] = [];
   let notify: ((data: Buffer) => void) | undefined;
   let nextPart = 0;
@@ -53,6 +57,8 @@ function fakeGiciskyConnection(deviceChunkSize: number): { conn: GattConnection;
           ack[0] = 0x05;
           ack.writeUInt32LE(nextPart, 2);
           notify?.(ack);
+        } else if (charUuid === IMG_CHAR && override && data.readUInt32LE(0) === override.afterPart) {
+          notify?.(override.ack);
         } else if (charUuid === IMG_CHAR) {
           nextPart += 1;
           const ack = Buffer.alloc(6);
@@ -148,6 +154,44 @@ test("GiciskyDriver.paint", async (t) => {
       }),
       /image transfer stalled/,
     );
+  });
+
+  await t.test("treats a non-zero status in reply to the final chunk as transfer complete (seen on a 2.9in BWRY)", async () => {
+    // 8x8 BW packs to 8 bytes = 2 chunks of 4 - part 1 is the last one.
+    const { conn, writes } = fakeGiciskyConnection(4 + 4, { afterPart: 1, ack: Buffer.from("050800000000", "hex") });
+    const driver = new GiciskyDriver();
+
+    await driver.paint(tinyBlackBitmap(8), {
+      address: "AA:BB:CC:DD:EE:FF",
+      modelOverride: { label: "test", width: 8, height: 8, voffset: 0, colours: ["black", "white"] },
+      gattBackend: fakeBackend(conn),
+    });
+
+    assert.equal(writes.filter((w) => w.charUuid === IMG_CHAR).length, 2);
+  });
+
+  await t.test("still throws on a non-zero status before the final chunk", async () => {
+    const { conn } = fakeGiciskyConnection(4 + 4, { afterPart: 0, ack: Buffer.from("050800000000", "hex") });
+    const driver = new GiciskyDriver();
+
+    await assert.rejects(
+      driver.paint(tinyBlackBitmap(8), {
+        address: "AA:BB:CC:DD:EE:FF",
+        modelOverride: { label: "test", width: 8, height: 8, voffset: 0, colours: ["black", "white"] },
+        gattBackend: fakeBackend(conn),
+      }),
+      /error transferring image part 0/,
+    );
+  });
+
+  await t.test("falls back to the configured pid when the device isn't advertising", async () => {
+    const { conn, writes } = fakeGiciskyConnection(244);
+    const driver = new GiciskyDriver();
+
+    // 0x0028 is the 2.9" BW (296x128) - no advertisement, so only `pid` can identify it.
+    await driver.paint(tinyBlackBitmap(8), { address: "AA:BB:CC:DD:EE:FF", pid: 0x0028, gattBackend: fakeBackend(conn, undefined) });
+
+    assert.ok(writes.some((w) => w.charUuid === IMG_CHAR));
   });
 
   await t.test("throws with a helpful message when no advertisement and no modelOverride are available", async () => {

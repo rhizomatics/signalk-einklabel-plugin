@@ -58,6 +58,13 @@ export type DeviceModelOverride = Omit<DeviceMetadata, "pid">;
 /** Per-device settings the user supplies when registering a device, beyond what's in DeviceMetadata. */
 export interface VendorDeviceConfig {
   address: string;
+  /**
+   * The PID already known for this device (from the configured `"<vendor>:<pid>@<address>"` or a
+   * previous scan) - a fallback for drivers that otherwise only learn it from a fresh advertisement
+   * (gicisky), so a device that's quiet at paint time can still be painted. A live advertised PID
+   * takes precedence when there is one.
+   */
+  pid?: number;
   /** AES key for vendors that need it, entered by the user. If omitted, vendors that have one may fall back to a stock/manufacturer-default key instead of failing. */
   aesKey?: string;
   /** Forces the device model facts instead of looking up the advertised PID - for hardware not yet in the driver's table. */

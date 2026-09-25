@@ -83,22 +83,26 @@ export class GiciskyDriver implements VendorDriver {
       MANUFACTURER_DATA_RESCAN_TIMEOUT_MS,
     );
     const info = manufacturerData ? decodeAdvertisedInfo(manufacturerData) : undefined;
+    // A device that's quiet right now (e.g. still refreshing from the last paint) can still be painted
+    // when its PID is already known from config/a previous scan - the connect below doesn't need the
+    // advertisement, only this lookup does.
+    const pid = info?.deviceId ?? config.pid;
 
     const metadata: DeviceMetadata | undefined = config.modelOverride
-      ? { pid: info?.deviceId ?? 0, ...config.modelOverride }
-      : info
-        ? this.metadataForPid(info.deviceId)
+      ? { pid: pid ?? 0, ...config.modelOverride }
+      : pid !== undefined
+        ? this.metadataForPid(pid)
         : undefined;
     if (!metadata) {
       throw new Error(
-        info === undefined
+        pid === undefined
           ? "gicisky device isn't advertising - rescanned but got nothing back (out of range, asleep, or already connected " +
               "elsewhere) - pass --width/--height/--voffset/--colours to describe it manually"
-          : `gicisky device reports unrecognised deviceId 0x${info.deviceId.toString(16).padStart(4, "0")} - ` +
+          : `gicisky device reports unrecognised deviceId 0x${pid.toString(16).padStart(4, "0")} - ` +
               "pass --width/--height/--voffset/--colours to describe it manually",
       );
     }
-    const layout: GiciskyLayout = (info && GICISKY_PID_LAYOUT[info.deviceId]) || defaultLayoutFor(metadata.colours);
+    const layout: GiciskyLayout = (pid !== undefined && GICISKY_PID_LAYOUT[pid]) || defaultLayoutFor(metadata.colours);
 
     const framed = reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "crop");
     const payload = encodeBitmap(framed, metadata, layout);
@@ -127,6 +131,12 @@ export class GiciskyDriver implements VendorDriver {
           const chunk = payload.subarray(part * chunkSize, Math.min(part * chunkSize + chunkSize, payload.length));
           const ackData = await writeAndAwaitAck(conn, imgServiceUuid, imgUuid, imageChunkPacket(part, chunk), ack);
           const decoded = decodeTransferAck(ackData);
+          if (decoded && !decoded.ok && part * chunkSize + chunk.length >= payload.length) {
+            // The device answers the final chunk with a non-zero status (seen: `05 08 00000000`) once
+            // it has the whole image and starts refreshing - the transfer's done, not failed. Matches
+            // hass-gicisky's writer, which ends the transfer on any non-zero status rather than erroring.
+            break;
+          }
           if (!decoded?.ok) {
             throw new Error(`gicisky device reported an error transferring image part ${part}: ${ackData.toString("hex")}`);
           }

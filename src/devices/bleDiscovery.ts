@@ -71,15 +71,28 @@ export async function forEachAdvertisedDevice(adapter: Adapter, fn: (advertised:
 /**
  * Retries `fn` up to `attempts` times (including the first try), returning on the first success -
  * shared by the repaint scheduler and the CLI's `paint` command so one flaky BLE connection
- * doesn't fail a whole repaint after a single bad attempt.
+ * doesn't fail a whole repaint after a single bad attempt. `delayMs` pauses between attempts, giving
+ * the adapter (and any BLE Manager claim the failed attempt held) a moment to settle rather than
+ * hitting the device again in the same tick. `onError` sees every failed attempt's error, not just the
+ * last one that's eventually thrown - an early attempt's error is often the real cause, with later
+ * ones just fallout from it.
  */
-export async function withRetries<T>(attempts: number, fn: (attempt: number) => Promise<T>): Promise<T> {
+export async function withRetries<T>(
+  attempts: number,
+  fn: (attempt: number) => Promise<T>,
+  { delayMs = 0, onError }: { delayMs?: number; onError?: (err: unknown, attempt: number) => void } = {},
+): Promise<T> {
+  const total = Math.max(1, attempts);
   let lastErr: unknown;
-  for (let attempt = 1; attempt <= Math.max(1, attempts); attempt++) {
+  for (let attempt = 1; attempt <= total; attempt++) {
     try {
       return await fn(attempt);
     } catch (err) {
       lastErr = err;
+      onError?.(err, attempt);
+      if (attempt < total && delayMs > 0) {
+        await sleep(delayMs);
+      }
     }
   }
   throw lastErr;
