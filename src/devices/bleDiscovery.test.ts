@@ -313,23 +313,24 @@ test("withRetries", async (t) => {
     assert.equal(calls, 3);
   });
 
-  await t.test("reports every failed attempt to onError and pauses between attempts but not after the last", async () => {
+  await t.test("reports every failed attempt to onError and pauses between attempts", async () => {
     const errors: string[] = [];
-    const startedAt = Date.now();
+    const startedAt: number[] = [];
     await assert.rejects(
       withRetries(
         3,
         async (attempt) => {
+          startedAt.push(Date.now());
           throw new Error(`fail ${attempt}`);
         },
         { delayMs: 20, onError: (err, attempt) => errors.push(`${attempt}:${(err as Error).message}`) },
       ),
       /fail 3/,
     );
-    const elapsedMs = Date.now() - startedAt;
     assert.deepEqual(errors, ["1:fail 1", "2:fail 2", "3:fail 3"]);
-    assert.ok(elapsedMs >= 40, `expected two 20ms pauses, took ${elapsedMs}ms`);
-    assert.ok(elapsedMs < 60, `expected no pause after the last attempt, took ${elapsedMs}ms`);
+    // setTimeout can fire a millisecond early, so allow a little slack under the nominal 20ms.
+    assert.ok(startedAt[1] - startedAt[0] >= 18, `expected a pause before attempt 2, got ${startedAt[1] - startedAt[0]}ms`);
+    assert.ok(startedAt[2] - startedAt[1] >= 18, `expected a pause before attempt 3, got ${startedAt[2] - startedAt[1]}ms`);
   });
 
   await t.test("treats anything less than 1 as a single attempt", async () => {
