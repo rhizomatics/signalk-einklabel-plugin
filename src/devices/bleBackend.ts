@@ -184,6 +184,9 @@ export async function ensureDeviceVisible(bleApi: BLEApi, pluginId: string, addr
   }
 }
 
+/** Upper bound on how long a timed-out `bleApi.connectGATT()` is given to settle server-side before a retry - see `bleApiBackend`. */
+const CONNECT_SETTLE_GRACE_MS = 30_000;
+
 let bleManagerQueue: Promise<unknown> = Promise.resolve();
 
 /**
@@ -228,7 +231,19 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
         // background) so a caller retrying straight away - `withRetries` - can't race it with a new
         // `connectGATT()` and get rejected with "has a GATT claim in progress" for its trouble.
         await bleApi.releaseGATTDevice(address, pluginId).catch(() => {});
-        void connecting.then((c) => c.disconnect()).catch(() => {});
+        // ...except a claim still *connecting* isn't in the server's claim table yet, only its pending
+        // set, which `releaseGATTDevice` doesn't touch - so while the server's own connect is still in
+        // flight, a retry's `connectGATT()` is rejected outright with "has a GATT claim in progress".
+        // Give that connect a bounded chance to settle first, so the retry gets a clean slate.
+        const late = await Promise.race([
+          connecting.catch(() => undefined),
+          sleep(Math.min(timeoutMs, CONNECT_SETTLE_GRACE_MS)).then(() => undefined),
+        ]);
+        if (late) {
+          await Promise.allSettled([bleApi.releaseGATTDevice(address, pluginId), late.disconnect()]);
+        } else {
+          void connecting.then((c) => c.disconnect()).catch(() => {});
+        }
         throw new Error(`connecting to device timed out after ${timeoutMs}ms`);
       }
       return withSessionWatchdog(conn, GATT_SESSION_WATCHDOG_MS, async () => {

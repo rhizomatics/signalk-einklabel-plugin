@@ -80,6 +80,22 @@ test("bleApiBackend.connectGatt", async (t) => {
     assert.equal(disconnected, true);
   });
 
+  await t.test("waits for a timed-out connect still pending server-side to settle, then tears it down before rejecting", async () => {
+    const events: string[] = [];
+    const bleApi = {
+      getDevice: async (mac: string) => ({ mac }),
+      releaseGATTDevice: async () => void events.push("release"),
+      connectGATT: () =>
+        new Promise<BLEGattConnection>((resolve) =>
+          setTimeout(() => resolve(fakeGattConnection({ disconnect: async () => void events.push("disconnect") })), 30),
+        ),
+    } as unknown as BLEApi;
+
+    await assert.rejects(bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 20), /timed out after 20ms/);
+    events.push("rejected");
+    assert.deepEqual(events, ["release", "release", "release", "disconnect", "rejected"]);
+  });
+
   await t.test("doesn't reject a timed-out connect until the claim release has finished", async () => {
     const events: string[] = [];
     const bleApi = {
