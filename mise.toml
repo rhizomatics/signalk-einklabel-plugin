@@ -1,6 +1,6 @@
 [tools]
 github-cli = "latest"
-node = "latest"
+node = "24"
 npm = "latest"
 oxfmt = "latest"
 oxlint = "latest"
