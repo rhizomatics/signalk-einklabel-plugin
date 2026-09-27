@@ -3,6 +3,7 @@ import { readFileSync, utimesSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import starlightLlmsTxt from "starlight-llms-txt";
 import { assetsSrc, copyAssets, docsDir, navPath, readmePath, syncPages } from "./scripts/sync-docs.mjs";
 
 /** Pages whose sections are listed open in the sidebar - every other page starts collapsed. */
@@ -106,6 +107,30 @@ export default defineConfig({
       ],
       // Pages are generated from ../README.md and ../docs/ by scripts/sync-docs.mjs.
       sidebar: sidebar(),
+      // /llms.txt, /llms-full.txt and /llms-small.txt - the docs as plain Markdown for coding agents.
+      plugins: [
+        starlightLlmsTxt({
+          projectName: "signalk-einklabel-plugin",
+          details: [
+            "A SignalK server plugin (npm `@rhizomatics/signalk-einklabel-plugin`) that renders SVG templates bound to",
+            "SignalK paths and pushes them over Bluetooth Low Energy to eInk Electronic Shelf Labels (Gicisky and",
+            "ZhSunyco labels). It also ships `esl-cli` for scanning, rendering and pushing images outside the server.",
+          ].join(" "),
+          promote: ["index*", "getting-started*", "templates*", "examples/**"],
+          optionalLinks: [
+            {
+              label: "GitHub repository",
+              url: "https://github.com/rhizomatics/signalk-einklabel-plugin",
+              description: "source, bundled templates and issue tracker",
+            },
+            {
+              label: "SignalK documentation",
+              url: "https://demo.signalk.org/documentation/",
+              description: "the SignalK server and data model the plugin reads from",
+            },
+          ],
+        }),
+      ],
     }),
   ],
 });
