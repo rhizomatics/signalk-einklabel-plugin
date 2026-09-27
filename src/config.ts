@@ -822,7 +822,7 @@ export function configUiSchema(): object {
           "advanced",
         ],
         friendlyName: { "ui:placeholder": "e.g. Tide clock" },
-        description: { "ui:widget": "textarea", "ui:placeholder": "e.g. chart table, viewed from about 1m in poor light", ...MARKDOWN },
+        description: { "ui:widget": "textarea", "ui:placeholder": "e.g. at companionway", ...MARKDOWN },
         templateName: MARKDOWN,
         repaintTrigger: { "ui:widget": "radio" },
         triggerPath: { "ui:placeholder": "e.g. environment.tide.state" },
