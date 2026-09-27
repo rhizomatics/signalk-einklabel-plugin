@@ -6,6 +6,7 @@ import { GICISKY_PID_METADATA } from "./metadata";
 import { GICISKY_PID_LAYOUT, GiciskyLayout, defaultLayoutFor } from "./layout";
 import { encodeBitmap } from "./encode";
 import { reframeBitmap } from "../../render/reframe";
+import { mirrorBitmap } from "../../render/mirror";
 import {
   CANDIDATE_SERVICE_UUID_PREFIX,
   GICISKY_MANUFACTURER_ID,
@@ -104,8 +105,8 @@ export class GiciskyDriver implements VendorDriver {
     }
     const layout: GiciskyLayout = (pid !== undefined && GICISKY_PID_LAYOUT[pid]) || defaultLayoutFor(metadata.colours);
 
-    const framed = reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "crop");
-    const payload = encodeBitmap(framed, metadata, layout);
+    const framed = mirrorBitmap(reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "crop"), config.mirror ?? "none");
+    const payload = encodeBitmap(framed, metadata, layout, config.compress ?? true);
 
     const conn = await backend.connectGatt(config.address, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
     try {

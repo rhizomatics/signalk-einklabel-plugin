@@ -1,5 +1,6 @@
 import { Bitmap } from "../render/types";
 import { ReframeMode } from "../render/reframe";
+import { MirrorMode } from "../render/mirror";
 import { BleBackend } from "./bleBackend";
 import { GattConnection } from "./gattConnection";
 
@@ -73,6 +74,10 @@ export interface VendorDeviceConfig {
   connectTimeoutMs?: number;
   /** How to fit the bitmap onto the panel when its size doesn't already match - see `ReframeMode`. Defaults to `"crop"` - a live label showing *something*, even off-size, beats a repaint that just fails outright; pass `"fixed"` explicitly to get the old reject-the-mismatch behaviour back. */
   reframe?: ReframeMode;
+  /** Flips the image after reframing, before encoding - see `MirrorMode`. Defaults to `"none"`. */
+  mirror?: MirrorMode;
+  /** Compress the upload where the vendor protocol supports it (zhsunyco; gicisky's chunked 7.5"/10.2" panels); ignored otherwise. Defaults to `true`. */
+  compress?: boolean;
   /**
    * How `paint()` reaches the device's BLE hardware - omitted (always true for the CLI, which has no
    * `ServerAPI`/`app.bleApi` to source one from) means direct BlueZ access via a fresh

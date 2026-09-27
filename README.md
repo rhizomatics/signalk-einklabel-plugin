@@ -537,6 +537,8 @@ USB_DENYLIST="0b05:190e"
 
 ## Other ESL and General eInk Resources
 
+### Components
+
 - [Open ePaper Link](https://openepaperlink.de) - Alternative open source firmware to flash onto eInk shelf labels, with Home Assistant integration.
 - [zhsunyco-esl](https://github.com/roxburghm/zhsunyco-esl) - Python interface
 - [WoLink](https://github.com/NickWaterton/Wolink) - Python interface and protocol analysis
@@ -545,9 +547,14 @@ USB_DENYLIST="0b05:190e"
 - [esp32-esl-system](https://github.com/giobauermeister/esp32-esl-system) - Docker and ESP32 based system for updating ESLs.
 - [hass-gicisky](https://github.com/eigger/hass-gicisky) - Home Assistant integration for Gicisky ESLs ( a similar vendor to Zhsunyco). Uses [imagespec](https://github.com/eigger/imagespec) for templating.
 - [ha-panda](https://github.com/moryoav/ha-panda) - Home Assistant integration for Panda ESLs ( a similar vendor to Zhsunyco).
+
+### Notes and Experiences
+
+- [Cabalist Gicisky Image Notes](https://github.com/Cabalist/gicisky_image_notes)
 - [Dmitry.gr](https://dmitry.gr/?r=05.Projects&proj=29.%20eInk%20Price%20Tags) - Personal site of an ESL hacker
 - [Aaron Christobel](https://www.youtube.com/@atc1441) - YouTube channel of an ESL hacker.
 - [rbaron.net](https://rbaron.net/blog/2022/07/29/Daisy-chaining-multiple-electronic-shelf-labels) - Blog of an early ESL hacker.
+  ### Retail
 - [Pimoroni](https://shop.pimoroni.com/collections/displays?tags=e-ink%20Displays) - All shapes and sizes of eInk displays, aimed at hackers, and with an [inky](https://github.com/pimoroni/inky) GitHub project to support them.
 - [WaveShare](https://www.waveshare.com/product/displays/e-paper.htm) - Wide range of eInk displays for hardware projects, not limited to ESLs.
 

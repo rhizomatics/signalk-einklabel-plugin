@@ -4,6 +4,7 @@ import { isAbsolute, join } from "path";
 import { ServerAPI } from "@signalk/server-api";
 import { Colour, DiscoveredDevice } from "./devices/types";
 import { ReframeMode } from "./render/reframe";
+import { MIRROR_MODES, MirrorMode } from "./render/mirror";
 import { allTemplateProviders } from "./render/templateProviders";
 import { SIGNALK_API_URL_OPTIONS } from "./resolveApiUrl";
 
@@ -65,6 +66,10 @@ export interface DeviceConfig {
    * showing *something*, even off-size, beats a repaint that just fails outright.
    */
   reframe?: ReframeMode;
+  /** Flip the image before sending - for a panel whose layout is mirrored, or one mounted upside down (`"both"`). Unset means `"none"`. */
+  mirror?: MirrorMode;
+  /** Compress the upload (zhsunyco, and gicisky's chunked 7.5"/10.2" panels - ignored otherwise). Unset means on; turn off if a device fails to show compressed images. */
+  compress?: boolean;
 }
 
 export interface PluginConfig {
@@ -590,6 +595,19 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               enum: ["crop", "scale", "fixed"],
               default: "crop",
             },
+            mirror: {
+              type: "string",
+              title: "Mirror",
+              description: "Flip the image if it shows up mirrored on the label. Both = rotate 180°, e.g. for a label mounted upside down.",
+              enum: MIRROR_MODES,
+              default: "none",
+            },
+            compress: {
+              type: "boolean",
+              title: 'Compress upload (Zhsunyco, Gicisky 7.5"/10.2")',
+              description: "Sends far less data over BLE, so repaints are quicker. Turn off if a label stops updating.",
+              default: true,
+            },
           },
         },
       },
@@ -604,6 +622,7 @@ export function configUiSchema(): object {
         description: { "ui:widget": "textarea" },
         repaintTrigger: { "ui:widget": "radio" },
         reframe: { "ui:widget": "radio" },
+        mirror: { "ui:widget": "radio" },
       },
     },
   };

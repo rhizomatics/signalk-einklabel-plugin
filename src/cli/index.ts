@@ -18,6 +18,7 @@ import {
 } from "../devices/bleDiscovery";
 import { Colour, DeviceModelOverride } from "../devices/types";
 import { ReframeMode } from "../render/reframe";
+import { MIRROR_MODES, MirrorMode } from "../render/mirror";
 import { SvgRenderer } from "../render/svgRenderer";
 import { bitmapToPng } from "../render/png";
 import { Binding, findBindings, parseBinding, readTemplateDimensions, renderBinding, resolveBinding } from "../render/binding";
@@ -57,6 +58,13 @@ export function parseReframeMode(value: string): ReframeMode {
     throw new Error(`unknown --reframe value "${value}" - expected one of ${REFRAME_MODES.join(", ")}`);
   }
   return value as ReframeMode;
+}
+
+export function parseMirrorMode(value: string): MirrorMode {
+  if (!(MIRROR_MODES as string[]).includes(value)) {
+    throw new Error(`unknown --mirror value "${value}" - expected one of ${MIRROR_MODES.join(", ")}`);
+  }
+  return value as MirrorMode;
 }
 
 /** Probes DEFAULT_SIGNALK_URLS in order and returns the first that answers a plain GET - used when -u/--url is omitted. */
@@ -283,6 +291,8 @@ program
     "how to fit the rendered image onto the device's actual panel size when it doesn't match: crop (default - place at top-left, truncating or leaving the rest blank), scale (stretch the template to the panel), fixed (reject the mismatch instead)",
     "crop",
   )
+  .option("--mirror <mode>", "flip the image before sending: none (default), horizontal, vertical, or both (rotate 180°)", "none")
+  .option("--no-compress", 'send the image uncompressed (zhsunyco, gicisky 7.5"/10.2" - compression is on by default)')
   .option("--connect-timeout <seconds>", "BLE connect timeout before giving up on an attempt", "30")
   .option("--retries <n>", "number of paint attempts (including the first) before giving up", "3")
   .action(async (opts) => {
@@ -326,6 +336,8 @@ program
         modelOverride,
         connectTimeoutMs,
         reframe: parseReframeMode(opts.reframe),
+        mirror: parseMirrorMode(opts.mirror),
+        compress: opts.compress,
       });
     });
     console.log(`painted ${opts.address} (${bitmap.width}x${bitmap.height}) ${opts.colours}`);

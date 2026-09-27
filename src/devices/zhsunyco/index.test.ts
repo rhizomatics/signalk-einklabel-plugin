@@ -1,4 +1,5 @@
 import test from "node:test";
+import { inflateRawSync } from "zlib";
 import assert from "node:assert/strict";
 import { ZhsunycoDriver } from "./index";
 import { GattConnection } from "../gattConnection";
@@ -20,7 +21,7 @@ function fakeConfigBuffer(pid: number): Buffer {
 
 /**
  * Simulates a zhsunyco device: `read()` answers config/auth-challenge/battery reads, `write()`
- * records every write and, once the final `refreshUncompressed` command lands on the data
+ * records every write and, once a final refresh command (compressed or not) lands on the data
  * characteristic, delivers a status notification to whatever `startNotifications` callback is
  * currently registered on the status characteristic - exercises the persistent-callback status wait
  * (`GattConnection`'s shape) in place of node-ble's per-call `.once("valuechanged")`.
@@ -45,7 +46,8 @@ function fakeZhsunycoConnection(
     },
     write: async (_service: string, charUuid: string, data: Buffer, withResponse?: boolean) => {
       writes.push({ charUuid, data: Buffer.from(data), withResponse });
-      if (charUuid === WOLINK_CHARACTERISTIC_UUIDS.data && data.readUInt16LE(0) === COMMAND.refreshUncompressed) {
+      const command = charUuid === WOLINK_CHARACTERISTIC_UUIDS.data ? data.readUInt16LE(0) : undefined;
+      if (command === COMMAND.refreshUncompressed || command === COMMAND.refreshCompressed) {
         queueMicrotask(() => statusCallback?.(Buffer.from([0x00, options.statusErrorCode ?? 0x00])));
       }
     },
@@ -85,9 +87,47 @@ test("ZhsunycoDriver.paint", async (t) => {
     const dataWrites = writes.filter((w) => w.charUuid === WOLINK_CHARACTERISTIC_UUIDS.data);
     assert.equal(authWrites.length, 1);
     assert.equal(authWrites[0].withResponse, false);
-    // At least one uploadBlock chunk plus the final refreshUncompressed command.
+    // At least one uploadBlock chunk plus the final refresh command.
     assert.ok(dataWrites.length >= 2);
-    assert.equal(dataWrites[dataWrites.length - 1].data.readUInt16LE(0), COMMAND.refreshUncompressed);
+    assert.equal(dataWrites[dataWrites.length - 1].data.readUInt16LE(0), COMMAND.refreshCompressed);
+  });
+
+  await t.test("compresses by default: uploads a block-deflate payload and refreshes with its compressed length", async () => {
+    const { conn, writes } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008));
+    const driver = new ZhsunycoDriver();
+
+    await driver.paint(tinyBlackBitmap(8), {
+      address: "AA:BB:CC:DD:EE:FF",
+      modelOverride: { label: "test", width: 8, height: 8, voffset: 0, colours: ["black", "white"] },
+      gattBackend: fakeBackend(conn),
+    });
+
+    const dataWrites = writes.filter((w) => w.charUuid === WOLINK_CHARACTERISTIC_UUIDS.data);
+    const uploaded = Buffer.concat(dataWrites.slice(0, -1).map((w) => w.data.subarray(6)));
+    const refresh = dataWrites[dataWrites.length - 1].data;
+    assert.equal(refresh.readUInt32LE(2), uploaded.length);
+    assert.deepEqual([...uploaded.subarray(0, 4)], [0xa5, 0xa6, 1, 0x02]);
+    const blockLength = uploaded.readUInt16LE(5);
+    // 8x8 all-black at 2bpp is 16 zero bytes.
+    assert.deepEqual(inflateRawSync(uploaded.subarray(7, 7 + blockLength)), Buffer.alloc(16));
+  });
+
+  await t.test("sends the raw buffer with the uncompressed refresh when compress is false", async () => {
+    const { conn, writes } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008));
+    const driver = new ZhsunycoDriver();
+
+    await driver.paint(tinyBlackBitmap(8), {
+      address: "AA:BB:CC:DD:EE:FF",
+      modelOverride: { label: "test", width: 8, height: 8, voffset: 0, colours: ["black", "white"] },
+      compress: false,
+      gattBackend: fakeBackend(conn),
+    });
+
+    const dataWrites = writes.filter((w) => w.charUuid === WOLINK_CHARACTERISTIC_UUIDS.data);
+    const refresh = dataWrites[dataWrites.length - 1].data;
+    assert.equal(refresh.readUInt16LE(0), COMMAND.refreshUncompressed);
+    assert.equal(refresh.readUInt32LE(2), 16);
+    assert.deepEqual(dataWrites[0].data.subarray(6), Buffer.alloc(16));
   });
 
   await t.test("throws when the device reports an error status after refresh", async () => {

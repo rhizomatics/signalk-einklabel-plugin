@@ -132,7 +132,7 @@ function packFourColour(bitmap: Bitmap, layout: GiciskyLayout, supported: Colour
  * colour selection uses palette-nearest classification (matching this codebase's `zhsunyco`
  * driver) rather than the reference driver's raw-luminance thresholds.
  */
-export function encodeBitmap(bitmap: Bitmap, metadata: DeviceMetadata, layout: GiciskyLayout): Buffer {
+export function encodeBitmap(bitmap: Bitmap, metadata: DeviceMetadata, layout: GiciskyLayout, compress = true): Buffer {
   if (layout.packing === "unsupported") {
     throw new Error(
       `gicisky paint: device "${metadata.label}" isn't supported yet (needs compression/resize support this driver doesn't implement)`,
@@ -160,7 +160,7 @@ export function encodeBitmap(bitmap: Bitmap, metadata: DeviceMetadata, layout: G
   const redPlane = packPlane(rotated, layout, supported, (colour) => colour === "red");
 
   if (layout.packing === "chunked") {
-    return frameChunkedPlanes(bwPlane, redPlane);
+    return frameChunkedPlanes(bwPlane, redPlane, compress);
   }
   return Buffer.concat([bwPlane, redPlane]);
 }

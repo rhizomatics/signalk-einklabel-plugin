@@ -439,6 +439,8 @@ async function considerRepaint(
           aesKey: device.aesKey,
           connectTimeoutMs,
           reframe: device.reframe,
+          mirror: device.mirror,
+          compress: device.compress,
           gattBackend,
         });
         paintDurationMs = Date.now() - startedAt;

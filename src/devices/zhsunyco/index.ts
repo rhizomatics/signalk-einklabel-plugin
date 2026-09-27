@@ -7,6 +7,8 @@ import { PLUGIN_NAME } from "../../pluginVersion";
 import { ZHSUNYCO_PID_METADATA } from "./metadata";
 import { encodeBitmap } from "./encode";
 import { reframeBitmap } from "../../render/reframe";
+import { mirrorBitmap } from "../../render/mirror";
+import { compressWolinkBlocks } from "./compression";
 import {
   AdvertisedDeviceInfo,
   COMMAND,
@@ -114,10 +116,17 @@ export class ZhsunycoDriver implements VendorDriver {
         await conn.write(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.authenticate, authResponse(challenge, aesKey), false);
         await sleep(AUTH_SETTLE_DELAY_MS);
 
-        const framed = reframeBitmap(bitmap, metadata.width, metadata.height - metadata.voffset, config.reframe ?? "crop");
+        const framed = mirrorBitmap(
+          reframeBitmap(bitmap, metadata.width, metadata.height - metadata.voffset, config.reframe ?? "crop"),
+          config.mirror ?? "none",
+        );
         const pixelData = encodeBitmap(framed, metadata);
-        for (let offset = 0; offset < pixelData.length; offset += UPLOAD_CHUNK_SIZE) {
-          const chunk = pixelData.subarray(offset, offset + UPLOAD_CHUNK_SIZE);
+        const compress = config.compress ?? true;
+        // Upload offsets and the refresh length both count bytes of whatever's actually sent - the
+        // compressed payload when compressing, not the raw buffer it inflates back to.
+        const payload = compress ? compressWolinkBlocks(pixelData) : pixelData;
+        for (let offset = 0; offset < payload.length; offset += UPLOAD_CHUNK_SIZE) {
+          const chunk = payload.subarray(offset, offset + UPLOAD_CHUNK_SIZE);
           await conn.write(
             WOLINK_SERVICE_UUID,
             WOLINK_CHARACTERISTIC_UUIDS.data,
@@ -129,7 +138,7 @@ export class ZhsunycoDriver implements VendorDriver {
         await conn.write(
           WOLINK_SERVICE_UUID,
           WOLINK_CHARACTERISTIC_UUIDS.data,
-          commandHeader(COMMAND.refreshUncompressed, pixelData.length),
+          commandHeader(compress ? COMMAND.refreshCompressed : COMMAND.refreshUncompressed, payload.length),
           true,
         );
 

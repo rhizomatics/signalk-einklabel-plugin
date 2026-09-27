@@ -9,7 +9,7 @@
 export type GiciskyPacking =
   /** Plain concatenated bit-planes, no framing - covers most panels. */
   | "plain"
-  /** Two bit-planes each split into raw 64-byte chunks framed per `compression.ts`'s `compress()` - the 7.5"/10.2" panels. */
+  /** Two bit-planes each split into 64-byte chunks (QuickLZ-compressed or raw) framed per `compression.ts` - the 7.5"/10.2" panels. */
   | "chunked"
   /**
    * A panel this driver can identify (for `scan`/discovery) but can't paint correctly yet - either

@@ -20,6 +20,8 @@ export const WOLINK_CHARACTERISTIC_UUIDS = {
 export const COMMAND = {
   uploadBlock: 0xa500,
   refreshUncompressed: 0xa501,
+  /** Refresh after uploading a `compressWolinkBlocks` payload rather than the raw buffer. */
+  refreshCompressed: 0xa502,
 } as const;
 
 export interface AdvertisedDeviceInfo {

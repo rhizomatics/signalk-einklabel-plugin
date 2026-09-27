@@ -1,6 +1,16 @@
 # 1.3.0
 
+## BLE Manager
+
 First implementation of using new SignalK BLE Manager rather than directly using the `bluez` services. Off by default until longer term stability demonstrated.
+
+## Compression
+
+Simple compression of images as an option - no change to what's displayed but send time massively reduced for labels that have lots of empty space, and consequently less battery consumed and less chance of send failure
+
+## Mirroring
+
+Some labels may need images flipped, so this allows that if needed
 
 # 1.2.3
 
