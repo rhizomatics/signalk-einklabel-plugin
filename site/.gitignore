@@ -3,8 +3,8 @@ dist/
 # generated types
 .astro/
 
-# generated from ../README.md and ../docs/assets by scripts/sync-readme.mjs
-src/content/docs/index.md
+# generated from ../README.md, ../docs/*.md and ../docs/assets by scripts/sync-docs.mjs
+src/content/docs/
 src/assets/readme/
 src/generated/
 

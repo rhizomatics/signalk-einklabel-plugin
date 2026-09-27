@@ -1,24 +1,99 @@
 // @ts-check
-import { readFileSync } from "node:fs";
+import { readFileSync, utimesSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import { assetsSrc, copyAssets, docsDir, navPath, readmePath, syncPages } from "./scripts/sync-docs.mjs";
 
-// Written by scripts/sync-readme.mjs (runs via the predev/prebuild npm scripts,
-// before Astro ever loads this file) from the README's `##` section headings.
-const sectionsPath = fileURLToPath(new URL("src/generated/readme-sections.json", import.meta.url));
-/** @type {{ text: string, slug: string }[]} */
-let readmeSections = [];
-try {
-  readmeSections = JSON.parse(readFileSync(sectionsPath, "utf8"));
-} catch {
-  // First run before `npm run sync-readme` has ever executed - sidebar just omits them.
+/** Pages whose sections are listed open in the sidebar - every other page starts collapsed. */
+const EXPANDED = ["/", "/examples/"];
+
+/** Top-level sidebar order, by route - anything under /examples/ is grouped under Examples instead. */
+const PAGE_ORDER = ["/", "/getting-started/", "/templates/", "/examples/", "/bluetooth/", "/faq/", "/cli/", "/extending/"];
+
+/**
+ * One sidebar entry per page, expanded to its `##` sections (plus an "Introduction" link to any text
+ * before the first one), from the outline scripts/sync-docs.mjs writes alongside the pages.
+ */
+function sidebar() {
+  /** @type {{ route: string, title: string, hasIntro: boolean, sections: { text: string, slug: string }[] }[]} */
+  let pages = [];
+  try {
+    pages = JSON.parse(readFileSync(navPath, "utf8"));
+  } catch {
+    // Not synced yet - `predev`/`prebuild` always sync first, so this is only a bare `astro` call.
+  }
+  /** @param {(typeof pages)[number]} page */
+  // Some link must be the plain page URL, or Starlight won't recognise the current page and open its
+  // group - so with no introduction, the first section (at the top of the page anyway) links there.
+  const links = (page) => {
+    const intro = page.hasIntro || page.sections.length === 0;
+    return [
+      ...(intro ? [{ label: "Introduction", link: page.route }] : []),
+      ...page.sections.map((section, i) => ({
+        label: section.text,
+        link: !intro && i === 0 ? page.route : `${page.route}#${section.slug}`,
+      })),
+    ];
+  };
+  const byRoute = new Map(pages.map((page) => [page.route, page]));
+  const examples = pages.filter((page) => page.route.startsWith("/examples/") && page.route !== "/examples/");
+  const order = [
+    ...PAGE_ORDER,
+    ...pages.map((page) => page.route).filter((route) => !PAGE_ORDER.includes(route) && !route.startsWith("/examples/")),
+  ];
+  return order.flatMap((route) => {
+    const page = byRoute.get(route);
+    if (!page) return [];
+    if (route === "/examples/") {
+      return [
+        {
+          label: page.title,
+          items: [...links(page), ...examples.map((example) => ({ label: example.title, collapsed: true, items: links(example) }))],
+        },
+      ];
+    }
+    return [{ label: page.title, collapsed: !EXPANDED.includes(route), items: links(page) }];
+  });
 }
+
+/**
+ * While `astro dev` runs, regenerates the pages whenever README.md or anything under docs/ changes -
+ * they live outside src/, so Astro wouldn't otherwise notice. Astro then hot-reloads the regenerated
+ * page itself. A failed sync (e.g. a link to a page that doesn't exist yet, mid-edit) is logged
+ * rather than stopping the server.
+ */
+const configPath = fileURLToPath(import.meta.url);
+
+/** @type {import("astro").AstroIntegration} */
+const syncDocsOnChange = {
+  name: "sync-docs-on-change",
+  hooks: {
+    "astro:server:setup": ({ server, logger }) => {
+      server.watcher.add([readmePath, docsDir]);
+      /** @param {string} path */
+      const onChange = (path) => {
+        if (path !== readmePath && !path.startsWith(docsDir)) return;
+        try {
+          if (path.startsWith(assetsSrc)) copyAssets();
+          // The sidebar is built from the page outline when this config loads - touching the config
+          // makes Astro restart and reload it, when a heading was added, renamed or removed.
+          else if (syncPages()) utimesSync(configPath, new Date(), new Date());
+          logger.info(`synced docs after change to ${path.slice(docsDir.length - "docs".length)}`);
+        } catch (err) {
+          logger.error(`docs sync failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      };
+      for (const event of ["add", "change", "unlink"]) server.watcher.on(event, onChange);
+    },
+  },
+};
 
 // https://astro.build/config
 export default defineConfig({
   site: "https://signalk-einklabel.rhizomatics.org.uk",
   integrations: [
+    syncDocsOnChange,
     starlight({
       title: "eInk Labels for SignalK",
       description: "Display SignalK data on eInk Electronic Shelf Labels over Bluetooth Low Energy",
@@ -29,16 +104,8 @@ export default defineConfig({
           href: "https://github.com/rhizomatics/signalk-einklabel-plugin",
         },
       ],
-      sidebar: [
-        {
-          label: "Guide",
-          items: [
-            { label: "Overview", link: "/" },
-            ...readmeSections.map(({ text, slug }) => ({ label: text, link: `/#${slug}` })),
-            { autogenerate: { directory: "guides" } },
-          ],
-        },
-      ],
+      // Pages are generated from ../README.md and ../docs/ by scripts/sync-docs.mjs.
+      sidebar: sidebar(),
     }),
   ],
 });

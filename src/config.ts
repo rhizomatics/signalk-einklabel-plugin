@@ -384,7 +384,7 @@ export function parseDevice(device: string): { vendor: string; pid: number; hwVe
   return vendor && address && Number.isInteger(pid) ? { vendor, pid, hwVersion, address } : undefined;
 }
 
-function listSvgFiles(dir: string): string[] {
+export function listSvgFiles(dir: string): string[] {
   try {
     return readdirSync(dir).filter((name) => name.endsWith(".svg"));
   } catch {
@@ -395,7 +395,7 @@ function listSvgFiles(dir: string): string[] {
 const VARIANT_COLOUR_LETTERS: Record<string, Colour> = { B: "black", W: "white", R: "red", Y: "yellow" };
 const VARIANT_FILENAME = /^(\d+)x(\d+)-([BWRY]+)\.svg$/;
 
-interface TemplateVariant {
+export interface TemplateVariant {
   fileName: string;
   width: number;
   height: number;
@@ -414,7 +414,7 @@ function parseTemplateVariant(fileName: string): TemplateVariant | undefined {
   return { fileName, width: Number(match[1]), height: Number(match[2]), colours };
 }
 
-function listTemplateVariants(dir: string): TemplateVariant[] {
+export function listTemplateVariants(dir: string): TemplateVariant[] {
   return listSvgFiles(dir)
     .map(parseTemplateVariant)
     .filter((variant): variant is TemplateVariant => variant !== undefined);
@@ -427,7 +427,7 @@ function listTemplateVariants(dir: string): TemplateVariant[] {
  * parseable variant files, since they're reserved for non-template-option use (asset bundles,
  * work-in-progress templates not ready to appear in the dropdown, etc).
  */
-function listTemplateFamilies(dir: string): string[] {
+export function listTemplateFamilies(dir: string): string[] {
   let entries;
   try {
     entries = readdirSync(dir, { withFileTypes: true });
@@ -530,9 +530,9 @@ function withEnum<T extends object>(schema: T, values: string[], names?: string[
 /** The plugin's documentation site - its sections' anchors are the README's own headings (see `site/scripts/sync-readme.mjs`). */
 const DOCS_URL = "https://signalk-einklabel.rhizomatics.org.uk/";
 
-/** A Markdown link to a docs section, for a field description rendered with `ui:enableMarkdownInDescription` (see `configUiSchema`). */
-function docsLink(anchor: string, text = "More in the docs"): string {
-  return `[${text}](${DOCS_URL}#${anchor})`;
+/** A Markdown link to a docs page (and optional section, e.g. `templates/#reframing`), for a field description rendered with `ui:enableMarkdownInDescription` (see `configUiSchema`). */
+function docsLink(page: string, text = "More in the docs"): string {
+  return `[${text}](${DOCS_URL}${page})`;
 }
 
 /**
@@ -670,13 +670,13 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               description:
                 'Free-text notes about where this label is physically mounted/viewed from, e.g. "chart table, viewed from ~1m ' +
                 'in poor light" - available to any template as `source=label,path=description`. ' +
-                docsLink("label-details"),
+                docsLink("templates/#label-details"),
             },
             templateName: withEnum(
               {
                 type: "string",
                 title: "Template",
-                description: `A bundled template, or one from your templates directory. ${docsLink("templating")}`,
+                description: `A bundled template, or one from your templates directory. ${docsLink("examples/")}`,
               },
               templateNameOptions(resolveTemplatesDir(current.templatesDir)),
             ),
@@ -696,12 +696,12 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                     ["scale", "Scale - stretch to fit exactly (may distort)"],
                     ["fixed", "Fixed - fail the repaint rather than show an off-size image"],
                   ],
-                  { description: docsLink("reframing"), default: "crop" },
+                  { description: docsLink("templates/#reframing"), default: "crop" },
                 ),
                 compress: {
                   type: "boolean",
                   title: 'Compress upload (Zhsunyco, Gicisky 7.5"/10.2")',
-                  description: `Sends far less data over BLE, so repaints are quicker. Turn off if a label stops updating. ${docsLink("other-image-options")}`,
+                  description: `Sends far less data over BLE, so repaints are quicker. Turn off if a label stops updating. ${docsLink("templates/#other-image-options")}`,
                   default: true,
                 },
                 mirror: choiceField(
@@ -713,7 +713,7 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                     ["both", "Rotate 180° - for a label mounted upside down"],
                   ] satisfies [MirrorMode, string][],
                   {
-                    description: `Only needed if the image shows up mirrored or upside down on the label. ${docsLink("other-image-options")}`,
+                    description: `Only needed if the image shows up mirrored or upside down on the label. ${docsLink("templates/#other-image-options")}`,
                     default: "none",
                   },
                 ),
@@ -727,7 +727,7 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                     ],
                   ] satisfies [CompressionFormat, string][],
                   {
-                    description: `Chunked needs Compress upload on. Switch back to Auto if the label stops updating. ${docsLink("other-image-options")}`,
+                    description: `Chunked needs Compress upload on. Switch back to Auto if the label stops updating. ${docsLink("templates/#other-image-options")}`,
                     default: "auto",
                   },
                 ),

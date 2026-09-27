@@ -2,25 +2,30 @@
 
 Astro + [Starlight](https://starlight.astro.build) site, deployed to GitHub Pages by
 [.github/workflows/docs.yml](../.github/workflows/docs.yml) on every push to `main` that
-touches `site/`, `README.md` or `docs/assets/`.
+touches `site/`, `README.md` or `docs/`.
 
-The homepage is generated from the repo root's `README.md`, not written by hand: running
-`dev` or `build` first runs `scripts/sync-readme.mjs`, which copies `../README.md` into
-`src/content/docs/index.md` and `../docs/assets/` into `src/assets/readme/`, rewriting
-image paths and `{#custom-id}` heading anchors along the way. Both generated paths are
-gitignored — edit `../README.md`, not the generated files, then rerun `npm run dev`.
+No page is written here by hand: running `dev` or `build` first runs `scripts/sync-docs.mjs`,
+which builds the home page from the repo root's `README.md` and one page per Markdown file
+under `../docs/` (a directory's `README.md` becoming its index page), and copies `../docs/assets/`
+into `src/assets/readme/`. Along the way it turns relative `.md` links into site routes, points
+images at the copied assets, and converts GitHub `> [!TIP]`-style alerts into Starlight asides.
+The generated paths are gitignored - edit `../README.md` or `../docs/`, not the generated files.
+While `npm run dev` is running, edits there are re-synced and the browser reloads automatically.
 
-To add more pages, drop additional `.md`/`.mdx` files under `src/content/docs/` — they
-pick up the sidebar automatically (see `sidebar` in `astro.config.mjs`).
+To add a page, add a Markdown file under `../docs/` and, unless it's under `../docs/examples/`
+(listed automatically), add it to `sidebar` in `astro.config.mjs`.
+
+The examples pages' template reference tables are generated from the bundled templates by the
+plugin's own `npm run docs:templates` (in the repo root), and committed.
 
 ## Commands
 
 Run from `site/`:
 
-| Command               | Action                                             |
-| :-------------------- | :------------------------------------------------- |
-| `npm install`         | Install dependencies                               |
-| `npm run dev`         | Regenerate the homepage, then start the dev server |
-| `npm run build`       | Regenerate the homepage, then build to `./dist/`   |
-| `npm run preview`     | Preview the production build locally               |
-| `npm run sync-readme` | Regenerate the homepage/assets without building    |
+| Command             | Action                                          |
+| :------------------ | :---------------------------------------------- |
+| `npm install`       | Install dependencies                            |
+| `npm run dev`       | Regenerate the pages, then start the dev server |
+| `npm run build`     | Regenerate the pages, then build to `./dist/`   |
+| `npm run preview`   | Preview the production build locally            |
+| `npm run sync-docs` | Regenerate the pages/assets without building    |

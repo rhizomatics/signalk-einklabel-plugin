@@ -49,6 +49,8 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "cli": "ts-node src/cli/index.ts",
+    "docs:dev": "npm --prefix site run dev",
+    "docs:templates": "ts-node src/docs/templateReference.ts && oxfmt docs/examples",
     "test": "node scripts/run-tests.js",
     "coverage": "node scripts/run-tests.js --coverage",
     "prepublishOnly": "npm run build",
