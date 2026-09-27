@@ -42,6 +42,10 @@ Bluetooth plugins can kick off scanning, and otherwise interfere with each other
 
 If you're having problems with Bluetooth connections, make sure other plugins are well behaved, using BLE Manager where they can, and consider temporarily switching them off if needed to debug label connections.
 
+## SignalK in Docker
+
+Check for the `bluetooth` service working at both host level and inside the SignalK container. If there are stability issues, stop and disable the host level service (for example `sudo systemctl stop bluetooth` on a systemd controlled host).
+
 ## Stuck Bluetooth Adapters
 
 Sometime Bluetooth adapters, and/or the Linux services that use them, can get into a 'stuck' state, where the only solution is to reboot the server (although unplugging and plugging the dongle may help). The best way to avoid this is using a known good dongle, and using BLE Manager in SignalK wherever possible.

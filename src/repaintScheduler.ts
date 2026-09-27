@@ -479,6 +479,43 @@ async function considerRepaint(
   app.debug(succeeded ? `${label}: repainted (${repaintReason}, paint took ${paintDurationMs}ms)` : `${label}: repainted fallback warning`);
 }
 
+/**
+ * Wraps `run` so only one call per key is in progress at a time. A call made while that key is busy
+ * is folded into a single follow-up (with the latest arguments), run once the current one finishes -
+ * but only if it succeeded (`run` resolved `true`). For repaints: newer data still gets shown promptly,
+ * but a label that's failing isn't hammered with a fresh round of retries straight after the last
+ * one gave up - the next scheduled trigger tries again instead.
+ */
+export function oneAtATimePerKey<T>(
+  keyOf: (arg: T) => string,
+  run: (arg: T) => Promise<boolean>,
+  onBusy: (arg: T) => void = () => {},
+): (arg: T) => Promise<void> {
+  const inProgress = new Set<string>();
+  const followUps = new Map<string, T>();
+  const call = async (arg: T): Promise<void> => {
+    const key = keyOf(arg);
+    if (inProgress.has(key)) {
+      followUps.set(key, arg);
+      onBusy(arg);
+      return;
+    }
+    inProgress.add(key);
+    let succeeded = false;
+    try {
+      succeeded = await run(arg);
+    } finally {
+      inProgress.delete(key);
+    }
+    const followUp = followUps.get(key);
+    followUps.delete(key);
+    if (followUp !== undefined && succeeded) {
+      await call(followUp);
+    }
+  };
+  return call;
+}
+
 export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): RepaintScheduler {
   const state = loadState(app);
   const unsubscribes: Array<() => void> = [];
@@ -492,17 +529,24 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   const startedAt = Date.now();
   const settleMs = (config.settleSeconds ?? 120) * 1000;
 
-  const repaint = async (device: DeviceConfig) => {
+  const repaint = oneAtATimePerKey(
+    (device: DeviceConfig) => device.friendlyName,
+    (device) => repaintOnce(device),
+    (device) => app.debug(`"${device.friendlyName}": already repainting - will check again once it's done`),
+  );
+
+  /** Returns whether every target was repainted (or was already up to date). */
+  const repaintOnce = async (device: DeviceConfig): Promise<boolean> => {
     const elapsedMs = Date.now() - startedAt;
     if (elapsedMs < settleMs) {
       app.debug(
         `"${device.friendlyName}": still settling (${Math.round(elapsedMs / 1000)}s/${Math.round(settleMs / 1000)}s) - skipping repaint`,
       );
-      return;
+      return false;
     }
     const targets = await resolveTargets(app, config, device);
     if (targets.length === 0) {
-      return;
+      return false;
     }
     const results = await Promise.allSettled(targets.map((target) => considerRepaint(app, config, device, target, state, getApiUrl)));
     results.forEach((result, i) => {
@@ -513,9 +557,11 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
     // A single `forceRepaint` flag covers every target under `ALL_DEVICES` too - only clear it once
     // every target has actually succeeded, so a target that failed still gets forced again next time
     // instead of quietly reverting to ordinary hash-based dedup.
-    if (device.advanced?.forceRepaint && results.every((result) => result.status === "fulfilled")) {
+    const allSucceeded = results.every((result) => result.status === "fulfilled");
+    if (device.advanced?.forceRepaint && allSucceeded) {
       clearForceRepaint(app, device.friendlyName);
     }
+    return allSucceeded;
   };
 
   const intervalDevices = config.devices.filter((device) => device.repaintTrigger === "interval");

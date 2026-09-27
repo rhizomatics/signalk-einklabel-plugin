@@ -189,6 +189,21 @@ test("withSessionWatchdog", async (t) => {
     await assert.rejects(gatt.read("service", "char"), /watchdog fired after 20ms/);
   });
 
+  await t.test("force-closes, rather than hanging, when a normal disconnect never finishes", async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    let forceClosed = false;
+    const conn = fakeGattConnection({ disconnect: () => new Promise<void>(() => {}) });
+    const guarded = withSessionWatchdog(conn, 60_000, async () => {
+      forceClosed = true;
+    });
+
+    const disconnecting = guarded.disconnect();
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    t.mock.timers.tick(10_000);
+    await disconnecting;
+    assert.equal(forceClosed, true);
+  });
+
   await t.test("disconnecting after the watchdog already fired is a no-op, not a second force-close", async () => {
     let forceCloseCount = 0;
     let underlyingDisconnectCount = 0;

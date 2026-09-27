@@ -91,7 +91,15 @@ export function withSessionWatchdog(conn: GattConnection, timeoutMs: number, for
       settled = true;
       clearTimeout(timer);
       if (killedError) return; // already forced closed by the watchdog above
-      await conn.disconnect();
+      // The watchdog is off from here, so the disconnect needs its own limit: a disconnect that never
+      // finishes (e.g. over a Bluetooth link that's already gone) would otherwise hang the caller - and
+      // hide whatever error it was cleaning up after - with the connection and any claim still held.
+      try {
+        await withDeadline(conn.disconnect(), CLEANUP_TIMEOUT_MS, "disconnecting");
+      } catch (err) {
+        console.error(`${PLUGIN_NAME}: ${(err as Error).message} - forcing the connection closed`);
+        await forceClose().catch(() => {});
+      }
     },
   };
 }
