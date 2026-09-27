@@ -26,6 +26,10 @@ Different 'chunking' options to help with new label models.
 
 All the advanced options now grouped together to make the config clearer. Note that if you roll back to a previous version you may have to re-enter these values (they are automatically moved to the new section when upgrading).
 
+## Dependencies
+
+- `xmldom` updated to fix security issue with markup injection
+
 # 1.2.3
 
 - Improved example tide template for 2.9" Gicisky, and added blank and error templates
