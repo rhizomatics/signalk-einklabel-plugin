@@ -148,6 +148,29 @@ test("ZhsunycoDriver.paint", async (t) => {
     assert.equal(steps[steps.length - 1], "label reported the paint complete");
   });
 
+  await t.test("logs the services it can see when the label's own service is missing", async () => {
+    const { conn } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008));
+    const missing = {
+      ...conn,
+      read: async () => {
+        throw new Error("Service not available");
+      },
+      discoverServices: async () => [{ uuid: "00001800-0000-1000-8000-00805f9b34fb", characteristics: [] }],
+      disconnect: async () => {},
+    } as unknown as GattConnection;
+    const steps: string[] = [];
+
+    await assert.rejects(
+      new ZhsunycoDriver().paint(tinyBlackBitmap(8), {
+        address: "AA:BB:CC:DD:EE:FF",
+        gattBackend: fakeBackend(missing),
+        log: (message) => steps.push(message),
+      }),
+      /Service not available/,
+    );
+    assert.match(steps[steps.length - 1], /services visible on this connection: 00001800-0000-1000-8000-00805f9b34fb$/);
+  });
+
   await t.test("throws when the device reports an error status after refresh", async () => {
     const { conn } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008), { statusErrorCode: 0x01 });
     const driver = new ZhsunycoDriver();

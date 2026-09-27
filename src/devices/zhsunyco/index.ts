@@ -89,7 +89,7 @@ export class ZhsunycoDriver implements VendorDriver {
     const conn = await backend.connectGatt(config.address, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
     log("connected");
     try {
-      const info = decodeAdvertisedInfo(await conn.read(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.config));
+      const info = decodeAdvertisedInfo(await readConfig(conn, log));
       if (!info) {
         throw new Error("zhsunyco device did not return valid config data");
       }
@@ -174,6 +174,22 @@ export class ZhsunycoDriver implements VendorDriver {
     } finally {
       await conn.disconnect();
     }
+  }
+}
+
+/**
+ * The first read of a paint. If the label's service isn't there at all (seen as node-ble's "Service not
+ * available" behind the BLE Manager), logs which services the connection does report - the difference
+ * between BlueZ not having discovered the label's services yet and it seeing a different set entirely.
+ */
+async function readConfig(conn: GattConnection, log: (message: string) => void): Promise<Buffer> {
+  try {
+    return await conn.read(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.config);
+  } catch (err) {
+    const services = await conn.discoverServices().catch((discoverErr: Error) => `could not list them: ${discoverErr.message}`);
+    const listed = Array.isArray(services) ? services.map((service) => service.uuid).join(", ") || "none" : services;
+    log(`reading the label's config failed (${(err as Error).message}) - services visible on this connection: ${listed}`);
+    throw err;
   }
 }
 

@@ -18,27 +18,36 @@ function fakeGattConnection(overrides: Record<string, unknown> = {}): BLEGattCon
 }
 
 test("bleApiBackend.connectGatt", async (t) => {
-  await t.test("releases any stale claim before connecting, then returns the connection", async () => {
-    const calls: string[] = [];
-    const conn = fakeGattConnection({ disconnect: async () => void calls.push("disconnect") });
-    const bleApi = {
-      getDevice: async (mac: string) => ({ mac }),
-      releaseGATTDevice: async (mac: string, pluginId: string) => {
-        calls.push(`release:${mac}:${pluginId}`);
-      },
-      connectGATT: async (mac: string, pluginId: string) => {
-        calls.push(`connect:${mac}:${pluginId}`);
-        return conn;
-      },
-    } as unknown as BLEApi;
+  await t.test(
+    "releases any stale claim before connecting, returns the connection, and releases the claim again on disconnect",
+    async () => {
+      const calls: string[] = [];
+      const conn = fakeGattConnection({ disconnect: async () => void calls.push("disconnect") });
+      const bleApi = {
+        getDevice: async (mac: string) => ({ mac }),
+        releaseGATTDevice: async (mac: string, pluginId: string) => {
+          calls.push(`release:${mac}:${pluginId}`);
+        },
+        connectGATT: async (mac: string, pluginId: string) => {
+          calls.push(`connect:${mac}:${pluginId}`);
+          return conn;
+        },
+      } as unknown as BLEApi;
 
-    const result = await bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 1000);
-    // `connectGatt` now wraps the raw connection in a session watchdog (see `withSessionWatchdog`),
-    // so the result is no longer the same object - check it delegates to `conn` instead.
-    assert.equal(result.connected, conn.connected);
-    await result.disconnect();
-    assert.deepEqual(calls, ["release:AA:BB:CC:DD:EE:FF:my-plugin", "connect:AA:BB:CC:DD:EE:FF:my-plugin", "disconnect"]);
-  });
+      const result = await bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 1000);
+      // `connectGatt` now wraps the raw connection in a session watchdog (see `withSessionWatchdog`),
+      // so the result is no longer the same object - check it delegates to `conn` instead.
+      assert.equal(result.connected, conn.connected);
+      await result.disconnect();
+      // Disconnecting also releases the claim - the server only drops it by itself once it sees the link close.
+      assert.deepEqual(calls, [
+        "release:AA:BB:CC:DD:EE:FF:my-plugin",
+        "connect:AA:BB:CC:DD:EE:FF:my-plugin",
+        "disconnect",
+        "release:AA:BB:CC:DD:EE:FF:my-plugin",
+      ]);
+    },
+  );
 
   await t.test("proceeds even when releasing a stale claim fails (nothing to release)", async () => {
     const conn = fakeGattConnection();

@@ -270,7 +270,24 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
         }
         throw new Error(`connecting to device timed out after ${timeoutMs}ms`);
       }
-      return withSessionWatchdog(conn, GATT_SESSION_WATCHDOG_MS, async () => {
+      // Disconnecting alone doesn't always drop the server's claim - it only clears that itself once it
+      // sees the link close, which a half-dead link may never report - so every disconnect releases the
+      // claim explicitly too, leaving the device free for the next paint (or another plugin).
+      const released: GattConnection = {
+        read: conn.read.bind(conn),
+        write: conn.write.bind(conn),
+        startNotifications: conn.startNotifications.bind(conn),
+        stopNotifications: conn.stopNotifications.bind(conn),
+        discoverServices: conn.discoverServices.bind(conn),
+        onDisconnect: conn.onDisconnect.bind(conn),
+        get connected() {
+          return conn.connected;
+        },
+        async disconnect() {
+          await Promise.allSettled([conn.disconnect(), bleApi.releaseGATTDevice(address, pluginId)]);
+        },
+      };
+      return withSessionWatchdog(released, GATT_SESSION_WATCHDOG_MS, async () => {
         // Belt-and-suspenders, matching the timeout-cleanup above: `releaseGATTDevice` is the
         // authoritative claim release, `disconnect()` a secondary teardown of this specific handle -
         // do both regardless of which (if either) itself hangs or rejects.
