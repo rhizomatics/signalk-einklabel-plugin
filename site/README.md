@@ -18,7 +18,10 @@ To add a page, add a Markdown file under `../docs/` and, unless it's under `../d
 The [starlight-llms-txt](https://delucis.github.io/starlight-llms-txt/) plugin also publishes the pages
 as plain Markdown for coding agents: `/llms.txt` (an index, following [llmstxt.org](https://llmstxt.org/)),
 `/llms-full.txt` (every page) and `/llms-small.txt` (the same with tip/note asides stripped). Its summary
-and links are set in `astro.config.mjs`.
+and links are set in `astro.config.mjs`. Every page is also served as Markdown at its URL with `.md` in
+place of the trailing `/` (the home page at `/index.md`), linked from the page's `<head>`: `sync-docs.mjs`
+writes the source Markdown, with its links made absolute, to `src/generated/markdown/`, served by
+`src/pages/[...slug].md.ts` and linked by `src/routeData.ts`.
 
 The examples pages' template reference tables are generated from the bundled templates by the
 plugin's own `npm run docs:templates` (in the repo root), and committed.

@@ -14,6 +14,7 @@ export const docsDir = resolve(rootDir, "docs");
 export const readmePath = resolve(rootDir, "README.md");
 const contentDir = resolve(siteDir, "src/content/docs");
 export const navPath = resolve(siteDir, "src/generated/nav.json");
+const markdownDir = resolve(siteDir, "src/generated/markdown");
 const SITE_URL = "https://signalk-einklabel.rhizomatics.org.uk";
 
 const pkg = JSON.parse(readFileSync(resolve(rootDir, "package.json"), "utf8"));
@@ -37,6 +38,11 @@ function routeFor(file) {
   if (rel === "README.md") return "/";
   const page = rel.replace(/^docs\//, "").replace(/\.md$/, "");
   return `/${page.replace(/(^|\/)README$/, "$1").replace(/\/$/, "")}/`.replace(/^\/\/$/, "/");
+}
+
+/** The URL a page's Markdown is served at for agents - `/getting-started.md` for `/getting-started/`, and `/index.md` for the home page. */
+function markdownRouteFor(route) {
+  return route === "/" ? "/index.md" : `${route.slice(0, -1)}.md`;
 }
 
 /** Where a repo Markdown file's generated page is written. */
@@ -122,6 +128,31 @@ function convert(file) {
   return { output, content: frontmatter + markdown, nav: { route: routeFor(file), title, ...outline(markdown) } };
 }
 
+const RAW_ASSETS_URL = "https://raw.githubusercontent.com/rhizomatics/signalk-einklabel-plugin/main/docs/assets";
+
+/**
+ * A page's source Markdown as `{ output, content }`, for serving to agents at its `.md` URL (see
+ * src/pages/[...slug].md.ts). Unlike the site page, it keeps the source as written - `# Title`,
+ * GitHub alerts and all - with only the links made absolute: to another page -> that page's `.md`,
+ * to docs/assets -> the file on GitHub.
+ */
+function agentMarkdown(file) {
+  const content = readFileSync(file, "utf8").replace(/(!?\[[^\]]*\]\()([^)\s]+)(\))/g, (match, open, target, close) => {
+    if (target.startsWith(SITE_URL)) {
+      const [path, anchor] = target.slice(SITE_URL.length).split("#");
+      if (!path.endsWith("/")) return match;
+      return `${open}${SITE_URL}${markdownRouteFor(path)}${anchor ? `#${anchor}` : ""}${close}`;
+    }
+    if (/^(https?:|mailto:|#)/.test(target)) return match;
+    const [path, anchor] = target.split("#");
+    const resolved = resolve(dirname(file), path);
+    if (path.endsWith(".md")) return `${open}${SITE_URL}${markdownRouteFor(routeFor(resolved))}${anchor ? `#${anchor}` : ""}${close}`;
+    if (resolved.startsWith(assetsSrc)) return `${open}${RAW_ASSETS_URL}/${relative(assetsSrc, resolved).replaceAll("\\", "/")}${close}`;
+    return match;
+  });
+  return { output: join(markdownDir, markdownRouteFor(routeFor(file))), content };
+}
+
 function markdownFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -142,14 +173,21 @@ function generatedFiles(dir) {
  * Regenerates every page, writing only the ones whose content changed and removing any left over
  * from a deleted source - so the dev server only reloads what actually changed. All pages are
  * converted before anything is written, so a mistake (e.g. a link to a missing page) leaves the
- * previous pages in place rather than half-updating them. Also writes the sidebar outline (see
- * astro.config.mjs), returning whether that changed.
+ * previous pages in place rather than half-updating them. Also writes each page's Markdown for agents
+ * (see agentMarkdown) and the sidebar outline (see astro.config.mjs), returning whether the outline changed.
  */
 export function syncPages() {
-  const pages = [readmePath, ...markdownFiles(docsDir)].map(convert);
-  const outputs = new Set(pages.map((page) => page.output));
-  for (const { output, content } of pages) writeIfChanged(output, content);
-  for (const stale of generatedFiles(contentDir).filter((path) => !outputs.has(path))) rmSync(stale);
+  const sources = [readmePath, ...markdownFiles(docsDir)];
+  const pages = sources.map(convert);
+  const agentPages = sources.map(agentMarkdown);
+  for (const [dir, files] of [
+    [contentDir, pages],
+    [markdownDir, agentPages],
+  ]) {
+    const outputs = new Set(files.map((file) => file.output));
+    for (const { output, content } of files) writeIfChanged(output, content);
+    for (const stale of generatedFiles(dir).filter((path) => !outputs.has(path))) rmSync(stale);
+  }
   return writeIfChanged(
     navPath,
     JSON.stringify(

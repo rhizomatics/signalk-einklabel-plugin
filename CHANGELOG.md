@@ -1,3 +1,10 @@
+# 1.3.1
+
+## Documentation
+
+- Docs site made friendlier to AI coding agents: an [llms.txt](https://signalk-einklabel.rhizomatics.org.uk/llms.txt) index plus the whole documentation as Markdown in `llms-full.txt` and `llms-small.txt`, and every page available as Markdown by replacing its trailing `/` with `.md` (e.g. [getting-started.md](https://signalk-einklabel.rhizomatics.org.uk/getting-started.md))
+- No change to the plugin itself
+
 # 1.3.0
 
 ## BLE Manager

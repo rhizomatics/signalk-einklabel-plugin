@@ -107,15 +107,26 @@ export default defineConfig({
       ],
       // Pages are generated from ../README.md and ../docs/ by scripts/sync-docs.mjs.
       sidebar: sidebar(),
+      // Adds a <link rel="alternate"> to each page's Markdown version, served at <page>.md by src/pages/[...slug].md.ts.
+      routeMiddleware: "./src/routeData.ts",
       // /llms.txt, /llms-full.txt and /llms-small.txt - the docs as plain Markdown for coding agents.
       plugins: [
         starlightLlmsTxt({
           projectName: "signalk-einklabel-plugin",
           details: [
-            "A SignalK server plugin (npm `@rhizomatics/signalk-einklabel-plugin`) that renders SVG templates bound to",
-            "SignalK paths and pushes them over Bluetooth Low Energy to eInk Electronic Shelf Labels (Gicisky and",
-            "ZhSunyco labels). It also ships `esl-cli` for scanning, rendering and pushing images outside the server.",
-          ].join(" "),
+            [
+              "A SignalK server plugin (npm `@rhizomatics/signalk-einklabel-plugin`) that renders SVG templates bound to",
+              "SignalK paths and pushes them over Bluetooth Low Energy to eInk Electronic Shelf Labels (Gicisky and",
+              "ZhSunyco labels). It also ships `esl-cli` for scanning, rendering and pushing images outside the server.",
+            ],
+            [
+              "Every page is also available as Markdown by replacing its trailing `/` with `.md`, e.g.",
+              "https://signalk-einklabel.rhizomatics.org.uk/getting-started.md, with the home page at",
+              "https://signalk-einklabel.rhizomatics.org.uk/index.md.",
+            ],
+          ]
+            .map((paragraph) => paragraph.join(" "))
+            .join("\n\n"),
           promote: ["index*", "getting-started*", "templates*", "examples/**"],
           optionalLinks: [
             {
