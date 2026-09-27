@@ -4,5 +4,7 @@
     { "extensions": ["mjs", "cjs", "js"], "parameters": [] },
     { "extensions": ["ts"], "parameters": ["--require", "ts-node/register"] }
   ],
-  "python.analysis.enablePytestSupport": false
+  "python.analysis.enablePytestSupport": false,
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": false
 }
