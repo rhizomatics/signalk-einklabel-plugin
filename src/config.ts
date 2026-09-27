@@ -5,6 +5,7 @@ import { ServerAPI } from "@signalk/server-api";
 import { Colour, DiscoveredDevice } from "./devices/types";
 import { ReframeMode } from "./render/reframe";
 import { MIRROR_MODES, MirrorMode } from "./render/mirror";
+import { COMPRESSION_FORMATS, CompressionFormat } from "./devices/types";
 import { allTemplateProviders } from "./render/templateProviders";
 import { SIGNALK_API_URL_OPTIONS } from "./resolveApiUrl";
 
@@ -70,6 +71,12 @@ export interface DeviceConfig {
   mirror?: MirrorMode;
   /** Compress the upload (zhsunyco, and gicisky's chunked 7.5"/10.2" panels - ignored otherwise). Unset means on; turn off if a device fails to show compressed images. */
   compress?: boolean;
+  /**
+   * Experimental opt-in wire format (gicisky only) - `"chunked"` sends a 4.2" BWR (or another plain
+   * two-plane panel) QuickLZ-compressed like the 7.5"/10.2". Unset means `"auto"`, the model's own
+   * format. See `CompressionFormat`.
+   */
+  compressionFormat?: CompressionFormat;
 }
 
 export interface PluginConfig {
@@ -608,6 +615,15 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               description: "Sends far less data over BLE, so repaints are quicker. Turn off if a label stops updating.",
               default: true,
             },
+            compressionFormat: {
+              type: "string",
+              title: "Wire format (Gicisky, experimental)",
+              description:
+                'Auto: the model\'s usual format. Chunked: send compressed like the 7.5"/10.2" panels - may speed up a 4.2" BWR, ' +
+                "but untested on current firmware. Needs Compress upload on to actually compress. Switch back to Auto if the label stops updating.",
+              enum: COMPRESSION_FORMATS,
+              default: "auto",
+            },
           },
         },
       },
@@ -623,6 +639,7 @@ export function configUiSchema(): object {
         repaintTrigger: { "ui:widget": "radio" },
         reframe: { "ui:widget": "radio" },
         mirror: { "ui:widget": "radio" },
+        compressionFormat: { "ui:widget": "radio" },
       },
     },
   };

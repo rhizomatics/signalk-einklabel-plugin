@@ -16,9 +16,9 @@ import {
   withDiscovery,
   withRetries,
 } from "../devices/bleDiscovery";
-import { Colour, DeviceModelOverride } from "../devices/types";
+import { COMPRESSION_FORMATS, Colour, CompressionFormat, DeviceModelOverride } from "../devices/types";
 import { ReframeMode } from "../render/reframe";
-import { MIRROR_MODES, MirrorMode } from "../render/mirror";
+import { MIRROR_MODES, MirrorMode, mirrorBitmap } from "../render/mirror";
 import { SvgRenderer } from "../render/svgRenderer";
 import { bitmapToPng } from "../render/png";
 import { Binding, findBindings, parseBinding, readTemplateDimensions, renderBinding, resolveBinding } from "../render/binding";
@@ -65,6 +65,13 @@ export function parseMirrorMode(value: string): MirrorMode {
     throw new Error(`unknown --mirror value "${value}" - expected one of ${MIRROR_MODES.join(", ")}`);
   }
   return value as MirrorMode;
+}
+
+export function parseCompressionFormat(value: string): CompressionFormat {
+  if (!(COMPRESSION_FORMATS as string[]).includes(value)) {
+    throw new Error(`unknown --compression-format value "${value}" - expected one of ${COMPRESSION_FORMATS.join(", ")}`);
+  }
+  return value as CompressionFormat;
 }
 
 /** Probes DEFAULT_SIGNALK_URLS in order and returns the first that answers a plain GET - used when -u/--url is omitted. */
@@ -292,7 +299,15 @@ program
     "crop",
   )
   .option("--mirror <mode>", "flip the image before sending: none (default), horizontal, vertical, or both (rotate 180°)", "none")
-  .option("--no-compress", 'send the image uncompressed (zhsunyco, gicisky 7.5"/10.2" - compression is on by default)')
+  .option(
+    "--no-compress",
+    'send the image uncompressed (zhsunyco; gicisky 7.5"/10.2" or --compression-format chunked - compression is on by default)',
+  )
+  .option(
+    "--compression-format <format>",
+    'gicisky wire format: auto (default - the model\'s usual format) or chunked (experimental - send a 4.2" BWR compressed like the 7.5"/10.2")',
+    "auto",
+  )
   .option("--connect-timeout <seconds>", "BLE connect timeout before giving up on an attempt", "30")
   .option("--retries <n>", "number of paint attempts (including the first) before giving up", "3")
   .action(async (opts) => {
@@ -338,6 +353,7 @@ program
         reframe: parseReframeMode(opts.reframe),
         mirror: parseMirrorMode(opts.mirror),
         compress: opts.compress,
+        compressionFormat: parseCompressionFormat(opts.compressionFormat),
       });
     });
     console.log(`painted ${opts.address} (${bitmap.width}x${bitmap.height}) ${opts.colours}`);
@@ -366,7 +382,9 @@ program
     // See the -r/--require option above for why `| undefined` is needed here despite commander's typings.
     (value, previous: string[] | undefined = []) => [...previous, value],
   )
+  .option("--mirror <mode>", "flip the PNG the same way paint --mirror would: none (default), horizontal, vertical, or both", "none")
   .action(async (opts) => {
+    const mirror = parseMirrorMode(opts.mirror);
     const svgSource = await readFile(opts.template, "utf-8");
     const declared = readTemplateDimensions(svgSource);
     const width = resolveDimension(opts.width, [declared.width], DEFAULT_RENDER_WIDTH);
@@ -374,7 +392,10 @@ program
     const bindings = findBindings(svgSource);
     const context = await assembleContext(opts, bindings);
     const renderer = opts.font ? new SvgRenderer(opts.font) : new SvgRenderer();
-    const bitmap = await renderer.render(opts.template, context, width, height, dirname(opts.template), BUNDLED_TEMPLATES_DIR);
+    const bitmap = mirrorBitmap(
+      await renderer.render(opts.template, context, width, height, dirname(opts.template), BUNDLED_TEMPLATES_DIR),
+      mirror,
+    );
     await writeFile(opts.output, bitmapToPng(bitmap));
     console.log(`wrote ${opts.output} (${bitmap.width}x${bitmap.height})`);
   });

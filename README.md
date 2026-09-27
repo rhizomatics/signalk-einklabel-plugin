@@ -178,6 +178,14 @@ Templates are simply SVG files, to which expressions can be added to use SignalK
 
 There's some wiggle room with the `reframe` options to use a template that's a bit too small, or too large, for the label, although best results come from a template that's precisely matching the pixel height and width of the label. Next best is template that has the same aspect ratio, so it can be cleanly scaled. `crop` is the 2nd least worst, though if its only a handful of pixels its often not worth worring about a separate template and `crop` is just fine. `scale` is likely to look worst, since it will force an image in regardless of aspect ratio.
 
+### Other Image Options
+
+Each label has a few more settings for how the image is sent. The CLI `paint` command has matching options (see [Command Line Interface](#command-line-interface)), so you can try them on a label before changing the plugin config.
+
+- _Compress upload_ - on by default. Sends much less data over Bluetooth, so painting is quicker, uses less of the label's battery and is less likely to time out. Works for Zhsunyco labels and Gicisky 7.5"/10.2" labels, and is ignored for others. Turn it off if a label stops updating.
+- _Wire format (Gicisky, experimental)_ - `auto` by default. `chunked` sends a Gicisky 4.2" BWR label compressed, the same way as the 7.5"/10.2". The vendor's own app has been seen doing this, but it hasn't been tested on current firmware. Set it back to `auto` if the label stops updating.
+- _Mirror_ - `none` by default. `horizontal` or `vertical` fixes a label model whose image comes out mirrored. `both` rotates the image 180°, for a label that has to be mounted upside down.
+
 ### Template Families (multiple panel sizes/colours)
 
 A "Template" selection can either be one specific `.svg` file, or a _directory_ holding several versions of the same template for different panel sizes/colour-sets, e.g. `templates/tides/416x240-BWRY.svg` and `templates/tides/250x128-BWRY.svg` both implement the tide clock, just at different sizes.
@@ -309,6 +317,12 @@ Left unset, both `render` and `paint` default `-w/--width`/`--height` to the tem
 
 The main SignalK plugin offers the same choice per device (defaulting to `crop` there too) in each device's own config - "If the render doesn't match the panel size".
 
+`paint` has matching options for the other per-label image settings too (see [Other Image Options](#other-image-options)):
+
+- `--mirror <mode>` - `none` (default), `horizontal`, `vertical`, or `both` (rotate 180°). `render` also takes `--mirror`, to preview the flip as a PNG without a label
+- `--no-compress` - send the image uncompressed, to rule compression out if a label won't update
+- `--compression-format <format>` - `auto` (default) or `chunked`, to try the experimental compressed format on a Gicisky 4.2" BWR
+
 `esl-cli` can also be extended with new subcommands by a `-r/--require`'d package - see [Extending](#extending) below - which is how [`@rhizomatics/signalk-einklabel-genai-plugin`](#genai-rendering) adds its own `prompt`/`generate` commands for testing prompts without a device.
 
 ( The CLI can also be run from a checked out module, or by opening a terminal shell at `~/.signalk/node_modules/@rhizomatics/signalk-einklabel-plugin`, as `npx esl-cli command --args` )
@@ -377,10 +391,22 @@ The label address previously discovered via `esl-cli scan`
 npx esl-cli paint -t templates/tides/250x128-BWRY.svg -a FF:FF:92:84:53:93
 ```
 
-If the label turns out to be a different size than the template (e.g. it's a 250x128 template on a 416x240 panel), that's normally rejected as a mismatch - add `--reframe` to fit it instead:
+If the label turns out to be a different size than the template (e.g. it's a 250x128 template on a 416x240 panel), it's cropped to fit by default - add `--reframe scale` to stretch it instead:
 
 ```bash
 npx esl-cli paint -t templates/tides/250x128-BWRY.svg -a FF:FF:92:84:53:93 --reframe scale
+```
+
+If a label doesn't update, try sending it uncompressed to see whether compression is the cause:
+
+```bash
+npx esl-cli paint -t templates/tides/250x128-BWRY.svg -a FF:FF:92:84:53:93 --no-compress
+```
+
+If the image comes out mirrored, try each `--mirror` mode until it looks right, then set the same _Mirror_ option in the label's config:
+
+```bash
+npx esl-cli paint -t templates/tides/250x128-BWRY.svg -a FF:FF:92:84:53:93 --mirror horizontal
 ```
 
 #### Test Template Without Updating Label

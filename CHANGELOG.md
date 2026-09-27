@@ -2,15 +2,23 @@
 
 ## BLE Manager
 
-First implementation of using new SignalK BLE Manager rather than directly using the `bluez` services. Off by default until longer term stability demonstrated.
+First implementation of using new SignalK BLE Manager rather than directly using the `bluez` services.
+
+- Off by default until longer term stability demonstrated.
+- It may be less reliable for some devices that can be reached with direct bluez access - try it and fall back to the direct mode if so.
+- BLE Manager use reduces interference between plugins competing for same BLE devices
+- Recommend using SignalK at least release v2.33.0.
 
 ## Compression
 
-Simple compression of images as an option - no change to what's displayed but send time massively reduced for labels that have lots of empty space, and consequently less battery consumed and less chance of send failure
+Images are now compressed before sending - no change to what's displayed, but send time is massively reduced for labels with lots of empty space, so less battery is used and sends are less likely to fail.
+
+- On by default for Zhsunyco labels and Gicisky 7.5"/10.2" labels; can be turned off per label, or with `--no-compress` on the CLI
+- Experimental opt-in _Wire format_ `chunked` sends a Gicisky 4.2" BWR compressed too (`--compression-format chunked` on the CLI)
 
 ## Mirroring
 
-Some labels may need images flipped, so this allows that if needed
+Some labels may need images flipped, so a per-label _Mirror_ option can flip the image horizontally, vertically, or both (rotate 180°, for a label mounted upside down). Also available as `--mirror` on the CLI `paint` and `render` commands.
 
 # 1.2.3
 

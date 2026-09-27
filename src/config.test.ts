@@ -283,7 +283,7 @@ test("healNestedConfig", async (t) => {
   });
 });
 
-test("configUiSchema renders repaintTrigger/reframe/mirror as radio groups and description as a textarea", () => {
+test("configUiSchema renders repaintTrigger/reframe/mirror/compressionFormat as radio groups and description as a textarea", () => {
   assert.deepEqual(configUiSchema(), {
     devices: {
       items: {
@@ -291,6 +291,7 @@ test("configUiSchema renders repaintTrigger/reframe/mirror as radio groups and d
         repaintTrigger: { "ui:widget": "radio" },
         reframe: { "ui:widget": "radio" },
         mirror: { "ui:widget": "radio" },
+        compressionFormat: { "ui:widget": "radio" },
       },
     },
   });

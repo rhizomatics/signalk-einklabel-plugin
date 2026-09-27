@@ -8,6 +8,12 @@
  * an offset, and the panel's decoder only ever fills 64 slots - a token naming a slot above that
  * reads one that was never written and silently decodes garbage. So this must stay byte-compatible
  * with the vendor's hash, not just any valid QuickLZ.
+ *
+ * One deliberate difference from hass-gicisky: `UNCONDITIONAL_MATCHLEN` is stock QuickLZ's 6, not
+ * its 12, so matches may start closer to a chunk's end. That's what the vendor's own app does - with
+ * 6 this reproduces 483 of the 486 distinct `0x75` chunks in Cabalist's BLE captures of the app
+ * (https://github.com/Cabalist/gicisky_image_notes) byte for byte, against 408 with 12. The other 3
+ * are chunks the app sends "compressed" despite them growing; this sends those raw (`0x74`) instead.
  */
 
 const CHUNK_SIZE = 64;
@@ -18,7 +24,7 @@ const CWORD_LEN = 4;
 const HASH_VALUES = 64;
 const NO_ENTRY = -1;
 const MIN_OFFSET = 2;
-const UNCONDITIONAL_MATCHLEN = 12;
+const UNCONDITIONAL_MATCHLEN = 6;
 const UNCOMPRESSED_END = 4;
 /** Control-word sentinel: the top bit marks where the 31 flag bits below it run out. */
 const CWORD_SENTINEL = 0x80000000;
@@ -42,7 +48,7 @@ function allSame(data: Buffer, pos: number, n: number): boolean {
 
 /**
  * QuickLZ L1 compression of one chunk, mirroring `_qlz_compress_core` step for step (including its
- * quirks, e.g. the run-of-identical-bytes special case) so the output matches hass-gicisky's byte for
+ * quirks, e.g. the run-of-identical-bytes special case) so the output matches the vendor app's byte for
  * byte. Returns `undefined` when compressing wouldn't save anything.
  */
 export function qlzCompressChunk(source: Buffer): Buffer | undefined {

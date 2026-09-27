@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { frameChunkedPlanes, qlzCompressChunk } from "./compression";
 
 /**
- * Expected outputs are generated from hass-gicisky's own `gicisky_ble/compression.py` `compress()`
- * (which also round-trips each through its `decompress()`), on inputs rebuilt identically below -
- * the device firmware only decodes the vendor's exact hash variant, so byte-for-byte agreement with
- * a reference that's known to work on real panels is what matters here.
+ * Expected outputs are generated from hass-gicisky's own `gicisky_ble/compression.py` `compress()`,
+ * with its `_UNCONDITIONAL_MATCHLEN_COMPRESSOR` set to 6 to match this port, on inputs rebuilt
+ * identically below - each also round-trips through its `decompress()`, which ports the panel's own
+ * decoder. `VENDOR_CHUNKS` (further down) checks against the vendor app's real output as well.
  */
 function lcg(n: number, seed: number): Buffer {
   const out = Buffer.alloc(n);
@@ -43,8 +43,8 @@ const CASES: Record<string, { planeA: Buffer; planeB: Buffer; expected: string }
       "e2ffff09ffffffff4affff71ffff98ffffffffd9ffff74434000ffff27ffffffff68ffff8fffffb6fffffffff7ffff1effff" +
       "45ffffffff86ffffadffffd4ffffffff15ffff3cffff63ffffffffa4ffffcbfffff2ffffffff337517401001008000000000" +
       "0000240f0f0fff030f0f0f0f751b40100100800f0f0f0ffa030000000000250f0f0f0f0f0f0f0f751840100100800f0f0f0f" +
-      "f0031c00000000001900000000752340100100800000000002000f0f0ff00325000000000000000000000000000000007518" +
-      "4010010080000000000000140f0f0ff003210f0f0f0f",
+      "f0031c00000000001900000000751b40100700800000000002000f0f0ff00325020006000000000075184010010080000000" +
+      "000000140f0f0ff003210f0f0f0f",
   },
   random: {
     planeA: lcg(128, 1),
@@ -61,8 +61,8 @@ const CASES: Record<string, { planeA: Buffer; planeB: Buffer; expected: string }
     planeA: Buffer.from([1, 2, 3, ...Array(30).fill(7), ...Array(10).fill([9, 8]).flat(), ...Array(11).fill(7)]),
     planeB: Buffer.alloc(64, 0x55),
     expected:
-      "400000007533404000008001020307070770031b090809080908090809080908090809080908090807070707000000800707" +
-      "0707070707751240100000805555555500003855555555",
+      "40000000752e404000008801020307070770031b090809080908090809080908090809080908090875030707070000008007" +
+      "751240100000805555555500003855555555",
   },
 };
 
@@ -81,6 +81,85 @@ test("gicisky frameChunkedPlanes", async (t) => {
       assert.deepEqual([...framed.subarray(offset, offset + 3)], [0x74, 3 + 64, 64]);
     }
   });
+});
+
+/**
+ * [uncompressed, as-sent] `0x75` chunk pairs from Cabalist's BLE captures of the vendor's own app
+ * (https://github.com/Cabalist/gicisky_image_notes `successful_img_captures/`), each decoded with
+ * hass-gicisky's port of the panel decoder. The first six only match with `UNCONDITIONAL_MATCHLEN` = 6,
+ * not hass-gicisky's 12; the next six are from a real photo (`sample_image.txt`), not a test pattern.
+ */
+const VENDOR_CHUNKS: [string, string][] = [
+  [
+    "fffffffffffffffffffffffffffffffffffffffffffffffffffffffff7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "751840d0000080ffffffff000018f70000180500ffffffff",
+  ],
+  [
+    "f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7ffffffffffffffffffffffffff",
+    "75144030000080f7ffffff00002e8800ffffffff",
+  ],
+  [
+    "fffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7ffffffffffffffffffffff",
+    "751640c0000080fffff7ffffff00002e8600ffffffff",
+  ],
+  [
+    "fffffffffffffffffffffffffffffffffffffffffffffffffffff7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "751840d0000080ffffffff000016f70000160900ffffffff",
+  ],
+  [
+    "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7ffffffffffffffffffffffffffffff",
+    "75154050000080ffffffff00002cf70900ffffffff",
+  ],
+  [
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdfffffffffffffffffffffffffff",
+    "75154050000080ffffffff00002edf0700ffffffff",
+  ],
+  [
+    "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0000001fffe1fe01ffe01e0000001fffffffffff",
+    "75234010000080ffffffff000027fe0000001fffe1fe01ffe01e0000001fffffffffff",
+  ],
+  [
+    "fffffffffffffffffffffffffffffffe0000001fffe1fe01ffe01e0000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "75264010004480ffffffff0900fe0000001fffe1fe01ffe01e000203ffffff000019ffffffff",
+  ],
+  [
+    "fffe0000001fffe1fe01ffe01e0000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1ffffe1fe001fe01ffe1fe1f",
+    "752e4000400480fffe0000001fffe1fe01ffe01e000203ffffff00001efe1ffffe1fe001fe01ffe1fe000000801f",
+  ],
+  [
+    "fffffffffffffffffffffffffffffffffffffffffffffffe1ffffe1fe001fe01ffe1fe1ffffe1fffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "75254010001180ffffffff000013fe1ffffe1fe001fe01ffe1f300ffffff000012ffffffff",
+  ],
+  [
+    "fffffffffffffffffffe1ffffe1fe001fe01ffe1fe1ffffe1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1e001e1e",
+    "75254010001180ffffffff0300fe1ffffe1fe001fe01ffe1f300ffffff00001ffe1e001e1e",
+  ],
+  [
+    "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1e001e1e0001e1e01e01fe1e001e1fffffffffffffffffffffffffffffffffff",
+    "75224010000580ffffffff00001bfe1e001e1e0001e1e01e01f2031f0b00ffffffff",
+  ],
+  [
+    "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "75124010000080ffffffff000038ffffffff",
+  ],
+  [
+    "fffffffffffffffffffffffffffffffffffffffff0000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "751d4010220080ffffffff0e00f00000000700ffffff000018ffffffff",
+  ],
+  ["ffffffffffffffffffffffffffffffffffffffffffffffff", "75111810000080ffffffff0e00ffffffff"],
+  [
+    "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "751240100000800000000000003800000000",
+  ],
+];
+
+test("qlzCompressChunk reproduces the vendor app's own 0x75 chunks byte for byte", () => {
+  for (const [raw, sent] of VENDOR_CHUNKS) {
+    const source = Buffer.from(raw, "hex");
+    const compressed = qlzCompressChunk(source);
+    assert.ok(compressed, raw);
+    assert.equal(Buffer.concat([Buffer.from([0x75, 3 + compressed.length, source.length]), compressed]).toString("hex"), sent);
+  }
 });
 
 test("qlzCompressChunk returns undefined when there's nothing to gain", () => {

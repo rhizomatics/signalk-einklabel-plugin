@@ -1,3 +1,5 @@
+import { CompressionFormat } from "../types";
+
 /**
  * Per-model wire-layout quirks, keyed the same way as `GICISKY_PID_METADATA` (by `deviceId`).
  * These aren't part of the shared `DeviceMetadata` shape since no other vendor needs them -
@@ -64,4 +66,27 @@ export const GICISKY_PID_LAYOUT: Record<number, GiciskyLayout> = {
 /** Best-effort layout for a `modelOverride`d PID this table has no entry for - assumes the common case. */
 export function defaultLayoutFor(colours: string[]): GiciskyLayout {
   return { ...DEFAULT_LAYOUT, fourColour: colours.includes("yellow") };
+}
+
+/**
+ * Applies a user's opt-in `compressionFormat: "chunked"` - switching a `"plain"` two-plane (BW + red)
+ * layout to the QuickLZ-chunked framing, with the flagged `writeScreen` command that goes with it.
+ * Opt-in rather than a model default because only one data point says a plain panel accepts it:
+ * Cabalist's 2023 BLE captures (https://github.com/Cabalist/gicisky_image_notes) of the vendor app
+ * sending a 4.2" BWR exactly this way, on firmware that may not match what's shipping now.
+ *
+ * Throws for layouts the framing can't carry, rather than quietly sending plain anyway - the user
+ * asked for chunked, so a repaint error says why they're not getting it.
+ */
+export function withCompressionFormat(layout: GiciskyLayout, format: CompressionFormat, colours: string[]): GiciskyLayout {
+  if (format === "auto" || layout.packing === "chunked") {
+    return layout;
+  }
+  if (layout.packing !== "plain" || layout.fourColour || !colours.includes("red")) {
+    throw new Error(
+      'gicisky paint: compressionFormat "chunked" needs a panel sent as separate black/white and red planes - ' +
+        'this model isn\'t (four-colour, black/white only, or unsupported) - set it back to "auto"',
+    );
+  }
+  return { ...layout, packing: "chunked" };
 }

@@ -7,6 +7,16 @@ import { GattConnection } from "./gattConnection";
 export type Colour = "black" | "white" | "red" | "yellow";
 
 /**
+ * Which wire format to send in - `"auto"` uses whatever the driver's model table says;
+ * `"chunked"` opts a gicisky panel with separate BW/red planes (e.g. the 4.2" BWR, normally sent
+ * plain) into the QuickLZ-compressed chunk framing the 7.5"/10.2" use - see `withCompressionFormat`
+ * in `gicisky/layout.ts`. Ignored by other vendors.
+ */
+export type CompressionFormat = "auto" | "chunked";
+
+export const COMPRESSION_FORMATS: CompressionFormat[] = ["auto", "chunked"];
+
+/**
  * Static facts about one device model, keyed by (vendor, pid) by the registry —
  * PID alone is not assumed unique across vendors.
  */
@@ -78,6 +88,8 @@ export interface VendorDeviceConfig {
   mirror?: MirrorMode;
   /** Compress the upload where the vendor protocol supports it (zhsunyco; gicisky's chunked 7.5"/10.2" panels); ignored otherwise. Defaults to `true`. */
   compress?: boolean;
+  /** Overrides the model's own wire format - see `CompressionFormat`. Defaults to `"auto"`. */
+  compressionFormat?: CompressionFormat;
   /**
    * How `paint()` reaches the device's BLE hardware - omitted (always true for the CLI, which has no
    * `ServerAPI`/`app.bleApi` to source one from) means direct BlueZ access via a fresh

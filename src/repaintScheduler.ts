@@ -441,6 +441,7 @@ async function considerRepaint(
           reframe: device.reframe,
           mirror: device.mirror,
           compress: device.compress,
+          compressionFormat: device.compressionFormat,
           gattBackend,
         });
         paintDurationMs = Date.now() - startedAt;

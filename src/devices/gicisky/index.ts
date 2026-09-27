@@ -3,7 +3,7 @@ import { DeviceMetadata, DiscoveredDevice, VendorDeviceConfig, VendorDriver } fr
 import { nodeBleBackend } from "../bleBackend";
 import { GattConnection } from "../gattConnection";
 import { GICISKY_PID_METADATA } from "./metadata";
-import { GICISKY_PID_LAYOUT, GiciskyLayout, defaultLayoutFor } from "./layout";
+import { GICISKY_PID_LAYOUT, GiciskyLayout, defaultLayoutFor, withCompressionFormat } from "./layout";
 import { encodeBitmap } from "./encode";
 import { reframeBitmap } from "../../render/reframe";
 import { mirrorBitmap } from "../../render/mirror";
@@ -103,7 +103,11 @@ export class GiciskyDriver implements VendorDriver {
               "pass --width/--height/--voffset/--colours to describe it manually",
       );
     }
-    const layout: GiciskyLayout = (pid !== undefined && GICISKY_PID_LAYOUT[pid]) || defaultLayoutFor(metadata.colours);
+    const layout: GiciskyLayout = withCompressionFormat(
+      (pid !== undefined && GICISKY_PID_LAYOUT[pid]) || defaultLayoutFor(metadata.colours),
+      config.compressionFormat ?? "auto",
+      metadata.colours,
+    );
 
     const framed = mirrorBitmap(reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "crop"), config.mirror ?? "none");
     const payload = encodeBitmap(framed, metadata, layout, config.compress ?? true);

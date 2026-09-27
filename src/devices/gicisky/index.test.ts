@@ -4,6 +4,7 @@ import { GiciskyDriver } from "./index";
 import { GattConnection } from "../gattConnection";
 import { BleBackend } from "../bleBackend";
 import { Bitmap } from "../../render/types";
+import { Colour } from "../types";
 import { GICISKY_MANUFACTURER_ID, decodeAdvertisedInfo } from "./protocol";
 
 const CMD_SERVICE = "0000fef0-0000-1000-8000-00805f9b34fb";
@@ -200,6 +201,61 @@ test("GiciskyDriver.paint", async (t) => {
     await assert.rejects(
       driver.paint(tinyBlackBitmap(8), { address: "AA:BB:CC:DD:EE:FF", gattBackend: fakeBackend(conn, undefined) }),
       /isn't advertising/,
+    );
+  });
+
+  // 0x004b is the 4.2" BWR, normally sent plain; a small modelOverride keeps the payload tiny.
+  const bwrOverride = { label: "test", width: 8, height: 8, voffset: 0, colours: ["black", "white", "red"] as Colour[] };
+
+  await t.test('compressionFormat "chunked" sends a plain BWR panel with chunk framing and the flagged writeScreen', async () => {
+    const { conn, writes } = fakeGiciskyConnection(244);
+    const driver = new GiciskyDriver();
+
+    await driver.paint(tinyBlackBitmap(8), {
+      address: "AA:BB:CC:DD:EE:FF",
+      pid: 0x004b,
+      modelOverride: bwrOverride,
+      compressionFormat: "chunked",
+      gattBackend: fakeBackend(conn, undefined),
+    });
+
+    const writeScreen = writes.find((w) => w.charUuid === CMD_CHAR && w.data[0] === 0x02)!;
+    assert.equal(writeScreen.data.length, 6);
+    assert.equal(writeScreen.data[5], 0x01);
+    const payload = Buffer.concat(writes.filter((w) => w.charUuid === IMG_CHAR).map((w) => w.data.subarray(4)));
+    // [4B LE red-plane length = 8 bytes] then an 8-byte chunk per plane - too short to compress, so raw 0x74.
+    assert.equal(payload.readUInt32LE(0), 8);
+    assert.deepEqual([...payload.subarray(4, 7)], [0x74, 3 + 8, 8]);
+    assert.equal(writeScreen.data.readUInt32LE(1), payload.length);
+  });
+
+  await t.test('compressionFormat "auto" keeps a plain BWR panel on the 8-byte writeScreen', async () => {
+    const { conn, writes } = fakeGiciskyConnection(244);
+    const driver = new GiciskyDriver();
+
+    await driver.paint(tinyBlackBitmap(8), {
+      address: "AA:BB:CC:DD:EE:FF",
+      pid: 0x004b,
+      modelOverride: bwrOverride,
+      gattBackend: fakeBackend(conn, undefined),
+    });
+
+    const writeScreen = writes.find((w) => w.charUuid === CMD_CHAR && w.data[0] === 0x02)!;
+    assert.equal(writeScreen.data.length, 8);
+    assert.equal(writeScreen.data.readUInt32LE(1), 16);
+  });
+
+  await t.test('compressionFormat "chunked" rejects a black/white-only panel instead of sending it plain', async () => {
+    const { conn } = fakeGiciskyConnection(244);
+    const driver = new GiciskyDriver();
+    await assert.rejects(
+      driver.paint(tinyBlackBitmap(8), {
+        address: "AA:BB:CC:DD:EE:FF",
+        pid: 0x0028,
+        compressionFormat: "chunked",
+        gattBackend: fakeBackend(conn, undefined),
+      }),
+      /compressionFormat "chunked" needs/,
     );
   });
 });
