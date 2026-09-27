@@ -16,9 +16,15 @@ Images are now compressed before sending - no change to what's displayed, but se
 - On by default for Zhsunyco labels and Gicisky 7.5"/10.2" labels; can be turned off per label, or with `--no-compress` on the CLI
 - Experimental opt-in _Wire format_ `chunked` sends a Gicisky 4.2" BWR compressed too (`--compression-format chunked` on the CLI)
 
+## Templates
+
+- Simplified use of `label` and `einklabel` as a source of template fields, now only `label` needed, though `einklabel` won't break existing templates
+
 ## Advanced Options
 
 Connect timeout and retries can now be defined per label.
+
+SignalK Base URL now accepts a free-text value
 
 Some labels may need images flipped, so a per-label _Mirror_ option can flip the image horizontally, vertically, or both (rotate 180°, for a label mounted upside down). Also available as `--mirror` on the CLI `paint` and `render` commands.
 

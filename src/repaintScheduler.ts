@@ -326,6 +326,25 @@ async function considerRepaint(
   let paintDurationMs = 0;
   let repaintReason = "render failed";
 
+  // Built up front, outside the try below, so the fallback warning render gets it too - it's all local
+  // facts (no network or template involved), so there's nothing here that can fail a render.
+  const rawPosition = unwrapSignalkTree(app.getSelfPath("navigation.position")) as { latitude?: number; longitude?: number } | undefined;
+  const position =
+    typeof rawPosition?.latitude === "number" && typeof rawPosition?.longitude === "number"
+      ? { latitude: rawPosition.latitude, longitude: rawPosition.longitude }
+      : undefined;
+  const labelContext = buildLabelContext({
+    // Falls back to the driver's own internal vendor key (e.g. "zhsunyco") when a device model has no
+    // explicit `manufacturer` of its own - see `DeviceMetadata.manufacturer`'s doc comment.
+    manufacturer: metadata.manufacturer ?? target.vendor,
+    label: metadata.label,
+    width,
+    height,
+    colours: metadata.colours,
+    description: device.description,
+    position,
+  });
+
   try {
     const apiUrl = await getApiUrl().catch((err) => {
       app.debug(`${label}: ${err.message}`);
@@ -348,22 +367,6 @@ async function considerRepaint(
     }
 
     const rawContext = await assembleRawContext(app, apiUrl, bindings);
-    const rawPosition = unwrapSignalkTree(app.getSelfPath("navigation.position")) as { latitude?: number; longitude?: number } | undefined;
-    const position =
-      typeof rawPosition?.latitude === "number" && typeof rawPosition?.longitude === "number"
-        ? { latitude: rawPosition.latitude, longitude: rawPosition.longitude }
-        : undefined;
-    const labelContext = buildLabelContext({
-      // Falls back to the driver's own internal vendor key (e.g. "zhsunyco") when a device model has no
-      // explicit `manufacturer` of its own - see `DeviceMetadata.manufacturer`'s doc comment.
-      manufacturer: metadata.manufacturer ?? target.vendor,
-      label: metadata.label,
-      width,
-      height,
-      colours: metadata.colours,
-      description: device.description,
-      position,
-    });
 
     // Hashed before `meta` is merged in below, deliberately, so a template merely *displaying* the
     // repaint timestamp doesn't perpetually invalidate its own dedup and force a repaint every check. A
@@ -390,6 +393,7 @@ async function considerRepaint(
         repainted: new Date().toISOString(),
         local_zone: resolveLocalZoneAbbreviation(rawContext),
         plugin_version: PLUGIN_VERSION,
+        // Undocumented legacy alias of `label.description` - kept so templates already using it keep working.
         description: device.description ?? "",
       },
     };
@@ -416,7 +420,10 @@ async function considerRepaint(
     });
     bitmap = await renderer.render(
       fallbackPath,
-      { meta: { repainted: new Date().toISOString(), plugin_version: PLUGIN_VERSION, description: device.description ?? "" } },
+      {
+        label: labelContext,
+        meta: { repainted: new Date().toISOString(), plugin_version: PLUGIN_VERSION, description: device.description ?? "" },
+      },
       width,
       height,
       templatesDir,

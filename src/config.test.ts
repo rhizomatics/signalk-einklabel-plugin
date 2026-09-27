@@ -290,6 +290,29 @@ test("configSchema", async (t) => {
     for (const key of Object.keys(device.advanced.properties)) assert.equal(device[key], undefined, key);
   });
 
+  await t.test("only shows the trigger path or the interval fields, whichever the repaint trigger needs", () => {
+    const items = (configSchema(fakeApp(), []) as any).properties.devices.items;
+    for (const field of ["triggerPath", "intervalHours", "intervalMinute"]) assert.equal(items.properties[field], undefined, field);
+    const branches = Object.fromEntries(
+      items.dependencies.repaintTrigger.oneOf.map((branch: any) => [
+        branch.properties.repaintTrigger.const,
+        Object.keys(branch.properties),
+      ]),
+    );
+    assert.deepEqual(branches, {
+      subscription: ["repaintTrigger", "triggerPath"],
+      interval: ["repaintTrigger", "intervalHours", "intervalMinute"],
+    });
+  });
+
+  await t.test("accepts only a blank or 32-hex-character AES key", () => {
+    const pattern = new RegExp((configSchema(fakeApp(), []) as any).properties.devices.items.properties.advanced.properties.aesKey.pattern);
+    assert.ok(pattern.test(""));
+    assert.ok(pattern.test("00112233445566778899AABBCCDDEEFF"));
+    assert.ok(!pattern.test("0011"));
+    assert.ok(!pattern.test("00112233445566778899aabbccddeegg"));
+  });
+
   await t.test("per-device retry/timeout fields have no default, so blank falls back to the plugin-wide value", () => {
     const device = (configSchema(fakeApp({ paintRetries: 5, paintConnectTimeoutSeconds: 45 }), []) as any).properties.devices.items
       .properties.advanced.properties;
@@ -371,18 +394,34 @@ test("migrateConfig", async (t) => {
   });
 });
 
-test("configUiSchema renders repaintTrigger and advanced reframe/mirror/compressionFormat as radio groups and description as a textarea", () => {
-  assert.deepEqual(configUiSchema(), {
-    devices: {
-      items: {
-        description: { "ui:widget": "textarea" },
-        repaintTrigger: { "ui:widget": "radio" },
-        advanced: {
-          reframe: { "ui:widget": "radio" },
-          mirror: { "ui:widget": "radio" },
-          compressionFormat: { "ui:widget": "radio" },
-        },
-      },
-    },
+test("configUiSchema", async (t) => {
+  const ui = configUiSchema() as any;
+  const items = ui.devices.items;
+  const schemaItems = (configSchema(fakeApp(), []) as any).properties.devices.items;
+
+  await t.test("renders the choice fields as radio groups and description as a textarea", () => {
+    assert.equal(items.description["ui:widget"], "textarea");
+    assert.equal(items.repaintTrigger["ui:widget"], "radio");
+    for (const field of ["reframe", "mirror", "compressionFormat"]) assert.equal(items.advanced[field]["ui:widget"], "radio", field);
+  });
+
+  await t.test("orders every device field, including the trigger-dependent ones, with Advanced settings last", () => {
+    const dependent = schemaItems.dependencies.repaintTrigger.oneOf.flatMap((branch: any) => Object.keys(branch.properties));
+    const order: string[] = items["ui:order"];
+    for (const field of [...Object.keys(schemaItems.properties), ...dependent]) {
+      assert.ok(order.includes(field) || order.includes("*"), field);
+    }
+    assert.equal(order[order.length - 1], "advanced");
+    assert.ok(order.indexOf("triggerPath") > order.indexOf("repaintTrigger"));
+  });
+
+  await t.test("enables Markdown on every field whose description links to the docs", () => {
+    const withLinks = (properties: Record<string, any>, uiFields: Record<string, any>) =>
+      Object.entries(properties)
+        .filter(([, field]) => typeof field.description === "string" && field.description.includes("](https://"))
+        .map(([name]) => [name, uiFields[name]?.["ui:enableMarkdownInDescription"]]);
+    const linked = [...withLinks(schemaItems.properties, items), ...withLinks(schemaItems.properties.advanced.properties, items.advanced)];
+    assert.ok(linked.length >= 5);
+    for (const [name, markdown] of linked) assert.equal(markdown, true, name);
   });
 });

@@ -129,7 +129,7 @@ Enable the plugin, and use the large **+** sign to add a label, which opens up t
 - _Friendly Name_ - Give the label any name (word or phrase) you like, for example 'Tide Clock'
 - _Device_ - Unless you have multiple labels, don't bother with pre-scanning or selecting a specific device, instead pick **"All discovered devices"** and it will paint any compatible labels it finds. If you want to pick a specific device, you'll need to wait for a device scan to complete.
 - _Template_ - Choose a built-in template, one you've added to the local templates directory, or - if a companion plugin like [`@rhizomatics/signalk-einklabel-genai-plugin`](#genai-rendering) is installed - one of its own contributed entries (shown with a suffix, e.g. "forecast (GenAI)")
-- _Location/description_ - Optional free-text notes on where this label is physically mounted/viewed from, e.g. "chart table, viewed from ~1m in poor light" - available to any template as `source=einklabel,path=description` or `source=label,path=description`
+- _Location/description_ - Optional free-text notes on where this label is physically mounted/viewed from, e.g. "chart table, viewed from ~1m in poor light" - available to any template as `source=label,path=description` (see [Label Details](#label-details))
 - _Repaint Trigger_- Do you want this to repaint every few hours (at a chosen minutes past hour), or when a SignalK path changes?
   - If it's a SignalK path, enter it next, for example `environment.tide.state`
   - If it's time based, enter how many hours between repaints, for example 00:00/08:00/16:00 for an 8h schedule, and if you want a specific number of minutes after the hour.
@@ -224,6 +224,20 @@ For example, `source=resources,resource=tides,provider=tides,path=station.name` 
 - `path=repainted` - the timestamp of the current repaint - for example `source=einklabel,path=repainted,format=local_datetime_short` to show when the label was last updated.
 - `path=local_zone` - a short zone name (e.g. `BST`) for the same timezone used for `local_time`/`day_mon`/`local_datetime_short` (see above) - a fallback for `environment.time.timezoneRegion,format=utc_offset` on installs that never publish that path, since it needs no SignalK metadata of its own. Falls back to a plain UTC offset like `GMT+1` where the host's locale has no real abbreviation for the zone.
 - `path=plugin_version` - expose the version of the eInk Label plugin itself.
+
+#### Label Details
+
+`source=label` reads facts about the label being painted, so one template can adapt to different labels. Available paths:
+
+- `path=description` - the label's _Location/description_ setting, e.g. `source=label,path=description`
+- `path=manufacturer` - the label's maker, e.g. `Zhsunyco`
+- `path=label` - the model's panel size, e.g. `3.7"`
+- `path=width` and `path=height` - the panel size in pixels
+- `path=colours` - the colours the panel can show, e.g. `black (#000000)`; add `format=csv` for a plain comma-separated list
+- `path=fonts` - the font families that are always available: `serif`, `sans-serif` and `monospace`
+- `path=position` - the vessel's position, rounded to about 1km
+
+These also work in the fallback warning shown when a template fails to render. Changing a label's description repaints it.
 
 #### Customizing Output
 

@@ -36,6 +36,9 @@ async function probe(url: string): Promise<boolean> {
  * and uses the first that responds.
  */
 export async function resolveSignalkApiUrl(configuredUrl: string | undefined): Promise<string> {
+  // Typed free-form in the config UI, so tolerate stray whitespace and a trailing slash, which would
+  // otherwise double up with the leading slash of every API path appended to it.
+  configuredUrl = configuredUrl?.trim().replace(/\/+$/, "") || undefined;
   const candidates = configuredUrl ? [configuredUrl] : SIGNALK_API_URL_OPTIONS;
   for (const url of candidates) {
     if (await probe(url)) return url;

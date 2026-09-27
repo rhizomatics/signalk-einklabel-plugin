@@ -17,6 +17,17 @@ test("resolveSignalkApiUrl", async (t) => {
     assert.equal(await resolveSignalkApiUrl("http://localhost:8080"), "http://localhost:8080");
   });
 
+  await t.test("trims whitespace and trailing slashes from a typed-in URL before probing it", async () => {
+    t.mock.method(globalThis, "fetch", mockFetchOkFor("http://boat.local:3001/signalk/v1/unitpreferences/categories"));
+    assert.equal(await resolveSignalkApiUrl("  http://boat.local:3001//  "), "http://boat.local:3001");
+  });
+
+  await t.test("treats a whitespace-only URL as unset, probing the defaults instead", async () => {
+    const [first] = SIGNALK_API_URL_OPTIONS;
+    t.mock.method(globalThis, "fetch", mockFetchOkFor(`${first}/signalk/v1/unitpreferences/categories`));
+    assert.equal(await resolveSignalkApiUrl("   "), first);
+  });
+
   await t.test("throws a specific error when a configured URL does not respond", async () => {
     t.mock.method(globalThis, "fetch", async () => {
       throw new TypeError("fetch failed");

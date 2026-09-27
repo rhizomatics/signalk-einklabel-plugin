@@ -29,7 +29,7 @@ export interface DeviceConfig {
   /**
    * Free-text notes about where this label is physically mounted/viewed from, e.g. "chart table,
    * viewed from ~1m in poor light" - purely descriptive. Available to any template via
-   * `source=einklabel,path=description` or `source=label,path=description` (see `buildLabelContext` in
+   * `source=label,path=description` (see `buildLabelContext` in
    * `./render/binding.ts`) if it wants it - e.g. useful to a `TemplateProvider` extension (see
    * `./render/templateProviders.ts`) tailoring content to where the label actually sits.
    */
@@ -527,6 +527,14 @@ function withEnum<T extends object>(schema: T, values: string[], names?: string[
   return names ? { ...schema, oneOf: values.map((value, i) => ({ const: value, title: names[i] ?? value })) } : { ...schema, enum: values };
 }
 
+/** The plugin's documentation site - its sections' anchors are the README's own headings (see `site/scripts/sync-readme.mjs`). */
+const DOCS_URL = "https://signalk-einklabel.rhizomatics.org.uk/";
+
+/** A Markdown link to a docs section, for a field description rendered with `ui:enableMarkdownInDescription` (see `configUiSchema`). */
+function docsLink(anchor: string, text = "More in the docs"): string {
+  return `[${text}](${DOCS_URL}#${anchor})`;
+}
+
 /**
  * An enum-like string field whose options show explanatory labels rather than their raw stored values
  * - `oneOf` with `const`/`title`, which RJSF 5 (the admin UI's form library) renders as each option's
@@ -628,8 +636,12 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         type: "string",
         title: "SignalK API base URL (leave blank to auto-detect)",
         description:
-          "Used for plugin access to SignalK REST APIs not yet integrated for direct plugin access. Left blank, the plugin probes the likely options at startup (3000, 80, 443 ) - only set this manually to skip probing. Anonymous read access is required.",
-        enum: ["", ...SIGNALK_API_URL_OPTIONS],
+          "Used for plugin access to SignalK REST APIs not yet integrated for direct plugin access. Left blank, the plugin probes the likely options at startup (3000, 80, 443) - " +
+          "only set this to skip probing, or for a server on another port or host, e.g. http://localhost:3001. Anonymous read access is required.",
+        // Free text with the probed options as suggestions - `examples` renders as the input's
+        // autocomplete list in the admin UI's form library (RJSF 5), where `enum` would forbid anything else.
+        examples: SIGNALK_API_URL_OPTIONS,
+        pattern: "^(\\s*|\\s*https?://\\S+\\s*)$",
       },
       devices: {
         type: "array",
@@ -657,29 +669,21 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               title: "Location/description (optional)",
               description:
                 'Free-text notes about where this label is physically mounted/viewed from, e.g. "chart table, viewed from ~1m ' +
-                'in poor light" - available to any template as source=einklabel,path=description or source=label,path=description.',
+                'in poor light" - available to any template as `source=label,path=description`. ' +
+                docsLink("label-details"),
             },
-            templateName: withEnum({ type: "string", title: "Template" }, templateNameOptions(resolveTemplatesDir(current.templatesDir))),
+            templateName: withEnum(
+              {
+                type: "string",
+                title: "Template",
+                description: `A bundled template, or one from your templates directory. ${docsLink("templating")}`,
+              },
+              templateNameOptions(resolveTemplatesDir(current.templatesDir)),
+            ),
             repaintTrigger: choiceField("Repaint trigger", [
               ["subscription", "When a SignalK path changes"],
               ["interval", "On a timed schedule"],
             ]),
-            triggerPath: {
-              type: "string",
-              title: "Trigger SignalK path (if repaint trigger is subscription)",
-            },
-            intervalHours: {
-              type: "number",
-              title: "Repaint every N hours (if repaint trigger is interval)",
-              minimum: 1,
-            },
-            intervalMinute: {
-              type: "number",
-              title: "Minutes past the hour (if repaint trigger is interval)",
-              minimum: 0,
-              maximum: 59,
-              default: 0,
-            },
             advanced: {
               type: "object",
               title: "Advanced settings",
@@ -692,12 +696,12 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                     ["scale", "Scale - stretch to fit exactly (may distort)"],
                     ["fixed", "Fixed - fail the repaint rather than show an off-size image"],
                   ],
-                  { default: "crop" },
+                  { description: docsLink("reframing"), default: "crop" },
                 ),
                 compress: {
                   type: "boolean",
                   title: 'Compress upload (Zhsunyco, Gicisky 7.5"/10.2")',
-                  description: "Sends far less data over BLE, so repaints are quicker. Turn off if a label stops updating.",
+                  description: `Sends far less data over BLE, so repaints are quicker. Turn off if a label stops updating. ${docsLink("other-image-options")}`,
                   default: true,
                 },
                 mirror: choiceField(
@@ -708,7 +712,10 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                     ["vertical", "Flip top to bottom"],
                     ["both", "Rotate 180° - for a label mounted upside down"],
                   ] satisfies [MirrorMode, string][],
-                  { description: "Only needed if the image shows up mirrored or upside down on the label.", default: "none" },
+                  {
+                    description: `Only needed if the image shows up mirrored or upside down on the label. ${docsLink("other-image-options")}`,
+                    default: "none",
+                  },
                 ),
                 compressionFormat: choiceField(
                   "Wire format (Gicisky, experimental)",
@@ -719,7 +726,10 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                       'Chunked - send compressed like the 7.5"/10.2" panels, e.g. to speed up a 4.2" BWR (untested on current firmware)',
                     ],
                   ] satisfies [CompressionFormat, string][],
-                  { description: "Chunked needs Compress upload on. Switch back to Auto if the label stops updating.", default: "auto" },
+                  {
+                    description: `Chunked needs Compress upload on. Switch back to Auto if the label stops updating. ${docsLink("other-image-options")}`,
+                    default: "auto",
+                  },
                 ),
                 forceRepaint: {
                   type: "boolean",
@@ -729,7 +739,9 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                 },
                 aesKey: {
                   type: "string",
-                  title: "BLE AES key (vendor-specific; leave blank to use a default key)",
+                  title: "BLE AES key (Zhsunyco)",
+                  description: "32 hex characters. Leave blank to use the default key, which works for most labels.",
+                  pattern: "^([0-9a-fA-F]{32})?$",
                 },
                 paintConnectTimeoutSeconds: {
                   type: "number",
@@ -746,22 +758,80 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               },
             },
           },
+          // Shows only the fields for the chosen trigger. RJSF keeps a hidden field's value, so switching
+          // trigger and back doesn't lose it - and the scheduler only reads the ones matching the trigger.
+          dependencies: {
+            repaintTrigger: {
+              oneOf: [
+                {
+                  properties: {
+                    repaintTrigger: { const: "subscription" },
+                    triggerPath: {
+                      type: "string",
+                      title: "Trigger SignalK path",
+                      description: "Repaints whenever this path's value changes.",
+                    },
+                  },
+                },
+                {
+                  properties: {
+                    repaintTrigger: { const: "interval" },
+                    intervalHours: {
+                      type: "number",
+                      title: "Repaint every N hours",
+                      minimum: 1,
+                    },
+                    intervalMinute: {
+                      type: "number",
+                      title: "Minutes past the hour",
+                      minimum: 0,
+                      maximum: 59,
+                      default: 0,
+                    },
+                  },
+                },
+              ],
+            },
+          },
         },
       },
     },
   };
 }
 
+/** Lets a field's `description` include Markdown - used for its `docsLink`. */
+const MARKDOWN = { "ui:enableMarkdownInDescription": true };
+
 export function configUiSchema(): object {
   return {
+    signalkApiUrl: { "ui:placeholder": "Auto-detect, or e.g. http://localhost:3001" },
     devices: {
       items: {
-        description: { "ui:widget": "textarea" },
+        // Keeps the trigger's own fields (added by the schema's `dependencies`) next to it, rather than
+        // after every other field, and Advanced settings last.
+        "ui:order": [
+          "friendlyName",
+          "device",
+          "description",
+          "templateName",
+          "repaintTrigger",
+          "triggerPath",
+          "intervalHours",
+          "intervalMinute",
+          "*",
+          "advanced",
+        ],
+        friendlyName: { "ui:placeholder": "e.g. Tide clock" },
+        description: { "ui:widget": "textarea", "ui:placeholder": "e.g. chart table, viewed from about 1m in poor light", ...MARKDOWN },
+        templateName: MARKDOWN,
         repaintTrigger: { "ui:widget": "radio" },
+        triggerPath: { "ui:placeholder": "e.g. environment.tide.state" },
         advanced: {
-          reframe: { "ui:widget": "radio" },
-          mirror: { "ui:widget": "radio" },
-          compressionFormat: { "ui:widget": "radio" },
+          reframe: { "ui:widget": "radio", ...MARKDOWN },
+          compress: MARKDOWN,
+          mirror: { "ui:widget": "radio", ...MARKDOWN },
+          compressionFormat: { "ui:widget": "radio", ...MARKDOWN },
+          aesKey: { "ui:placeholder": "e.g. 00112233445566778899aabbccddeeff" },
         },
       },
     },
