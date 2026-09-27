@@ -30,7 +30,7 @@ First step is having a Bluetooth Low Energy (BLE) compatible bluetooth adapter a
 
 SignalK BLE Manager also supports BLE Gateways, which could be an MQTT topic or an ESP-32 device. The [espos-ble-gateway](https://github.com/dirkwa/espos-ble-gateway) can be used with a cheap ESP32 device (see the list of supported hardware), which allows positioning of the gateway closer to devices, or having multiple gateways on a big boat.
 
-## BLE Manager Readiness
+## BLE Manager Readiness
 
 v2.31.0 is the minumum version of SignalK possible for BLE Manager. Several fixes went in to v2.33.0 so this is the practical minimum version for using the plugin.
 
