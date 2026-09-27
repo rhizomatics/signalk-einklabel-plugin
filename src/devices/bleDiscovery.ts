@@ -77,6 +77,23 @@ export async function forEachAdvertisedDevice(adapter: Adapter, fn: (advertised:
  * last one that's eventually thrown - an early attempt's error is often the real cause, with later
  * ones just fallout from it.
  */
+/**
+ * Rejects with `${what} timed out after ${ms}ms` if `promise` hasn't settled by then. The underlying
+ * work can't be cancelled - this only lets the caller stop waiting for it.
+ */
+export async function withDeadline<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what} timed out after ${ms}ms`)), ms);
+  });
+  promise.catch(() => {}); // observed here too, so losing the race never surfaces as an unhandled rejection
+  try {
+    return await Promise.race([promise, deadline]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
 export async function withRetries<T>(
   attempts: number,
   fn: (attempt: number) => Promise<T>,

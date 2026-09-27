@@ -293,3 +293,20 @@ test("exclusiveBleManagerAccess", async (t) => {
     assert.deepEqual(events, ["start:a", "end:a", "start:b", "end:b"]);
   });
 });
+
+test("bleApiBackend.connectGatt with a release that never finishes", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const conn = fakeGattConnection();
+  const bleApi = {
+    getDevice: async (mac: string) => ({ mac }),
+    releaseGATTDevice: () => new Promise<void>(() => {}),
+    connectGATT: async () => conn,
+  } as unknown as BLEApi;
+
+  const connecting = bleApiBackend(bleApi, "my-plugin").connectGatt("AA:BB:CC:DD:EE:FF", 1000);
+  // Let the release call and its cleanup timer get registered before moving the clock past it.
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+  t.mock.timers.tick(10_000);
+  const result = await connecting;
+  assert.equal(result.connected, true);
+});

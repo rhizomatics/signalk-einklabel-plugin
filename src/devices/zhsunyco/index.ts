@@ -83,8 +83,11 @@ export class ZhsunycoDriver implements VendorDriver {
   async paint(bitmap: Bitmap, config: VendorDeviceConfig): Promise<void> {
     const aesKey = resolveAesKey(config.aesKey);
 
+    const log = config.log ?? (() => {});
     const backend = config.gattBackend ?? nodeBleBackend();
+    log("connecting");
     const conn = await backend.connectGatt(config.address, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
+    log("connected");
     try {
       const info = decodeAdvertisedInfo(await conn.read(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.config));
       if (!info) {
@@ -115,6 +118,7 @@ export class ZhsunycoDriver implements VendorDriver {
         const challenge = await conn.read(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.authenticate);
         await conn.write(WOLINK_SERVICE_UUID, WOLINK_CHARACTERISTIC_UUIDS.authenticate, authResponse(challenge, aesKey), false);
         await sleep(AUTH_SETTLE_DELAY_MS);
+        log("authenticated");
 
         const framed = mirrorBitmap(
           reframeBitmap(bitmap, metadata.width, metadata.height - metadata.voffset, config.reframe ?? "crop"),
@@ -125,6 +129,10 @@ export class ZhsunycoDriver implements VendorDriver {
         // Upload offsets and the refresh length both count bytes of whatever's actually sent - the
         // compressed payload when compressing, not the raw buffer it inflates back to.
         const payload = compress ? compressWolinkBlocks(pixelData) : pixelData;
+        log(
+          `uploading ${payload.length} bytes${compress ? ` (compressed from ${pixelData.length})` : ""} in ` +
+            `${Math.ceil(payload.length / UPLOAD_CHUNK_SIZE)} writes`,
+        );
         for (let offset = 0; offset < payload.length; offset += UPLOAD_CHUNK_SIZE) {
           const chunk = payload.subarray(offset, offset + UPLOAD_CHUNK_SIZE);
           await conn.write(
@@ -141,16 +149,22 @@ export class ZhsunycoDriver implements VendorDriver {
           commandHeader(compress ? COMMAND.refreshCompressed : COMMAND.refreshUncompressed, payload.length),
           true,
         );
+        log("refresh sent, waiting for the label to finish");
 
         // `Promise.race` can't cancel its loser, so once `statusReceived` settles (the common case)
         // this timer would otherwise sit alive for the rest of its 60s regardless - see the identical
         // reasoning on `readDeviceDetails`'s own race, below.
         let statusTimer: ReturnType<typeof setTimeout>;
-        const statusTimeout = new Promise<void>((resolve) => {
-          statusTimer = setTimeout(resolve, STATUS_WAIT_TIMEOUT_MS);
+        const statusTimeout = new Promise<"timeout">((resolve) => {
+          statusTimer = setTimeout(() => resolve("timeout"), STATUS_WAIT_TIMEOUT_MS);
         });
         try {
-          await Promise.race([statusReceived, statusTimeout]);
+          const outcome = await Promise.race([statusReceived, statusTimeout]);
+          log(
+            outcome === "timeout"
+              ? `no reply from the label within ${STATUS_WAIT_TIMEOUT_MS}ms - assuming it painted`
+              : "label reported the paint complete",
+          );
         } finally {
           clearTimeout(statusTimer!);
         }

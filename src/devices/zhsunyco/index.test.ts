@@ -130,6 +130,24 @@ test("ZhsunycoDriver.paint", async (t) => {
     assert.deepEqual(dataWrites[0].data.subarray(6), Buffer.alloc(16));
   });
 
+  await t.test("reports each step through the log hook, so a stalled paint shows where it stopped", async () => {
+    const { conn } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008));
+    const steps: string[] = [];
+
+    await new ZhsunycoDriver().paint(tinyBlackBitmap(8), {
+      address: "AA:BB:CC:DD:EE:FF",
+      modelOverride: { label: "test", width: 8, height: 8, voffset: 0, colours: ["black", "white"] },
+      gattBackend: fakeBackend(conn),
+      log: (message) => steps.push(message),
+    });
+
+    assert.deepEqual(
+      steps.map((step) => step.split(" ")[0]),
+      ["connecting", "connected", "authenticated", "uploading", "refresh", "label"],
+    );
+    assert.equal(steps[steps.length - 1], "label reported the paint complete");
+  });
+
   await t.test("throws when the device reports an error status after refresh", async () => {
     const { conn } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008), { statusErrorCode: 0x01 });
     const driver = new ZhsunycoDriver();

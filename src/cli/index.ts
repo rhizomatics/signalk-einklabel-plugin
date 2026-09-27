@@ -354,6 +354,7 @@ program
         mirror: parseMirrorMode(opts.mirror),
         compress: opts.compress,
         compressionFormat: parseCompressionFormat(opts.compressionFormat),
+        log: logDebug,
       });
     });
     console.log(`painted ${opts.address} (${bitmap.width}x${bitmap.height}) ${opts.colours}`);

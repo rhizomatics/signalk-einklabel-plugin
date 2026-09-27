@@ -8,6 +8,7 @@ import {
   openNodeBleGattConnection,
   sleep,
   waitForManufacturerData as waitForManufacturerDataViaBlueZ,
+  withDeadline,
 } from "./bleDiscovery";
 
 /**
@@ -184,6 +185,21 @@ export async function ensureDeviceVisible(bleApi: BLEApi, pluginId: string, addr
   }
 }
 
+/**
+ * Upper bound on each BLE Manager release/disconnect call this plugin waits on. Neither has a timeout
+ * of its own, and a release has to disconnect the device, which can wait on a Bluetooth link that's
+ * already gone - left unbounded, one stuck release wedges every later paint behind it (see
+ * `exclusiveBleManagerAccess`).
+ */
+const CLEANUP_TIMEOUT_MS = 10_000;
+
+/** Waits for a cleanup call for at most `CLEANUP_TIMEOUT_MS`, ignoring its outcome - cleanup is best-effort. */
+async function boundedCleanup(...calls: Promise<unknown>[]): Promise<void> {
+  await withDeadline(Promise.allSettled(calls), CLEANUP_TIMEOUT_MS, "BLE Manager cleanup").catch((err: Error) =>
+    console.error(`${PLUGIN_NAME}: ${err.message} - carrying on`),
+  );
+}
+
 /** Upper bound on how long a timed-out `bleApi.connectGATT()` is given to settle server-side before a retry - see `bleApiBackend`. */
 const CONNECT_SETTLE_GRACE_MS = 30_000;
 
@@ -213,7 +229,7 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
       // registered under our own pluginId, which would otherwise block this connect with
       // "already claimed" until the server restarts - see signalk-bluetti-plugin's BleManagerDevice
       // for the same defensive call. A no-op if we don't currently hold the claim.
-      await bleApi.releaseGATTDevice(address, pluginId).catch(() => {});
+      await boundedCleanup(bleApi.releaseGATTDevice(address, pluginId));
       await ensureDeviceVisible(bleApi, pluginId, address, DEVICE_DISCOVERY_TIMEOUT_MS);
 
       const connecting = bleApi.connectGATT(address, pluginId);
@@ -230,7 +246,7 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
         // disconnect again. The release is awaited (only the late disconnect is left in the
         // background) so a caller retrying straight away - `withRetries` - can't race it with a new
         // `connectGATT()` and get rejected with "has a GATT claim in progress" for its trouble.
-        await bleApi.releaseGATTDevice(address, pluginId).catch(() => {});
+        await boundedCleanup(bleApi.releaseGATTDevice(address, pluginId));
         // ...except a claim still *connecting* isn't in the server's claim table yet, only its pending
         // set, which `releaseGATTDevice` doesn't touch - so while the server's own connect is still in
         // flight, a retry's `connectGATT()` is rejected outright with "has a GATT claim in progress".
@@ -240,7 +256,7 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
           sleep(Math.min(timeoutMs, CONNECT_SETTLE_GRACE_MS)).then(() => undefined),
         ]);
         if (late) {
-          await Promise.allSettled([bleApi.releaseGATTDevice(address, pluginId), late.disconnect()]);
+          await boundedCleanup(bleApi.releaseGATTDevice(address, pluginId), late.disconnect());
         } else {
           void connecting.then((c) => c.disconnect()).catch(() => {});
         }
@@ -250,7 +266,7 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
         // Belt-and-suspenders, matching the timeout-cleanup above: `releaseGATTDevice` is the
         // authoritative claim release, `disconnect()` a secondary teardown of this specific handle -
         // do both regardless of which (if either) itself hangs or rejects.
-        await Promise.allSettled([bleApi.releaseGATTDevice(address, pluginId), conn.disconnect()]);
+        await boundedCleanup(bleApi.releaseGATTDevice(address, pluginId), conn.disconnect());
       });
     },
     async waitForManufacturerData(address, manufacturerId, timeoutMs) {
@@ -265,7 +281,7 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
       // this wait forever, since nothing else in this path ever calls `connectGatt` (and so never gets a
       // chance to release the stale claim) unless a fresh advertisement shows up first. A no-op if we
       // don't currently hold the claim.
-      await bleApi.releaseGATTDevice(address, pluginId).catch(() => {});
+      await boundedCleanup(bleApi.releaseGATTDevice(address, pluginId));
       return new Promise<Buffer | undefined>((resolve) => {
         const timer = setTimeout(() => {
           unsubscribe();

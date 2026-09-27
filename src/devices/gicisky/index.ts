@@ -112,7 +112,10 @@ export class GiciskyDriver implements VendorDriver {
     const framed = mirrorBitmap(reframeBitmap(bitmap, metadata.width, metadata.height, config.reframe ?? "crop"), config.mirror ?? "none");
     const payload = encodeBitmap(framed, metadata, layout, config.compress ?? true);
 
+    const log = config.log ?? (() => {});
+    log("connecting");
     const conn = await backend.connectGatt(config.address, config.connectTimeoutMs ?? DEFAULT_PAINT_CONNECT_TIMEOUT_MS);
+    log("connected");
     try {
       const { cmdServiceUuid, cmdUuid, imgServiceUuid, imgUuid } = await findCommandAndImageCharacteristics(conn);
       const ack = new AckChannel();
@@ -129,6 +132,7 @@ export class GiciskyDriver implements VendorDriver {
           throw new Error(`gicisky device rejected start-image-transfer request: ${startImageAck.toString("hex")}`);
         }
 
+        log(`uploading ${payload.length} bytes in ${Math.ceil(payload.length / chunkSize)} parts`);
         let part = started.nextPart;
         let lastPart = -1;
         let repeats = 0;
@@ -156,6 +160,7 @@ export class GiciskyDriver implements VendorDriver {
           }
           part = decoded.nextPart;
         }
+        log("upload complete");
       } finally {
         await conn.stopNotifications(cmdServiceUuid, cmdUuid).catch(() => {});
       }

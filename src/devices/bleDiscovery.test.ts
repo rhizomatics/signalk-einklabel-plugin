@@ -12,6 +12,7 @@ import {
   waitForAdapter,
   waitForManufacturerData,
   withDiscovery,
+  withDeadline,
   withRetries,
 } from "./bleDiscovery";
 
@@ -490,5 +491,19 @@ test("openNodeBleGattConnection", async (t) => {
     await conn.disconnect();
     assert.deepEqual(calls, ["disconnect"]);
     assert.equal(conn.connected, false);
+  });
+});
+
+test("withDeadline", async (t) => {
+  await t.test("resolves with the result when the promise settles in time", async () => {
+    assert.equal(await withDeadline(Promise.resolve(42), 1000, "work"), 42);
+  });
+
+  await t.test("passes through the promise's own rejection", async () => {
+    await assert.rejects(withDeadline(Promise.reject(new Error("boom")), 1000, "work"), /boom/);
+  });
+
+  await t.test("rejects naming the work once the deadline passes, even if the promise never settles", async () => {
+    await assert.rejects(withDeadline(new Promise(() => {}), 20, "paint attempt 1/3"), /paint attempt 1\/3 timed out after 20ms/);
   });
 });

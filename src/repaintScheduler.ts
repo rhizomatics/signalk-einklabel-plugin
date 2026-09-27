@@ -13,7 +13,7 @@ import {
   resolveTemplatePath,
   resolveTemplatesDir,
 } from "./config";
-import { withRetries } from "./devices/bleDiscovery";
+import { withDeadline, withRetries } from "./devices/bleDiscovery";
 import { bleApiBackend, exclusiveBleManagerAccess } from "./devices/bleBackend";
 import { loadDiscoveredDevices, touchDiscoveredDevice } from "./devices/discoveredDevicesStore";
 import { ensureScan } from "./devices/discoveryCoordinator";
@@ -35,6 +35,13 @@ const INTERVAL_POLL_MS = 60_000;
 const SUBSCRIPTION_DEBOUNCE_MS = 2_000;
 /** Pause between paint attempts - see `withRetries`' `delayMs`. */
 const PAINT_RETRY_DELAY_MS = 5_000;
+/**
+ * Last-resort limit on one paint attempt, on top of its connect timeout - so an attempt stuck on
+ * anything, anywhere, still fails and gets retried instead of blocking this label (and, via
+ * `exclusiveBleManagerAccess`, every other label) forever. Longer than every inner limit it backs up,
+ * the longest being the 5-minute GATT session watchdog in `bleBackend.ts`.
+ */
+const PAINT_ATTEMPT_BACKSTOP_MS = 7 * 60_000;
 const RESOURCES_API_PATH = "/signalk/v2/api/resources";
 
 export interface RepaintScheduler {
@@ -440,7 +447,7 @@ async function considerRepaint(
       async (attempt) => {
         app.debug(`${label}: attempting paint ${attempt}/${attempts}`);
         const startedAt = Date.now();
-        await driver.paint(bitmap, {
+        const paint = driver.paint(bitmap, {
           address,
           pid: target.pid,
           aesKey: device.advanced?.aesKey,
@@ -450,7 +457,9 @@ async function considerRepaint(
           compress: device.advanced?.compress,
           compressionFormat: device.advanced?.compressionFormat,
           gattBackend,
+          log: (message) => app.debug(`${label}: ${message}`),
         });
+        await withDeadline(paint, connectTimeoutMs + PAINT_ATTEMPT_BACKSTOP_MS, `paint attempt ${attempt}/${attempts}`);
         paintDurationMs = Date.now() - startedAt;
       },
       {

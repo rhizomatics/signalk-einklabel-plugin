@@ -91,6 +91,11 @@ export interface VendorDeviceConfig {
   /** Overrides the model's own wire format - see `CompressionFormat`. Defaults to `"auto"`. */
   compressionFormat?: CompressionFormat;
   /**
+   * Receives one line per paint step (connecting, connected, uploading, ...), so a paint that stalls
+   * shows in the log where it stopped. Omitted means no step logging.
+   */
+  log?: (message: string) => void;
+  /**
    * How `paint()` reaches the device's BLE hardware - omitted (always true for the CLI, which has no
    * `ServerAPI`/`app.bleApi` to source one from) means direct BlueZ access via a fresh
    * `nodeBleBackend()` (`bleBackend.ts`). The SignalK plugin (`plugin.ts`/`repaintScheduler.ts`) passes
