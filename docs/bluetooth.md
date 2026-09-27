@@ -22,6 +22,10 @@ Only needed in direct BlueZ mode - in BLE Manager mode the adapter is whatever t
 
 If the label is too far from the SignalK server's adapter, try a BLE proxy device - ESP32 is popular for this - or, with the BLE Manager API, a remote BLE gateway.
 
+If your dongle is plugged into a USB3 port (usually blue-highlighted), then there's a good chance the infamous USB3 interference on the 2.4Ghz spectrum is impacting your adapter. Switch to a USB2 port if you have one, or better, use a USB extension cable to position the dongle far away.
+
+SignalK BLE Manager also supports BLE Gateways, which could be an MQTT topic or an ESP-32 device. The [espos-ble-gateway](https://github.com/dirkwa/espos-ble-gateway) can be used with a cheap ESP32 device (see the list of supported hardware), which allows positioning of the gateway closer to devices, or having multiple gateways on a big boat.
+
 ## Bluetooth Plugins Impacting Each Other
 
 Bluetooth plugins can kick off scanning, and otherwise interfere with each other. Worst case is when plugins attempt to connect directly to Bluetooth adapters. Better is when they connect using `bluez` and `dbus` Linux components, and best of all when they use the SignalK BLE Manager added in 2026.
