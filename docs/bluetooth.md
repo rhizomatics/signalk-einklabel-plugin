@@ -2,11 +2,21 @@
 
 Advice for getting a reliable Bluetooth Low Energy (BLE) connection between the SignalK server and your labels.
 
-Most of this applies to direct BlueZ mode only. If the "Use the SignalK BLE Manager API" setting is enabled, the adapter and its lifecycle are managed by the SignalK server, under its own Bluetooth admin settings, once for every BLE-consuming plugin.
+Bluetooth can be used in of three ways by a plugin:
+
+- Direct access to dongle (usually `hci0` device). Not recommended
+- Access via `bluez` and `dbus` services. Better but not ideal
+- Using the BLE Manager added to SignalK in 2026. Recommended with caveats.
+  - "Use the SignalK BLE Manager API" setting is enabled, the adapter and its lifecycle are managed by the SignalK server, under its own Bluetooth admin settings, once for every BLE-consuming plugin.
+  - Under the hood, this uses `bluez` and `dbus` however manages them so that plugins are controlled in how they can impact each other
+  - It also has a very useful GUI for seeing all scanned devices, and all GATT claims (GATT being the protocol for directly connecting to BLE devices).
+  - This is still new and settling down, so not yet the default for this plugin
+
+The advice here is general to Bluetooth on Linux, whichever way its being used.
 
 ## Choosing a Bluetooth Adapter
 
-Only needed in direct BlueZ mode - in BLE Manager mode the adapter is whatever the SignalK server's own Bluetooth settings provide.
+First step is having a Bluetooth Low Energy (BLE) compatible bluetooth adapter available.
 
 - Bluetooth adapters for Linux can be tricky
 - TP-Link UB400 and Asus USB-BT500 are two well-known and available ones, though the ASUS USB-BT500 one can have problems with some Pi type boards (see [Adapter stops responding](#adapter-stops-responding-no-gpio-to-reset))
@@ -18,13 +28,13 @@ Only needed in direct BlueZ mode - in BLE Manager mode the adapter is whatever t
 > - Don't worry about the very latest Bluetooth versions, 4.0 is minimum for BLE, 5.0 is nice
 > - Home Assistant is massively more popular than SignalK, and often also run on Raspberry Pi and similar, so good source of advice
 
+SignalK BLE Manager also supports BLE Gateways, which could be an MQTT topic or an ESP-32 device. The [espos-ble-gateway](https://github.com/dirkwa/espos-ble-gateway) can be used with a cheap ESP32 device (see the list of supported hardware), which allows positioning of the gateway closer to devices, or having multiple gateways on a big boat.
+
 ## Weak Signal
 
 If the label is too far from the SignalK server's adapter, try a BLE proxy device - ESP32 is popular for this - or, with the BLE Manager API, a remote BLE gateway.
 
 If your dongle is plugged into a USB3 port (usually blue-highlighted), then there's a good chance the [infamous USB3 interference on the 2.4Ghz spectrum](https://www.usb.org/sites/default/files/327216.pdf) is impacting your adapter. Switch to a USB2 port if you have one, or better, use a USB extension cable to position the dongle far away.
-
-SignalK BLE Manager also supports BLE Gateways, which could be an MQTT topic or an ESP-32 device. The [espos-ble-gateway](https://github.com/dirkwa/espos-ble-gateway) can be used with a cheap ESP32 device (see the list of supported hardware), which allows positioning of the gateway closer to devices, or having multiple gateways on a big boat.
 
 ## Bluetooth Plugins Impacting Each Other
 
