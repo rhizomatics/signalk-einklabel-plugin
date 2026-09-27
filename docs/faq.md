@@ -35,6 +35,10 @@ Check if the text boxes are normal text or flowed text, and correct to normal te
 
 That's the bundled fallback warning, not necessarily an error in this plugin - it means the most recent repaint failed, whatever produced the content (a broken hand-authored template, or a `TemplateProvider` extension like [`@rhizomatics/signalk-einklabel-genai-plugin`](templates.md#genai-rendering) - e.g. its LLM call failing on no network/API access, an invalid API key, or a response that wasn't a renderable SVG, after using up its configured retries). Check the SignalK server logs (debug logging on for this plugin) for the specific error, and if it's a GenAI device, check that plugin's own provider/API key/model settings. This plugin deliberately never leaves old content on screen when a repaint fails - it retries automatically at the next scheduled interval.
 
+## Repaints fail with "Service not available"
+
+If a label connects but every repaint fails a couple of seconds later with `Service not available`, the label itself has most likely got stuck - take its battery out for 10-20 seconds and try again. See [Stuck Labels](bluetooth.md#stuck-labels).
+
 ## Bluetooth problems
 
 Choosing an adapter, adapters that stop responding, and Bluetooth starting after SignalK are covered on the [Bluetooth](bluetooth.md) page.

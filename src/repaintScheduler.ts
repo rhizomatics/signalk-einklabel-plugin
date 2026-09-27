@@ -456,6 +456,7 @@ async function considerRepaint(
           mirror: device.advanced?.mirror,
           compress: device.advanced?.compress,
           compressionFormat: device.advanced?.compressionFormat,
+          writeWithoutResponse: device.advanced?.writeWithoutResponse,
           gattBackend,
           log: (message) => app.debug(`${label}: ${message}`),
         });

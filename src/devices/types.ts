@@ -91,6 +91,12 @@ export interface VendorDeviceConfig {
   /** Overrides the model's own wire format - see `CompressionFormat`. Defaults to `"auto"`. */
   compressionFormat?: CompressionFormat;
   /**
+   * Send the image without waiting for each write to be acknowledged (zhsunyco; ignored otherwise).
+   * Works around SignalK's BLE Manager (2.33 and earlier) sending every acknowledged write as a
+   * "reliable" write, which zhsunyco labels reject with ATT error 0x0e. Defaults to `false`.
+   */
+  writeWithoutResponse?: boolean;
+  /**
    * Receives one line per paint step (connecting, connected, uploading, ...), so a paint that stalls
    * shows in the log where it stopped. Omitted means no step logging.
    */

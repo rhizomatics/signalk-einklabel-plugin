@@ -282,6 +282,7 @@ test("configSchema", async (t) => {
       "compress",
       "mirror",
       "compressionFormat",
+      "writeWithoutResponse",
       "forceRepaint",
       "aesKey",
       "paintConnectTimeoutSeconds",

@@ -50,6 +50,25 @@ Check for the `bluetooth` service working at both host level and inside the Sign
 
 Sometime Bluetooth adapters, and/or the Linux services that use them, can get into a 'stuck' state, where the only solution is to reboot the server (although unplugging and plugging the dongle may help). The best way to avoid this is using a known good dongle, and using BLE Manager in SignalK wherever possible.
 
+## Zhsunyco Labels and the BLE Manager
+
+With the "Use the SignalK BLE Manager API" setting on, Zhsunyco labels can connect and authenticate, then fail as soon as the image upload starts, with `Operation failed with ATT error: 0x0e` in the log. SignalK's BLE Manager (2.33 and earlier) sends every write that waits for an acknowledgement as a Bluetooth "reliable" write, which these labels don't support.
+
+Either:
+
+- turn on _Send image without waiting for each write (Zhsunyco)_ in the label's _Advanced settings_ - the image is sent with a small gap between writes instead, and the label still confirms once the whole image has arrived; or
+- switch the BLE Manager setting off, if no other plugins need to share Bluetooth with this one.
+
+Gicisky labels aren't affected, since they don't use acknowledged writes.
+
+## Stuck Labels
+
+A label can itself get into a stuck state - usually after several connections were cut off part way through a repaint - where it still advertises and accepts connections, but no longer lists its services. Every repaint then connects and fails a couple of seconds later, with `Service not available` in this plugin's log, or `Characteristic … was not found` from other software such as Home Assistant.
+
+You can confirm it's the label rather than your server: `bluetoothctl info <label address>` shows no `UUID:` lines even after a connection, and the same failure happens from a different adapter or computer.
+
+The fix is to power-cycle the label - take the battery out for 10-20 seconds, put it back, then trigger a repaint (for example with _Force repaint_). If it still fails, the manufacturer's own app may be needed to reset it.
+
 ## Tuning Bluetooth Connections
 
 Labels spend most of their time asleep, so they can be slow to accept a connection, and slow to answer while an image is being sent to them. Linux's Bluetooth defaults are set with phones, headphones and sensors in mind, so if connections to labels regularly time out, or drop partway through a repaint (for example with GATT or connection-abort errors in the log), some Bluetooth settings on the server may need adjusting:

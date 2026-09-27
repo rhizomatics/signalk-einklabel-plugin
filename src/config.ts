@@ -77,6 +77,8 @@ export interface AdvancedDeviceSettings {
    * format. See `CompressionFormat`.
    */
   compressionFormat?: CompressionFormat;
+  /** Send the image without waiting for each write to be acknowledged (zhsunyco) - see `VendorDeviceConfig.writeWithoutResponse`. Unset means off. */
+  writeWithoutResponse?: boolean;
   /** One-shot override to repaint even if the data is unchanged; cleared automatically once that repaint completes. */
   forceRepaint?: boolean;
   /** Per-device override; if omitted, the vendor driver may fall back to a stock/manufacturer-default key. */
@@ -731,6 +733,14 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                     default: "auto",
                   },
                 ),
+                writeWithoutResponse: {
+                  type: "boolean",
+                  title: "Send image without waiting for each write (Zhsunyco)",
+                  description:
+                    "Turn on if a Zhsunyco label fails with ATT error 0x0e when using the SignalK BLE Manager - its writes that " +
+                    `wait for acknowledgement are rejected by these labels (SignalK 2.33 and earlier). ${docsLink("bluetooth/#zhsunyco-labels-and-the-ble-manager")}`,
+                  default: false,
+                },
                 forceRepaint: {
                   type: "boolean",
                   title: "Force repaint",
@@ -831,6 +841,7 @@ export function configUiSchema(): object {
           compress: MARKDOWN,
           mirror: { "ui:widget": "radio", ...MARKDOWN },
           compressionFormat: { "ui:widget": "radio", ...MARKDOWN },
+          writeWithoutResponse: MARKDOWN,
           aesKey: { "ui:placeholder": "e.g. 00112233445566778899aabbccddeeff" },
         },
       },

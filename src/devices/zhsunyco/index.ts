@@ -26,6 +26,8 @@ import {
 /** node-ble has no MTU API; this matches the reference driver's mtu(247)-9 default. */
 const UPLOAD_CHUNK_SIZE = 238;
 const CHUNK_WRITE_DELAY_MS = 20;
+/** With nothing acknowledging each write, pace them further apart so the label isn't sent data faster than it can take it. */
+const UNACKNOWLEDGED_CHUNK_WRITE_DELAY_MS = 50;
 const AUTH_SETTLE_DELAY_MS = 500;
 const STATUS_WAIT_TIMEOUT_MS = 60_000;
 /** Bounds `readDeviceDetails`' whole connect+read attempt during a scan - see its doc comment. */
@@ -129,9 +131,10 @@ export class ZhsunycoDriver implements VendorDriver {
         // Upload offsets and the refresh length both count bytes of whatever's actually sent - the
         // compressed payload when compressing, not the raw buffer it inflates back to.
         const payload = compress ? compressWolinkBlocks(pixelData) : pixelData;
+        const acknowledged = !config.writeWithoutResponse;
         log(
           `uploading ${payload.length} bytes${compress ? ` (compressed from ${pixelData.length})` : ""} in ` +
-            `${Math.ceil(payload.length / UPLOAD_CHUNK_SIZE)} writes`,
+            `${Math.ceil(payload.length / UPLOAD_CHUNK_SIZE)} ${acknowledged ? "acknowledged" : "unacknowledged"} writes`,
         );
         for (let offset = 0; offset < payload.length; offset += UPLOAD_CHUNK_SIZE) {
           const chunk = payload.subarray(offset, offset + UPLOAD_CHUNK_SIZE);
@@ -139,15 +142,15 @@ export class ZhsunycoDriver implements VendorDriver {
             WOLINK_SERVICE_UUID,
             WOLINK_CHARACTERISTIC_UUIDS.data,
             Buffer.concat([commandHeader(COMMAND.uploadBlock, offset), chunk]),
-            true,
+            acknowledged,
           );
-          await sleep(CHUNK_WRITE_DELAY_MS);
+          await sleep(acknowledged ? CHUNK_WRITE_DELAY_MS : UNACKNOWLEDGED_CHUNK_WRITE_DELAY_MS);
         }
         await conn.write(
           WOLINK_SERVICE_UUID,
           WOLINK_CHARACTERISTIC_UUIDS.data,
           commandHeader(compress ? COMMAND.refreshCompressed : COMMAND.refreshUncompressed, payload.length),
-          true,
+          acknowledged,
         );
         log("refresh sent, waiting for the label to finish");
 

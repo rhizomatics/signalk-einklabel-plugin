@@ -171,6 +171,34 @@ test("ZhsunycoDriver.paint", async (t) => {
     assert.match(steps[steps.length - 1], /services visible on this connection: 00001800-0000-1000-8000-00805f9b34fb$/);
   });
 
+  await t.test("sends the upload and refresh unacknowledged when writeWithoutResponse is on", async () => {
+    const { conn, writes } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008));
+
+    await new ZhsunycoDriver().paint(tinyBlackBitmap(8), {
+      address: "AA:BB:CC:DD:EE:FF",
+      modelOverride: { label: "test", width: 8, height: 8, voffset: 0, colours: ["black", "white"] },
+      writeWithoutResponse: true,
+      gattBackend: fakeBackend(conn),
+    });
+
+    const dataWrites = writes.filter((w) => w.charUuid === WOLINK_CHARACTERISTIC_UUIDS.data);
+    assert.ok(dataWrites.length >= 2);
+    assert.ok(dataWrites.every((w) => w.withResponse === false));
+  });
+
+  await t.test("acknowledges each upload write by default", async () => {
+    const { conn, writes } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008));
+
+    await new ZhsunycoDriver().paint(tinyBlackBitmap(8), {
+      address: "AA:BB:CC:DD:EE:FF",
+      modelOverride: { label: "test", width: 8, height: 8, voffset: 0, colours: ["black", "white"] },
+      gattBackend: fakeBackend(conn),
+    });
+
+    const dataWrites = writes.filter((w) => w.charUuid === WOLINK_CHARACTERISTIC_UUIDS.data);
+    assert.ok(dataWrites.every((w) => w.withResponse === true));
+  });
+
   await t.test("throws when the device reports an error status after refresh", async () => {
     const { conn } = fakeZhsunycoConnection(fakeConfigBuffer(0x0008), { statusErrorCode: 0x01 });
     const driver = new ZhsunycoDriver();
