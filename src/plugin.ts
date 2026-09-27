@@ -1,5 +1,5 @@
 import { Plugin, ServerAPI } from "@signalk/server-api";
-import { configSchema, configUiSchema, defaultConfig, healNestedConfig, PluginConfig } from "./config";
+import { configSchema, configUiSchema, defaultConfig, healStoredConfig, migrateConfig, PluginConfig } from "./config";
 import { registerDriver } from "./devices/registry";
 import { ZhsunycoDriver } from "./devices/zhsunyco";
 import { GiciskyDriver } from "./devices/gicisky";
@@ -64,10 +64,10 @@ export function createPlugin(app: ServerAPI): Plugin {
     start(config: object) {
       const pluginConfig: PluginConfig = {
         ...defaultConfig(),
-        ...(config as Partial<PluginConfig>),
+        ...migrateConfig(config as Partial<PluginConfig>).config,
       };
       app.debug(`starting with ${pluginConfig.devices.length} configured device(s)`);
-      healNestedConfig(app);
+      healStoredConfig(app);
       stopped = false;
 
       const useBleApi = pluginConfig.useBleApi && bleApiAvailable;

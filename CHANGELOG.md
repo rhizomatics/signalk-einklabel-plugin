@@ -16,9 +16,15 @@ Images are now compressed before sending - no change to what's displayed, but se
 - On by default for Zhsunyco labels and Gicisky 7.5"/10.2" labels; can be turned off per label, or with `--no-compress` on the CLI
 - Experimental opt-in _Wire format_ `chunked` sends a Gicisky 4.2" BWR compressed too (`--compression-format chunked` on the CLI)
 
-## Mirroring
+## Advanced Options
+
+Connect timeout and retries can now be defined per label.
 
 Some labels may need images flipped, so a per-label _Mirror_ option can flip the image horizontally, vertically, or both (rotate 180°, for a label mounted upside down). Also available as `--mirror` on the CLI `paint` and `render` commands.
+
+Different 'chunking' options to help with new label models.
+
+All the advanced options now grouped together to make the config clearer. Note that if you roll back to a previous version you may have to re-enter these values (they are automatically moved to the new section when upgrading).
 
 # 1.2.3
 

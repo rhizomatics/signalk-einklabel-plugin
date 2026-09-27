@@ -215,7 +215,7 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
 function clearForceRepaint(app: ServerAPI, friendlyName: string): void {
   const current = readCurrentConfig(app);
   const devices = (current.devices ?? []).map((device) =>
-    device.friendlyName === friendlyName ? { ...device, forceRepaint: false } : device,
+    device.friendlyName === friendlyName ? { ...device, advanced: { ...device.advanced, forceRepaint: false } } : device,
   );
   app.savePluginOptions({ ...current, devices }, (err) => {
     if (err) app.debug(`failed to clear forceRepaint for "${friendlyName}": ${err.message}`);
@@ -378,7 +378,7 @@ async function considerRepaint(
     // scheduled tick" (e.g. a regenerated forecast) is the whole point of one - which is exactly why a
     // provider-backed device should use `repaintTrigger: "interval"`, not `subscription`, for
     // cost/battery reasons (each repaint may be a paid API call on the provider's side).
-    if (!provider && !templateChanged && !dataChanged && !device.forceRepaint) {
+    if (!provider && !templateChanged && !dataChanged && !device.advanced?.forceRepaint) {
       app.debug(`${label}: data unchanged, skipping repaint`);
       return;
     }
@@ -398,7 +398,7 @@ async function considerRepaint(
       ? await provider.render({ templateName: device.templateName, context: renderContext, width, height, colours: metadata.colours })
       : await renderer.render(templatePath, renderContext, width, height, templatesDir, BUNDLED_TEMPLATES_DIR);
     succeeded = true;
-    repaintReason = device.forceRepaint
+    repaintReason = device.advanced?.forceRepaint
       ? "forced"
       : provider
         ? "provider-rendered"
@@ -424,9 +424,9 @@ async function considerRepaint(
     );
   }
 
-  const connectTimeoutMs = config.paintConnectTimeoutSeconds * 1000;
+  const connectTimeoutMs = (device.advanced?.paintConnectTimeoutSeconds ?? config.paintConnectTimeoutSeconds) * 1000;
   const gattBackend = config.useBleApi && app.bleApi ? bleApiBackend(app.bleApi, PLUGIN_NAME) : undefined;
-  const attempts = Math.max(1, config.paintRetries);
+  const attempts = Math.max(1, device.advanced?.paintRetries ?? config.paintRetries);
   const paintWithRetries = () =>
     withRetries(
       attempts,
@@ -436,12 +436,12 @@ async function considerRepaint(
         await driver.paint(bitmap, {
           address,
           pid: target.pid,
-          aesKey: device.aesKey,
+          aesKey: device.advanced?.aesKey,
           connectTimeoutMs,
           reframe: device.reframe,
-          mirror: device.mirror,
-          compress: device.compress,
-          compressionFormat: device.compressionFormat,
+          mirror: device.advanced?.mirror,
+          compress: device.advanced?.compress,
+          compressionFormat: device.advanced?.compressionFormat,
           gattBackend,
         });
         paintDurationMs = Date.now() - startedAt;
@@ -497,7 +497,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
     // A single `forceRepaint` flag covers every target under `ALL_DEVICES` too - only clear it once
     // every target has actually succeeded, so a target that failed still gets forced again next time
     // instead of quietly reverting to ordinary hash-based dedup.
-    if (device.forceRepaint && results.every((result) => result.status === "fulfilled")) {
+    if (device.advanced?.forceRepaint && results.every((result) => result.status === "fulfilled")) {
       clearForceRepaint(app, device.friendlyName);
     }
   };
@@ -546,7 +546,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   // still avoids a redundant paint once targets are resolved.
   const startupCheckTimer = setTimeout(() => {
     for (const device of config.devices) {
-      if (device.repaintTrigger === "interval" && !device.forceRepaint && device.device !== ALL_DEVICES) {
+      if (device.repaintTrigger === "interval" && !device.advanced?.forceRepaint && device.device !== ALL_DEVICES) {
         const hours = device.intervalHours ?? 1;
         const minute = device.intervalMinute ?? 0;
         const dueSlot = mostRecentScheduledSlot(new Date(), hours, minute);

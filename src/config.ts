@@ -2,10 +2,9 @@ import { existsSync, readdirSync, statSync } from "fs";
 import { homedir } from "os";
 import { isAbsolute, join } from "path";
 import { ServerAPI } from "@signalk/server-api";
-import { Colour, DiscoveredDevice } from "./devices/types";
+import { Colour, CompressionFormat, DiscoveredDevice } from "./devices/types";
 import { ReframeMode } from "./render/reframe";
-import { MIRROR_MODES, MirrorMode } from "./render/mirror";
-import { COMPRESSION_FORMATS, CompressionFormat } from "./devices/types";
+import { MirrorMode } from "./render/mirror";
 import { allTemplateProviders } from "./render/templateProviders";
 import { SIGNALK_API_URL_OPTIONS } from "./resolveApiUrl";
 
@@ -35,8 +34,6 @@ export interface DeviceConfig {
    * `./render/templateProviders.ts`) tailoring content to where the label actually sits.
    */
   description?: string;
-  /** Per-device override; if omitted, the vendor driver may fall back to a stock/manufacturer-default key. */
-  aesKey?: string;
   /**
    * Either one specific `.svg` file, or the name of a *template-family* directory holding several
    * same-purpose templates for different panel sizes/colour-sets, named `<width>x<height>-<colours>.svg`
@@ -57,8 +54,6 @@ export interface DeviceConfig {
   intervalHours?: number;
   /** ...at this minute past the hour. */
   intervalMinute?: number;
-  /** One-shot override to repaint even if the data is unchanged; cleared automatically once that repaint completes. */
-  forceRepaint?: boolean;
   /**
    * How to fit the rendered image onto the device's actual panel size when it doesn't match (see
    * `ReframeMode`) - e.g. a template family with no variant sized for this particular label. Left
@@ -67,16 +62,75 @@ export interface DeviceConfig {
    * showing *something*, even off-size, beats a repaint that just fails outright.
    */
   reframe?: ReframeMode;
-  /** Flip the image before sending - for a panel whose layout is mirrored, or one mounted upside down (`"both"`). Unset means `"none"`. */
-  mirror?: MirrorMode;
+  /** Settings most labels never need, grouped so the admin UI shows them in their own "Advanced settings" box. */
+  advanced?: AdvancedDeviceSettings;
+}
+
+export interface AdvancedDeviceSettings {
   /** Compress the upload (zhsunyco, and gicisky's chunked 7.5"/10.2" panels - ignored otherwise). Unset means on; turn off if a device fails to show compressed images. */
   compress?: boolean;
+  /** Flip the image before sending - for a panel whose layout is mirrored, or one mounted upside down (`"both"`). Unset means `"none"`. */
+  mirror?: MirrorMode;
   /**
    * Experimental opt-in wire format (gicisky only) - `"chunked"` sends a 4.2" BWR (or another plain
    * two-plane panel) QuickLZ-compressed like the 7.5"/10.2". Unset means `"auto"`, the model's own
    * format. See `CompressionFormat`.
    */
   compressionFormat?: CompressionFormat;
+  /** One-shot override to repaint even if the data is unchanged; cleared automatically once that repaint completes. */
+  forceRepaint?: boolean;
+  /** Per-device override; if omitted, the vendor driver may fall back to a stock/manufacturer-default key. */
+  aesKey?: string;
+  /** Per-device override of `PluginConfig.paintConnectTimeoutSeconds` - unset uses the plugin-wide value. */
+  paintConnectTimeoutSeconds?: number;
+  /** Per-device override of `PluginConfig.paintRetries` - unset uses the plugin-wide value. */
+  paintRetries?: number;
+}
+
+/**
+ * Every `AdvancedDeviceSettings` key - these all used to sit directly on `DeviceConfig`, so a config
+ * saved before they were grouped still has them there. See `migrateDeviceConfig`.
+ */
+const ADVANCED_DEVICE_KEYS = [
+  "compress",
+  "mirror",
+  "compressionFormat",
+  "forceRepaint",
+  "aesKey",
+  "paintConnectTimeoutSeconds",
+  "paintRetries",
+] as const satisfies readonly (keyof AdvancedDeviceSettings)[];
+
+/**
+ * Moves any `AdvancedDeviceSettings` key found at the top level of a device entry (the pre-grouping
+ * layout) into its `advanced` object, reporting whether anything moved. A value already under
+ * `advanced` wins over a legacy top-level one - it can only have got there from the grouped form, so
+ * it's the newer of the two.
+ */
+function migrateDeviceConfig(raw: DeviceConfig): { device: DeviceConfig; migrated: boolean } {
+  const legacy: Record<string, unknown> = {};
+  const rest: Record<string, unknown> = { ...raw };
+  for (const key of ADVANCED_DEVICE_KEYS) {
+    if (key in rest) {
+      legacy[key] = rest[key];
+      delete rest[key];
+    }
+  }
+  if (Object.keys(legacy).length === 0) {
+    return { device: raw, migrated: false };
+  }
+  return { device: { ...(rest as unknown as DeviceConfig), advanced: { ...legacy, ...raw.advanced } }, migrated: true };
+}
+
+/** Applies `migrateDeviceConfig` to every device entry - see `healStoredConfig` for persisting the result. */
+export function migrateConfig<T extends Partial<PluginConfig>>(config: T): { config: T; migrated: boolean } {
+  if (!Array.isArray(config.devices)) {
+    return { config, migrated: false };
+  }
+  const results = config.devices.map(migrateDeviceConfig);
+  return results.some((result) => result.migrated)
+    ? { config: { ...config, devices: results.map((result) => result.device) }, migrated: true }
+    : { config, migrated: false };
 }
 
 export interface PluginConfig {
@@ -231,25 +285,34 @@ function pickKnownKeys(raw: unknown): Partial<PluginConfig> {
 
 export function readCurrentConfig(app: ServerAPI): Partial<PluginConfig> {
   const { unwrapped } = unwrapNestedConfiguration(app.readPluginOptions());
-  return pickKnownKeys(unwrapped);
+  return migrateConfig(pickKnownKeys(unwrapped)).config;
 }
 
 /**
- * Actively rewrites the on-disk file once it's nested (see `readCurrentConfig`'s doc comment) -
- * `readCurrentConfig` alone only self-heals in memory for callers that go through it, but the admin
- * UI's own config-editing form round-trips whatever raw JSON it was handed verbatim, including a
- * stray nested `configuration` key it never touches (no schema field maps to it) - so left alone,
- * every future save from the UI keeps re-persisting that dead weight forever (see
- * `support/signalk-einklabel-plugin.json`). Called once at plugin start, which - unlike
- * `clearForceRepaint` - isn't gated on any device having `forceRepaint` set, so a nested file gets
- * flattened even if nothing ever triggers that path.
+ * Actively rewrites the on-disk file when it's in an outdated shape - `readCurrentConfig` alone only
+ * fixes things up in memory for callers that go through it, but the admin UI's config form
+ * round-trips whatever raw JSON it was handed verbatim. Two shapes are healed:
+ *
+ * - A nested file (see `readCurrentConfig`'s doc comment): left alone, the UI keeps re-persisting a
+ *   stray nested `configuration` key it never touches (no schema field maps to it) forever (see
+ *   `support/signalk-einklabel-plugin.json`).
+ * - Advanced device settings saved before they were grouped under `advanced` (see
+ *   `migrateDeviceConfig`): left alone, the UI would show that group empty, even though the plugin
+ *   itself still honours the old values.
+ *
+ * Called once at plugin start, which - unlike `clearForceRepaint` - isn't gated on any device having
+ * `forceRepaint` set, so an outdated file gets fixed even if nothing ever triggers that path.
  */
-export function healNestedConfig(app: ServerAPI): void {
+export function healStoredConfig(app: ServerAPI): void {
   const { unwrapped, wasNested } = unwrapNestedConfiguration(app.readPluginOptions());
-  if (!wasNested) return;
-  app.savePluginOptions(pickKnownKeys(unwrapped), (err) => {
-    if (err) app.debug(`failed to clean up legacy nested plugin config: ${err.message}`);
-    else app.debug("cleaned up a legacy nested plugin config file on disk");
+  const { config, migrated } = migrateConfig(pickKnownKeys(unwrapped));
+  if (!wasNested && !migrated) return;
+  app.savePluginOptions(config, (err) => {
+    if (err) app.debug(`failed to update the stored plugin config: ${err.message}`);
+    else
+      app.debug(
+        `updated the stored plugin config (${[wasNested && "flattened nesting", migrated && "grouped advanced device settings"].filter(Boolean).join(", ")})`,
+      );
   });
 }
 
@@ -452,9 +515,38 @@ export function resolveTemplatePath(
   return existsSync(localPath) ? localPath : join(BUNDLED_TEMPLATES_DIR, templateName);
 }
 
-/** JSON Schema forbids an empty `enum` array, so only attach one when there's at least one option - otherwise the whole config schema fails validation. */
-function withEnum<T extends object>(schema: T, values: string[], names?: string[]): T & { enum?: string[]; enumNames?: string[] } {
-  return values.length > 0 ? { ...schema, enum: values, ...(names ? { enumNames: names } : {}) } : schema;
+/**
+ * Restricts a string field to `values`, shown as `names` where given - as `oneOf` with `const`/`title`,
+ * the form RJSF 5 (the admin UI's form library) supports going forward, rather than the deprecated
+ * `enumNames`. JSON Schema forbids an empty `enum`/`oneOf` array, so neither is attached without at
+ * least one option - otherwise the whole config schema fails validation.
+ */
+function withEnum<T extends object>(schema: T, values: string[], names?: string[]): T & { enum?: string[]; oneOf?: object[] } {
+  if (values.length === 0) return schema;
+  return names ? { ...schema, oneOf: values.map((value, i) => ({ const: value, title: names[i] ?? value })) } : { ...schema, enum: values };
+}
+
+/**
+ * An enum-like string field whose options show explanatory labels rather than their raw stored values
+ * - `oneOf` with `const`/`title`, which RJSF 5 (the admin UI's form library) renders as each option's
+ * label while still saving the bare value, so existing configs are unaffected.
+ *
+ * Each label is prefixed with an en space: the admin UI renders RJSF's default-theme radio markup under
+ * Bootstrap 5, which has no styling for it, so the label otherwise butts straight up against its
+ * button - and a plugin can't ship its own CSS. An en space, unlike a plain one, isn't collapsed away
+ * by HTML whitespace handling.
+ */
+function choiceField(
+  title: string,
+  options: [value: string, label: string][],
+  extra: { description?: string; default?: string } = {},
+): object {
+  return {
+    type: "string",
+    title,
+    ...extra,
+    oneOf: options.map(([value, label]) => ({ const: value, title: `\u2002${label}` })),
+  };
 }
 
 export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []): object {
@@ -506,14 +598,18 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
       paintConnectTimeoutSeconds: {
         type: "number",
         title: "Paint connect timeout (seconds)",
-        description: "How long to wait for a device to accept a BLE connection before giving up on a repaint attempt.",
+        description:
+          "How long to wait for a device to accept a BLE connection before giving up on a repaint attempt. " +
+          "The default for every device - each device can override it in its own settings below.",
         minimum: 1,
         default: defaults.paintConnectTimeoutSeconds,
       },
       paintRetries: {
         type: "number",
         title: "Paint retries",
-        description: "How many times to attempt a repaint (including the first try) before giving up and reporting failure.",
+        description:
+          "How many times to attempt a repaint (including the first try) before giving up and reporting failure. " +
+          "The default for every device - each device can override it in its own settings below.",
         minimum: 1,
         default: defaults.paintRetries,
       },
@@ -563,11 +659,10 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
                 'in poor light" - available to any template as source=einklabel,path=description or source=label,path=description.',
             },
             templateName: withEnum({ type: "string", title: "Template" }, templateNameOptions(resolveTemplatesDir(current.templatesDir))),
-            repaintTrigger: {
-              type: "string",
-              title: "Repaint trigger",
-              enum: ["subscription", "interval"],
-            },
+            repaintTrigger: choiceField("Repaint trigger", [
+              ["subscription", "When a SignalK path changes"],
+              ["interval", "On a timed schedule"],
+            ]),
             triggerPath: {
               type: "string",
               title: "Trigger SignalK path (if repaint trigger is subscription)",
@@ -584,45 +679,70 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               maximum: 59,
               default: 0,
             },
-            aesKey: {
-              type: "string",
-              title: "BLE AES key (vendor-specific; leave blank to use a default key)",
-            },
-            forceRepaint: {
-              type: "boolean",
-              title: "Force repaint",
-              description: "Repaint even if the data is unchanged - clears itself automatically once that repaint completes",
-              default: false,
-            },
-            reframe: {
-              type: "string",
-              title: "If the render doesn't match the panel size",
-              description:
-                "Crop: place at the top-left, truncating anything too big or leaving the rest blank if too small. Scale: stretch to fit exactly (may distort). Fixed: fail the repaint instead of showing an off-size image.",
-              enum: ["crop", "scale", "fixed"],
-              default: "crop",
-            },
-            mirror: {
-              type: "string",
-              title: "Mirror",
-              description: "Flip the image if it shows up mirrored on the label. Both = rotate 180°, e.g. for a label mounted upside down.",
-              enum: MIRROR_MODES,
-              default: "none",
-            },
-            compress: {
-              type: "boolean",
-              title: 'Compress upload (Zhsunyco, Gicisky 7.5"/10.2")',
-              description: "Sends far less data over BLE, so repaints are quicker. Turn off if a label stops updating.",
-              default: true,
-            },
-            compressionFormat: {
-              type: "string",
-              title: "Wire format (Gicisky, experimental)",
-              description:
-                'Auto: the model\'s usual format. Chunked: send compressed like the 7.5"/10.2" panels - may speed up a 4.2" BWR, ' +
-                "but untested on current firmware. Needs Compress upload on to actually compress. Switch back to Auto if the label stops updating.",
-              enum: COMPRESSION_FORMATS,
-              default: "auto",
+            reframe: choiceField(
+              "If the render doesn't match the panel size",
+              [
+                ["crop", "Crop - place at the top-left, cutting off anything too big or leaving the rest blank"],
+                ["scale", "Scale - stretch to fit exactly (may distort)"],
+                ["fixed", "Fixed - fail the repaint rather than show an off-size image"],
+              ],
+              { default: "crop" },
+            ),
+            advanced: {
+              type: "object",
+              title: "Advanced settings",
+              description: "Most labels never need these.",
+              properties: {
+                compress: {
+                  type: "boolean",
+                  title: 'Compress upload (Zhsunyco, Gicisky 7.5"/10.2")',
+                  description: "Sends far less data over BLE, so repaints are quicker. Turn off if a label stops updating.",
+                  default: true,
+                },
+                mirror: choiceField(
+                  "Mirror",
+                  [
+                    ["none", "No flip"],
+                    ["horizontal", "Flip left to right"],
+                    ["vertical", "Flip top to bottom"],
+                    ["both", "Rotate 180° - for a label mounted upside down"],
+                  ] satisfies [MirrorMode, string][],
+                  { description: "Only needed if the image shows up mirrored or upside down on the label.", default: "none" },
+                ),
+                compressionFormat: choiceField(
+                  "Wire format (Gicisky, experimental)",
+                  [
+                    ["auto", "Auto - the model's usual format"],
+                    [
+                      "chunked",
+                      'Chunked - send compressed like the 7.5"/10.2" panels, e.g. to speed up a 4.2" BWR (untested on current firmware)',
+                    ],
+                  ] satisfies [CompressionFormat, string][],
+                  { description: "Chunked needs Compress upload on. Switch back to Auto if the label stops updating.", default: "auto" },
+                ),
+                forceRepaint: {
+                  type: "boolean",
+                  title: "Force repaint",
+                  description: "Repaint even if the data is unchanged - clears itself automatically once that repaint completes",
+                  default: false,
+                },
+                aesKey: {
+                  type: "string",
+                  title: "BLE AES key (vendor-specific; leave blank to use a default key)",
+                },
+                paintConnectTimeoutSeconds: {
+                  type: "number",
+                  title: "Paint connect timeout for this device (seconds)",
+                  description: `Leave blank to use the plugin-wide setting (currently ${current.paintConnectTimeoutSeconds}s).`,
+                  minimum: 1,
+                },
+                paintRetries: {
+                  type: "number",
+                  title: "Paint retries for this device",
+                  description: `Leave blank to use the plugin-wide setting (currently ${current.paintRetries}).`,
+                  minimum: 1,
+                },
+              },
             },
           },
         },
@@ -638,8 +758,10 @@ export function configUiSchema(): object {
         description: { "ui:widget": "textarea" },
         repaintTrigger: { "ui:widget": "radio" },
         reframe: { "ui:widget": "radio" },
-        mirror: { "ui:widget": "radio" },
-        compressionFormat: { "ui:widget": "radio" },
+        advanced: {
+          mirror: { "ui:widget": "radio" },
+          compressionFormat: { "ui:widget": "radio" },
+        },
       },
     },
   };

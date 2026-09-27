@@ -134,10 +134,16 @@ Enable the plugin, and use the large **+** sign to add a label, which opens up t
   - If it's a SignalK path, enter it next, for example `environment.tide.state`
   - If it's time based, enter how many hours between repaints, for example 00:00/08:00/16:00 for an 8h schedule, and if you want a specific number of minutes after the hour.
 
-There are also two more advanced options, which can usually be ignored.
+- _If the render doesn't match the panel size_ - see [Reframing](#reframing)
 
-- _BLE AES key_ - Only needed if the default key doesn't work and you have a better alternative, otherwise ignore
+The rest are grouped under _Advanced settings_, and can usually be ignored.
+
+- _Compress upload_, _Mirror_ and _Wire format_ - see [Other Image Options](#other-image-options)
 - _Force Repaint_ - Next time the label is due to be painted, update even if the data or template hasn't changed (this flag will automatically be cleared after this.)
+- _BLE AES key_ - Only needed if the default key doesn't work and you have a better alternative, otherwise ignore
+- _Paint connect timeout_ and _Paint retries_ for this device - leave blank to use the plugin-wide settings, or set them for a label that's slower to respond or further away than the others
+
+Configs saved by earlier versions are moved into this layout automatically when the plugin starts.
 
 When the plugin starts, it will automatically re-paint the label if it's new, or the last timed slot was missed and the data has changed.
 
@@ -180,7 +186,7 @@ There's some wiggle room with the `reframe` options to use a template that's a b
 
 ### Other Image Options
 
-Each label has a few more settings for how the image is sent. The CLI `paint` command has matching options (see [Command Line Interface](#command-line-interface)), so you can try them on a label before changing the plugin config.
+Each label has a few more settings for how the image is sent, under _Advanced settings_. The CLI `paint` command has matching options (see [Command Line Interface](#command-line-interface)), so you can try them on a label before changing the plugin config.
 
 - _Compress upload_ - on by default. Sends much less data over Bluetooth, so painting is quicker, uses less of the label's battery and is less likely to time out. Works for Zhsunyco labels and Gicisky 7.5"/10.2" labels, and is ignored for others. Turn it off if a label stops updating.
 - _Wire format (Gicisky, experimental)_ - `auto` by default. `chunked` sends a Gicisky 4.2" BWR label compressed, the same way as the 7.5"/10.2". The vendor's own app has been seen doing this, but it hasn't been tested on current firmware. Set it back to `auto` if the label stops updating.

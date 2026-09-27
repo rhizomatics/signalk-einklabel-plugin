@@ -10,12 +10,19 @@ import {
   configSchema,
   configUiSchema,
   defaultConfig,
-  healNestedConfig,
+  healStoredConfig,
+  migrateConfig,
+  readCurrentConfig,
   parseDevice,
   PluginConfig,
   resolveTemplatePath,
   resolveTemplatesDir,
 } from "./config";
+
+/** The device picker's options as `[value, label]` pairs - it's `oneOf` with `const`/`title` (see `withEnum`). */
+function deviceChoices(deviceSchema: { oneOf: { const: string; title: string }[] }): [string, string][] {
+  return deviceSchema.oneOf.map((option) => [option.const, option.title]);
+}
 
 function fakeApp(options: Partial<PluginConfig> = {}): ServerAPI {
   return { readPluginOptions: () => options } as unknown as ServerAPI;
@@ -188,7 +195,7 @@ test("configSchema", async (t) => {
     assert.ok(schema.properties.devices.items.properties.templateName.enum.includes("fake-entry (Test)"));
   });
 
-  await t.test("builds the device enum/enumNames from discovered devices, skipping ones with no confirmed pid", () => {
+  await t.test("builds the device choices from discovered devices, skipping ones with no confirmed pid", () => {
     const discovered: DiscoveredDevice[] = [
       {
         address: "AA:AA:AA:AA:AA:AA",
@@ -208,11 +215,11 @@ test("configSchema", async (t) => {
     ];
     const schema = configSchema(fakeApp(), discovered) as any;
     const deviceSchema = schema.properties.devices.items.properties.device;
-    assert.deepEqual(deviceSchema.enum, ["ALL", "zhsunyco:14@AA:AA:AA:AA:AA:AA", "zhsunyco:153:v2@BB:BB:BB:BB:BB:BB"]);
-    assert.deepEqual(deviceSchema.enumNames, [
-      "All discovered devices",
-      "zhsunyco 2.9in BWR (AA:AA:AA:AA:AA:AA)",
-      "zhsunyco unrecognised PID 0x0099 (BB:BB:BB:BB:BB:BB)",
+    assert.equal(deviceSchema.enumNames, undefined);
+    assert.deepEqual(deviceChoices(deviceSchema), [
+      ["ALL", "All discovered devices"],
+      ["zhsunyco:14@AA:AA:AA:AA:AA:AA", "zhsunyco 2.9in BWR (AA:AA:AA:AA:AA:AA)"],
+      ["zhsunyco:153:v2@BB:BB:BB:BB:BB:BB", "zhsunyco unrecognised PID 0x0099 (BB:BB:BB:BB:BB:BB)"],
     ]);
   });
 
@@ -228,14 +235,15 @@ test("configSchema", async (t) => {
       ],
     });
     const deviceSchema = (configSchema(app, []) as any).properties.devices.items.properties.device;
-    assert.deepEqual(deviceSchema.enum, ["ALL", "zhsunyco:14@AA:AA:AA:AA:AA:AA"]);
-    assert.deepEqual(deviceSchema.enumNames, ["All discovered devices", "zhsunyco:14@AA:AA:AA:AA:AA:AA (not seen in last scan)"]);
+    assert.deepEqual(deviceChoices(deviceSchema), [
+      ["ALL", "All discovered devices"],
+      ["zhsunyco:14@AA:AA:AA:AA:AA:AA", "zhsunyco:14@AA:AA:AA:AA:AA:AA (not seen in last scan)"],
+    ]);
   });
 
   await t.test("always offers ALL_DEVICES even with no scanned or configured devices", () => {
     const deviceSchema = (configSchema(fakeApp(), []) as any).properties.devices.items.properties.device;
-    assert.deepEqual(deviceSchema.enum, ["ALL"]);
-    assert.deepEqual(deviceSchema.enumNames, ["All discovered devices"]);
+    assert.deepEqual(deviceChoices(deviceSchema), [["ALL", "All discovered devices"]]);
   });
 
   await t.test("carries defaultConfig() values through as JSON Schema defaults", () => {
@@ -243,12 +251,58 @@ test("configSchema", async (t) => {
     assert.equal(schema.properties.scanOnStart.default, false);
     assert.equal(schema.properties.paintRetries.default, 3);
   });
+
+  await t.test("offers radio choices as explanatory labels while storing the same bare values", () => {
+    const device = (configSchema(fakeApp(), []) as any).properties.devices.items.properties;
+    const advanced = device.advanced.properties;
+    for (const [schema, values] of [
+      [device.repaintTrigger, ["subscription", "interval"]],
+      [device.reframe, ["crop", "scale", "fixed"]],
+      [advanced.mirror, ["none", "horizontal", "vertical", "both"]],
+      [advanced.compressionFormat, ["auto", "chunked"]],
+    ] as const) {
+      assert.deepEqual(
+        schema.oneOf.map((option: { const: string }) => option.const),
+        values,
+      );
+      for (const option of schema.oneOf) {
+        // Leading en space keeps the label clear of its radio button in the admin UI.
+        assert.match(option.title, /^ \S/);
+        assert.notEqual(option.title.trim(), option.const);
+      }
+    }
+  });
+
+  await t.test("groups the rarely-needed device settings under an Advanced settings object", () => {
+    const device = (configSchema(fakeApp(), []) as any).properties.devices.items.properties;
+    assert.equal(device.advanced.type, "object");
+    assert.equal(device.advanced.title, "Advanced settings");
+    assert.deepEqual(Object.keys(device.advanced.properties), [
+      "compress",
+      "mirror",
+      "compressionFormat",
+      "forceRepaint",
+      "aesKey",
+      "paintConnectTimeoutSeconds",
+      "paintRetries",
+    ]);
+    for (const key of Object.keys(device.advanced.properties)) assert.equal(device[key], undefined, key);
+  });
+
+  await t.test("per-device retry/timeout fields have no default, so blank falls back to the plugin-wide value", () => {
+    const device = (configSchema(fakeApp({ paintRetries: 5, paintConnectTimeoutSeconds: 45 }), []) as any).properties.devices.items
+      .properties.advanced.properties;
+    assert.equal(device.paintRetries.default, undefined);
+    assert.equal(device.paintConnectTimeoutSeconds.default, undefined);
+    assert.match(device.paintRetries.description, /currently 5\b/);
+    assert.match(device.paintConnectTimeoutSeconds.description, /currently 45s/);
+  });
 });
 
-test("healNestedConfig", async (t) => {
-  await t.test("does nothing when the on-disk file isn't nested", () => {
+test("healStoredConfig", async (t) => {
+  await t.test("does nothing when the on-disk file is neither nested nor has ungrouped advanced settings", () => {
     const { app, saved } = fakeAppWithSave({ configuration: { templatesDir: "", devices: [] }, enabled: true });
-    healNestedConfig(app);
+    healStoredConfig(app);
     assert.deepEqual(saved, []);
   });
 
@@ -274,24 +328,59 @@ test("healNestedConfig", async (t) => {
       enabled: true,
     };
     const { app, saved } = fakeAppWithSave(raw);
-    healNestedConfig(app);
+    healStoredConfig(app);
     assert.equal(saved.length, 1);
     assert.deepEqual(saved[0], {
       templatesDir: "stale",
       devices: [{ friendlyName: "old", device: "zhsunyco:14@AA:AA:AA:AA:AA:AA", templateName: "tide.svg", repaintTrigger: "interval" }],
     });
   });
+
+  await t.test("moves advanced device settings saved at the top level of a device into its advanced group", () => {
+    const device = { friendlyName: "Tide Clock", device: "ALL", templateName: "tides", repaintTrigger: "interval", reframe: "crop" };
+    const { app, saved } = fakeAppWithSave({
+      configuration: { devices: [{ ...device, aesKey: "00", forceRepaint: true, mirror: "both", paintRetries: 5 }] },
+      enabled: true,
+    });
+    healStoredConfig(app);
+    assert.deepEqual(saved, [
+      { devices: [{ ...device, advanced: { aesKey: "00", forceRepaint: true, mirror: "both", paintRetries: 5 } }] },
+    ]);
+  });
 });
 
-test("configUiSchema renders repaintTrigger/reframe/mirror/compressionFormat as radio groups and description as a textarea", () => {
+test("migrateConfig", async (t) => {
+  const base = { friendlyName: "Tide Clock", device: "ALL", templateName: "tides", repaintTrigger: "interval" as const };
+
+  await t.test("leaves an already-grouped config untouched", () => {
+    const config = { devices: [{ ...base, advanced: { mirror: "both" as const } }] };
+    assert.deepEqual(migrateConfig(config), { config, migrated: false });
+  });
+
+  await t.test("prefers a value already under advanced over a legacy top-level one", () => {
+    const legacy = { ...base, compress: true, advanced: { compress: false } };
+    const { config, migrated } = migrateConfig({ devices: [legacy as any] });
+    assert.equal(migrated, true);
+    assert.deepEqual(config.devices, [{ ...base, advanced: { compress: false } }]);
+  });
+
+  await t.test("readCurrentConfig returns the grouped shape for a legacy file", () => {
+    const current = readCurrentConfig(fakeApp({ devices: [{ ...base, forceRepaint: true } as any] }));
+    assert.deepEqual(current.devices, [{ ...base, advanced: { forceRepaint: true } }]);
+  });
+});
+
+test("configUiSchema renders repaintTrigger/reframe/advanced mirror+compressionFormat as radio groups and description as a textarea", () => {
   assert.deepEqual(configUiSchema(), {
     devices: {
       items: {
         description: { "ui:widget": "textarea" },
         repaintTrigger: { "ui:widget": "radio" },
         reframe: { "ui:widget": "radio" },
-        mirror: { "ui:widget": "radio" },
-        compressionFormat: { "ui:widget": "radio" },
+        advanced: {
+          mirror: { "ui:widget": "radio" },
+          compressionFormat: { "ui:widget": "radio" },
+        },
       },
     },
   });
