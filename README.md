@@ -102,12 +102,18 @@ A _tides_ provider plugin for the Resources API installed and enabled, currently
 - [signalk-tides](https://github.com/openwatersio/signalk-tides) - uses [neaps](https://github.com/openwatersio/neaps) library for international off-line coverage
 - [signalk-mareas-ihm](https://github.com/Aitonos/signalk-mareas-ihm) - interfaces with official Spanish IHM tidal predictions, or falls back to Open Meteo and _signalk-tides_
 
+For versions with the moon phases:
+
+- [signalk-derived-data](https://github.com/SignalK/signalk-derived-data) - unlike other plugins, this publishes lunar and solar facts as SignalK paths
+
 The [tides](https://github.com/rhizomatics/signalk-einklabel-plugin/blob/main/templates/tides/) templates can be customized to run with any tide provider, a specific one, or switch to other APIs or SignalK data paths.
 
 - In the template it uses a SVG description like `source=resources,resource=tides,provider=tides,path=extremes[0].time,format=local_time` to get the first tide time, ensures it's the preferred `signalk-tides` provider and makes it a simple local time rather than a UTC date-time.
 
-To show the lunar phase, the `environment.moon.phaseName` path is required, which can
-be easily achieved by installing and configuring the `derived-data` plugin.
+To show the lunar phase, the `environment.moon.phaseName` path is required, which can be easily achieved by installing and configuring the `derived-data` plugin.
+
+> [!TIP]
+> If testing this without a boat, you'll need another plugin to provide `navigation.position` and `navigation.datetime` to make the moon and tide calcuations work. [signalk-datetime](https://github.com/tmcolby/signalk-datetime) can be configured for the datetime, and [signalk-sailboat-simulator](https://github.com/macjl/signalk-sailboat-simulator) for the postion; other ways may work too.
 
 ### Watch Schedule
 

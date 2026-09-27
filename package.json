@@ -95,7 +95,8 @@
     "recommends": [
       "@rhizomatics/signalk-einklabel-genai-plugin",
       "signalk-watch-schedule",
-      "signalk-tides"
+      "signalk-tides",
+      "signalk-derived-data"
     ]
   }
 }
