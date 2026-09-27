@@ -30,6 +30,18 @@ First step is having a Bluetooth Low Energy (BLE) compatible bluetooth adapter a
 
 SignalK BLE Manager also supports BLE Gateways, which could be an MQTT topic or an ESP-32 device. The [espos-ble-gateway](https://github.com/dirkwa/espos-ble-gateway) can be used with a cheap ESP32 device (see the list of supported hardware), which allows positioning of the gateway closer to devices, or having multiple gateways on a big boat.
 
+## BLE Manager Readiness
+
+v2.31.0 is the minumum version of SignalK possible for BLE Manager. Several fixes went in to v2.33.0 so this is the practical minimum version for using the plugin.
+
+Gicisky labels have been painted successfully using BLE Manager, however Zhsunyco have some different interactions that are waiting other fixes.
+
+- [PR#3082](https://github.com/SignalK/signalk-server/pull/3082) - hung connections locking up device
+- [PR#3088](https://github.com/SignalK/signalk-server/pull/3088) - Support plain GATT write requests
+- [PR#3089](https://github.com/SignalK/signalk-server/pull/3089) - Pause scanning while GATT operation in progress
+
+There's a workaround for **PR#3088** available in the _Advanced Options_, and **PR#3082** isn't a problem if operations don't fail, however **PR#3089** is a blocker for using Zhsunyco labels - they'll fail with a `0x0e` error code.
+
 ## Weak Signal
 
 If the label is too far from the SignalK server's adapter, try a BLE proxy device - ESP32 is popular for this - or, with the BLE Manager API, a remote BLE gateway.

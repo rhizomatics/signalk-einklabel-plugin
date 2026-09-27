@@ -6,6 +6,7 @@ First implementation of using new SignalK BLE Manager rather than directly using
 
 - Off by default until longer term stability demonstrated.
 - It may be less reliable for some devices that can be reached with direct bluez access - try it and fall back to the direct mode if so.
+  - Issues with Zhsunyco are detailed in the [Bluetooth](https://signalk-einklabel.rhizomatics.org.uk/bluetooth/) docs, with a list of the fixes awaited upstream in SignalK. A Gicisky label has worked with it.
 - BLE Manager use reduces interference between plugins competing for same BLE devices
 - Recommend using SignalK at least release v2.33.0.
 
