@@ -88,7 +88,11 @@ Bluetooth: hci0: command 0x2042 tx timeout
 Bluetooth: hci0: Opcode 0x2042 failed: -110
 ```
 
-This happens when USB autosuspend cycles the dongle in and out of low-power suspend while idle. When bluetoothd sends an HCI command while the device is suspended or mid-resume, it never gets answered — adapters like the popular ASUS USB-500 lack a GPIO to allow reset and its stuck, and spams logs.
+Adapters like the popular ASUS USB-500 lack a GPIO to allow reset when suspended and it gets stuck, spamming the logs. See [Adapter Goes to Sleep](#adapter-goes-to-sleep) for stopping the auto-suspend happening.
+
+## Adapter Goes to Sleep
+
+This happens when USB autosuspend cycles the dongle in and out of low-power suspend while idle. When bluetoothd sends an HCI command while the device is suspended or mid-resume, it never gets answered
 
 ### Example udev rule fix
 
