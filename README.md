@@ -134,10 +134,9 @@ Enable the plugin, and use the large **+** sign to add a label, which opens up t
   - If it's a SignalK path, enter it next, for example `environment.tide.state`
   - If it's time based, enter how many hours between repaints, for example 00:00/08:00/16:00 for an 8h schedule, and if you want a specific number of minutes after the hour.
 
-- _If the render doesn't match the panel size_ - see [Reframing](#reframing)
-
 The rest are grouped under _Advanced settings_, and can usually be ignored.
 
+- _If the render doesn't match the panel size_ - see [Reframing](#reframing)
 - _Compress upload_, _Mirror_ and _Wire format_ - see [Other Image Options](#other-image-options)
 - _Force Repaint_ - Next time the label is due to be painted, update even if the data or template hasn't changed (this flag will automatically be cleared after this.)
 - _BLE AES key_ - Only needed if the default key doesn't work and you have a better alternative, otherwise ignore

@@ -257,7 +257,7 @@ test("configSchema", async (t) => {
     const advanced = device.advanced.properties;
     for (const [schema, values] of [
       [device.repaintTrigger, ["subscription", "interval"]],
-      [device.reframe, ["crop", "scale", "fixed"]],
+      [advanced.reframe, ["crop", "scale", "fixed"]],
       [advanced.mirror, ["none", "horizontal", "vertical", "both"]],
       [advanced.compressionFormat, ["auto", "chunked"]],
     ] as const) {
@@ -278,6 +278,7 @@ test("configSchema", async (t) => {
     assert.equal(device.advanced.type, "object");
     assert.equal(device.advanced.title, "Advanced settings");
     assert.deepEqual(Object.keys(device.advanced.properties), [
+      "reframe",
       "compress",
       "mirror",
       "compressionFormat",
@@ -337,14 +338,14 @@ test("healStoredConfig", async (t) => {
   });
 
   await t.test("moves advanced device settings saved at the top level of a device into its advanced group", () => {
-    const device = { friendlyName: "Tide Clock", device: "ALL", templateName: "tides", repaintTrigger: "interval", reframe: "crop" };
+    const device = { friendlyName: "Tide Clock", device: "ALL", templateName: "tides", repaintTrigger: "interval" };
     const { app, saved } = fakeAppWithSave({
-      configuration: { devices: [{ ...device, aesKey: "00", forceRepaint: true, mirror: "both", paintRetries: 5 }] },
+      configuration: { devices: [{ ...device, reframe: "scale", aesKey: "00", forceRepaint: true, mirror: "both", paintRetries: 5 }] },
       enabled: true,
     });
     healStoredConfig(app);
     assert.deepEqual(saved, [
-      { devices: [{ ...device, advanced: { aesKey: "00", forceRepaint: true, mirror: "both", paintRetries: 5 } }] },
+      { devices: [{ ...device, advanced: { reframe: "scale", aesKey: "00", forceRepaint: true, mirror: "both", paintRetries: 5 } }] },
     ]);
   });
 });
@@ -370,14 +371,14 @@ test("migrateConfig", async (t) => {
   });
 });
 
-test("configUiSchema renders repaintTrigger/reframe/advanced mirror+compressionFormat as radio groups and description as a textarea", () => {
+test("configUiSchema renders repaintTrigger and advanced reframe/mirror/compressionFormat as radio groups and description as a textarea", () => {
   assert.deepEqual(configUiSchema(), {
     devices: {
       items: {
         description: { "ui:widget": "textarea" },
         repaintTrigger: { "ui:widget": "radio" },
-        reframe: { "ui:widget": "radio" },
         advanced: {
+          reframe: { "ui:widget": "radio" },
           mirror: { "ui:widget": "radio" },
           compressionFormat: { "ui:widget": "radio" },
         },

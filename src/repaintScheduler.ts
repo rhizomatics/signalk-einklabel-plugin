@@ -438,7 +438,7 @@ async function considerRepaint(
           pid: target.pid,
           aesKey: device.advanced?.aesKey,
           connectTimeoutMs,
-          reframe: device.reframe,
+          reframe: device.advanced?.reframe,
           mirror: device.advanced?.mirror,
           compress: device.advanced?.compress,
           compressionFormat: device.advanced?.compressionFormat,

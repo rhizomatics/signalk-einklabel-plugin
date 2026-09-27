@@ -54,6 +54,11 @@ export interface DeviceConfig {
   intervalHours?: number;
   /** ...at this minute past the hour. */
   intervalMinute?: number;
+  /** Settings most labels never need, grouped so the admin UI shows them in their own "Advanced settings" box. */
+  advanced?: AdvancedDeviceSettings;
+}
+
+export interface AdvancedDeviceSettings {
   /**
    * How to fit the rendered image onto the device's actual panel size when it doesn't match (see
    * `ReframeMode`) - e.g. a template family with no variant sized for this particular label. Left
@@ -62,11 +67,6 @@ export interface DeviceConfig {
    * showing *something*, even off-size, beats a repaint that just fails outright.
    */
   reframe?: ReframeMode;
-  /** Settings most labels never need, grouped so the admin UI shows them in their own "Advanced settings" box. */
-  advanced?: AdvancedDeviceSettings;
-}
-
-export interface AdvancedDeviceSettings {
   /** Compress the upload (zhsunyco, and gicisky's chunked 7.5"/10.2" panels - ignored otherwise). Unset means on; turn off if a device fails to show compressed images. */
   compress?: boolean;
   /** Flip the image before sending - for a panel whose layout is mirrored, or one mounted upside down (`"both"`). Unset means `"none"`. */
@@ -92,6 +92,7 @@ export interface AdvancedDeviceSettings {
  * saved before they were grouped still has them there. See `migrateDeviceConfig`.
  */
 const ADVANCED_DEVICE_KEYS = [
+  "reframe",
   "compress",
   "mirror",
   "compressionFormat",
@@ -679,20 +680,20 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
               maximum: 59,
               default: 0,
             },
-            reframe: choiceField(
-              "If the render doesn't match the panel size",
-              [
-                ["crop", "Crop - place at the top-left, cutting off anything too big or leaving the rest blank"],
-                ["scale", "Scale - stretch to fit exactly (may distort)"],
-                ["fixed", "Fixed - fail the repaint rather than show an off-size image"],
-              ],
-              { default: "crop" },
-            ),
             advanced: {
               type: "object",
               title: "Advanced settings",
               description: "Most labels never need these.",
               properties: {
+                reframe: choiceField(
+                  "If the render doesn't match the panel size",
+                  [
+                    ["crop", "Crop - place at the top-left, cutting off anything too big or leaving the rest blank"],
+                    ["scale", "Scale - stretch to fit exactly (may distort)"],
+                    ["fixed", "Fixed - fail the repaint rather than show an off-size image"],
+                  ],
+                  { default: "crop" },
+                ),
                 compress: {
                   type: "boolean",
                   title: 'Compress upload (Zhsunyco, Gicisky 7.5"/10.2")',
@@ -757,8 +758,8 @@ export function configUiSchema(): object {
       items: {
         description: { "ui:widget": "textarea" },
         repaintTrigger: { "ui:widget": "radio" },
-        reframe: { "ui:widget": "radio" },
         advanced: {
+          reframe: { "ui:widget": "radio" },
           mirror: { "ui:widget": "radio" },
           compressionFormat: { "ui:widget": "radio" },
         },
