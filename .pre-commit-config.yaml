@@ -11,18 +11,23 @@ repos:
       - id: check-added-large-files
       - id: check-merge-conflict
   - repo: https://github.com/oxc-project/mirrors-oxlint
-    rev: v1.60.0
+    rev: v1.85.0
     hooks:
       - id: oxlint
         verbose: true
+        # This hook runs in its own isolated node environment, separate from the project's
+        # `node_modules`. `.oxlintrc.json` enables type-aware linting, which needs the `tsgolint`
+        # executable from the `oxlint-tsgolint` package - without this, the hook can't find it even
+        # though it's already a devDependency, since that only puts it in the project's node_modules.
+        additional_dependencies: ["oxlint-tsgolint@7.0.2003"]
         # `--no-error-on-unmatched-pattern`: pre-commit passes whichever staged files match its own
         # `types_or: [ts, tsx, ...]` filter, but `.oxlintrc.json`'s `ignorePatterns` separately excludes
         # `**/*.test.ts` - a commit touching *only* test files (e.g. a test-only fixup) then hands oxlint
         # a file list it filters down to zero, which it treats as an error ("No files found to lint")
         # rather than a no-op. This flag makes that case a clean pass instead of a spurious failure.
-        args: ["--node-plugin", "--no-error-on-unmatched-pattern"]
+        args: ["--type-aware", "--node-plugin", "--no-error-on-unmatched-pattern"]
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.65.0
+    rev: v0.70.0
     hooks:
       - id: oxfmt
         verbose: false
