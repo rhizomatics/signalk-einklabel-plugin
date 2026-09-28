@@ -160,3 +160,32 @@ Following file created at /etc/tlp.d/99-bt500-no-autosuspend.conf
 ```
 USB_DENYLIST="0b05:190e"
 ```
+
+## Bluetooth Jargon Buster
+
+Bluetooth comes with a lot of acronyms. Here's what the ones on this page mean, without needing to be a computer person.
+
+When the plugin paints a label, the request goes down a chain: the plugin asks **BlueZ** over **D-Bus**, BlueZ gives orders to the Bluetooth dongle over **HCI**, and the dongle's radio talks to the label using **BLE**, reading and writing the label's **GATT** services. A **gateway** or **proxy** simply moves the radio end of that chain somewhere else on the boat.
+
+- **BLE (Bluetooth Low Energy)** - the kind of Bluetooth made for small battery-powered gadgets like labels, sensors and battery monitors.
+  -  It's different from the "classic" Bluetooth used by headphones and speakers, and doesn't have the usual pairing process.
+  - BLE devices talk in short bursts and sleep in between, which is how a label runs for years on a coin cell. 
+  - They regularly broadcast short "advertisements" saying who they are, and the server picks these up by _scanning_. 
+  - BLE needs an adapter supporting Bluetooth 4.0 or later.
+- **HCI (Host Controller Interface)** - the standard set of commands a computer uses to give orders to a Bluetooth radio chip, such as "start scanning" or "connect to this device". 
+  - Linux names each Bluetooth adapter after it, so `hci0` is the first adapter, `hci1` the second, and so on.
+  - A plugin using the adapter "directly" is sending HCI commands itself, works fine if there's only one Bluetooth app on the server.
+- **BlueZ** - the standard Bluetooth software on Linux. 
+  - It runs quietly in the background as a service called `bluetoothd`, takes charge of the adapter, keeps a list of the devices it has heard, and handles connecting to them. 
+  - Its a sane alternative to multiple Linux programs all trying to grab the limited resources of the Bluetooth adapter and stomping over each other. It does at a Linux level what BLE Manager does for SignalK - a single point of ownership and control over a contested resource.
+- **D-Bus** - the messaging system that programs on a Linux computer use to talk to each other. 
+  - It's how the plugin, or SignalK's BLE Manager, asks BlueZ to scan or connect. 
+  - If you know NMEA 2000, it's a similar idea: one shared backbone that everything plugs into and exchanges messages over, rather than a separate cable between every pair of devices.
+- **GATT (Generic Attribute Profile)** - how a BLE device organises what it offers once you're connected to it. 
+  - The device has _services_, each a group of related features, and each service has _characteristics_, individual values you can read, write or be told about when they change.
+  - Painting a label means connecting, finding its image service, and writing the picture into the right characteristic a piece at a time.
+  - The "GATT claims" shown in SignalK's BLE Manager are simply which plugin has booked which device for a connection, so that two plugins don't try to talk to it at once.
+- **Gateway** - a separate small device, often a cheap ESP32 board, with its own Bluetooth radio, which listens for and talks to BLE devices near it and relays everything to SignalK over the boat's network.
+  -  It's effectively fitting a remote antenna closer to where it's needed: useful when a label is too far from the server, or on a big boat that needs more than one. SignalK's BLE Manager can use gateways alongside, or instead of, a local adapter.
+- **Proxy** - much the same idea as a gateway: a device that does the Bluetooth radio work on the server's behalf, somewhere with a better signal.
+  - Different software uses different names for it. Home Assistant users, for example, will know ESP32 "Bluetooth proxies".
