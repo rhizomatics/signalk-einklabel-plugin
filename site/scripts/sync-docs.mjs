@@ -17,6 +17,12 @@ export const navPath = resolve(siteDir, "src/generated/nav.json");
 const markdownDir = resolve(siteDir, "src/generated/markdown");
 const SITE_URL = "https://signalk-einklabel.rhizomatics.org.uk";
 
+/** `target`'s path (and anchor) on this site if it's an absolute link to it, else `undefined`. */
+function sitePath(target) {
+  if (target !== SITE_URL && !target.startsWith(`${SITE_URL}/`) && !target.startsWith(`${SITE_URL}#`)) return undefined;
+  return target.slice(SITE_URL.length);
+}
+
 const pkg = JSON.parse(readFileSync(resolve(rootDir, "package.json"), "utf8"));
 
 export const assetsSrc = resolve(docsDir, "assets");
@@ -93,7 +99,8 @@ function convert(file) {
   // Relative links: to another page -> its site route; to docs/assets -> the copied asset.
   markdown = markdown.replace(/(!?\[[^\]]*\]\()([^)\s]+)(\))/g, (match, open, target, close) => {
     if (/^(https?:|mailto:|#)/.test(target)) {
-      return target.startsWith(SITE_URL) ? `${open}${target.slice(SITE_URL.length) || "/"}${close}` : match;
+      const path = sitePath(target);
+      return path === undefined ? match : `${open}${path || "/"}${close}`;
     }
     const [path, anchor] = target.split("#");
     const resolved = resolve(dirname(file), path);
@@ -138,8 +145,9 @@ const RAW_ASSETS_URL = "https://raw.githubusercontent.com/rhizomatics/signalk-ei
  */
 function agentMarkdown(file) {
   const content = readFileSync(file, "utf8").replace(/(!?\[[^\]]*\]\()([^)\s]+)(\))/g, (match, open, target, close) => {
-    if (target.startsWith(SITE_URL)) {
-      const [path, anchor] = target.slice(SITE_URL.length).split("#");
+    const sitePathAndAnchor = sitePath(target);
+    if (sitePathAndAnchor !== undefined) {
+      const [path, anchor] = sitePathAndAnchor.split("#");
       if (!path.endsWith("/")) return match;
       return `${open}${SITE_URL}${markdownRouteFor(path)}${anchor ? `#${anchor}` : ""}${close}`;
     }

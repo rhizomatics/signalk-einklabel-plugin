@@ -13,7 +13,8 @@ export function normalizeAssetKey(value: unknown): string | undefined {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    // runs are already collapsed to a single `_` above, so one at each end is all there can be
+    .replace(/^_|_$/g, "");
   return normalized || undefined;
 }
 
