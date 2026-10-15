@@ -405,8 +405,16 @@ async function considerRepaint(
       },
     };
 
+    const providerRequest = { templateName: device.templateName, context: renderContext, width, height, colours: metadata.colours };
+    if (provider?.describeContent) {
+      try {
+        app.debug(`${label}: provider content:\n${provider.describeContent(providerRequest)}`);
+      } catch (err) {
+        app.debug(`${label}: describeContent failed (${(err as Error).message})`);
+      }
+    }
     bitmap = provider
-      ? await provider.render({ templateName: device.templateName, context: renderContext, width, height, colours: metadata.colours })
+      ? await provider.render(providerRequest)
       : await renderer.render(templatePath, renderContext, width, height, templatesDir, BUNDLED_TEMPLATES_DIR);
     succeeded = true;
     repaintReason = device.advanced?.forceRepaint

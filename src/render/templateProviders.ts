@@ -53,6 +53,13 @@ export interface TemplateProvider {
    * screen unmarked.
    */
   render(request: TemplateRenderRequest): Promise<Bitmap>;
+  /**
+   * Optional, debug only: a human-readable description of what `render()` will be given for this
+   * request (e.g. a GenAI provider's prompt with every placeholder substituted) - `considerRepaint`
+   * writes it to `app.debug` just before calling `render()`, standing in for the `<desc>` bindings an
+   * SVG template's debug output would otherwise show. Throwing only skips that debug line, never the render.
+   */
+  describeContent?(request: TemplateRenderRequest): string;
 }
 
 const providers: TemplateProvider[] = [];
