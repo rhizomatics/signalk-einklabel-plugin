@@ -41,6 +41,6 @@ unit tests next to the code. `gattConnection.ts`, `discoveryCoordinator.ts` and 
 - `templates/` - bundled SVG templates. `docs/` - user docs; the site in `site/` is built from
   `README.md` and `docs/` by `site/scripts/sync-docs.mjs`, so edit those, not `site/src/`.
 
-`docs/extending.md` describes the extension API as it is now. `docs/design/spec.md` is the original
-design spec and is out of date in places (for example, extensions now declare this package as a
-regular `dependency`, not a `peerDependency`).
+`docs/extending.md` describes the extension API. `docs/design/spec.md` describes the plugin as built,
+and `docs/design/roadmap.md` holds plans not yet built - update the spec when behaviour it describes
+changes.
