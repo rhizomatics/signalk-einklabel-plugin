@@ -5,7 +5,7 @@ Guidance for coding agents working in this repository. `AGENTS.md` is a link to 
 ## Commands
 
 ```bash
-npm ci                    # install; CI runs SignalK's shared plugin-ci matrix, so keep code Node 20 compatible (armv7/Cerbo GX)
+npm ci                    # install; CI runs SignalK's shared plugin-ci matrix (Node 22 and 24); engines.node follows hq's SignalK versions policy
 npm run build             # tsc -> dist/ (the plugin and the esl-cli both load dist/, not src/)
 npm test                  # node:test over src/**/*.test.ts via scripts/run-tests.js, with ts-node
 npm run coverage          # same, plus coverage/lcov.info - this is what CI runs
