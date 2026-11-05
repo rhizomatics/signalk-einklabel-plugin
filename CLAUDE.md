@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for coding agents working in this repository. `AGENTS.md` is a link to this file.
+Guidance for coding agents working in this repository. `AGENTS.md` points here.
 
 ## Commands
 
