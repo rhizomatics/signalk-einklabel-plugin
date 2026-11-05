@@ -1,5 +1,9 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
+# pre-commit won't pick up a node installed under ~ (mise, nvm), and nodeenv's fallback download
+# breaks when the newest nodejs.org release is a pre-release. Use the node already on PATH.
+default_language_version:
+  node: system
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
