@@ -334,6 +334,42 @@ test("withRetries", async (t) => {
     assert.ok(startedAt[2] - startedAt[1] >= 18, `expected a pause before attempt 3, got ${startedAt[2] - startedAt[1]}ms`);
   });
 
+  await t.test("stops retrying once shouldStop is true, rethrowing the last error", async () => {
+    let calls = 0;
+    let stopping = false;
+    await assert.rejects(
+      withRetries(
+        5,
+        async () => {
+          calls++;
+          stopping = true;
+          throw new Error(`fail ${calls}`);
+        },
+        { delayMs: 1_000, shouldStop: () => stopping },
+      ),
+      /fail 1/,
+    );
+    assert.equal(calls, 1);
+  });
+
+  await t.test("stops retrying when stop arrives during the pause between attempts", async () => {
+    let calls = 0;
+    let stopping = false;
+    await assert.rejects(
+      withRetries(
+        5,
+        async () => {
+          calls++;
+          setTimeout(() => (stopping = true), 5);
+          throw new Error(`fail ${calls}`);
+        },
+        { delayMs: 20, shouldStop: () => stopping },
+      ),
+      /fail 1/,
+    );
+    assert.equal(calls, 1);
+  });
+
   await t.test("treats anything less than 1 as a single attempt", async () => {
     let calls = 0;
     await assert.rejects(

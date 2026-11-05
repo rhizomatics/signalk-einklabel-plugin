@@ -42,10 +42,21 @@ const PAINT_RETRY_DELAY_MS = 5_000;
  * the longest being the 5-minute GATT session watchdog in `bleBackend.ts`.
  */
 const PAINT_ATTEMPT_BACKSTOP_MS = 7 * 60_000;
+/**
+ * How long `stop()` waits for a paint already in progress before resolving anyway. Long enough for a
+ * normal transfer to finish (so a config save mid-paint doesn't have the next `start()` connect while
+ * the old BLE session is still open), short enough not to hold up server shutdown on a label that's
+ * stuck; such a paint is still ended by its own connect timeout and `PAINT_ATTEMPT_BACKSTOP_MS`.
+ */
+export const STOP_DRAIN_TIMEOUT_MS = 30_000;
 const RESOURCES_API_PATH = "/signalk/v2/api/resources";
 
 export interface RepaintScheduler {
-  stop(): void;
+  /**
+   * Stops every trigger, lets no new paint or retry start, and resolves once any paint already in
+   * progress finishes - or after `STOP_DRAIN_TIMEOUT_MS`, whichever comes first.
+   */
+  stop(): Promise<void>;
 }
 
 /**
@@ -310,6 +321,7 @@ async function considerRepaint(
   target: RepaintTarget,
   state: RepaintState,
   getApiUrl: () => Promise<string>,
+  isStopping: () => boolean = () => false,
 ): Promise<void> {
   const { address, metadata, driver } = target;
   const label = `"${device.friendlyName}" [${address}]`;
@@ -449,8 +461,11 @@ async function considerRepaint(
   const connectTimeoutMs = (device.advanced?.paintConnectTimeoutSeconds ?? config.paintConnectTimeoutSeconds) * 1000;
   const gattBackend = config.useBleApi && app.bleApi ? bleApiBackend(app.bleApi, PLUGIN_NAME) : undefined;
   const attempts = Math.max(1, device.advanced?.paintRetries ?? config.paintRetries);
-  const paintWithRetries = () =>
-    withRetries(
+  const paintWithRetries = () => {
+    // Rendering (or waiting for `exclusiveBleManagerAccess`) can outlast a `stop()` - don't open a
+    // BLE session for a plugin that's already stopping.
+    if (isStopping()) throw new Error("plugin stopping - paint skipped");
+    return withRetries(
       attempts,
       async (attempt) => {
         app.debug(`${label}: attempting paint ${attempt}/${attempts}`);
@@ -474,8 +489,10 @@ async function considerRepaint(
       {
         delayMs: PAINT_RETRY_DELAY_MS,
         onError: (err, attempt) => app.debug(`${label}: paint attempt ${attempt}/${attempts} failed: ${(err as Error).message}`),
+        shouldStop: isStopping,
       },
     );
+  };
   await (gattBackend ? exclusiveBleManagerAccess(paintWithRetries) : paintWithRetries());
 
   touchDiscoveredDevice(app, { address, vendor: target.vendor, pid: target.pid, hwVersion: target.hwVersion, metadata });
@@ -494,25 +511,38 @@ async function considerRepaint(
  * but only if it succeeded (`run` resolved `true`). For repaints: newer data still gets shown promptly,
  * but a label that's failing isn't hammered with a fresh round of retries straight after the last
  * one gave up - the next scheduled trigger tries again instead.
+ *
+ * `close()` makes every later call a no-op and drops pending follow-ups; `idle()` resolves once no
+ * `run` is in progress. Together they let the scheduler's `stop()` wait for a paint already under way
+ * without starting another.
  */
+export interface OneAtATimePerKey<T> {
+  (arg: T): Promise<void>;
+  close(): void;
+  idle(): Promise<void>;
+}
+
 export function oneAtATimePerKey<T>(
   keyOf: (arg: T) => string,
   run: (arg: T) => Promise<boolean>,
   onBusy: (arg: T) => void = () => {},
-): (arg: T) => Promise<void> {
-  const inProgress = new Set<string>();
+): OneAtATimePerKey<T> {
+  const inProgress = new Map<string, Promise<boolean>>();
   const followUps = new Map<string, T>();
+  let closed = false;
   const call = async (arg: T): Promise<void> => {
+    if (closed) return;
     const key = keyOf(arg);
     if (inProgress.has(key)) {
       followUps.set(key, arg);
       onBusy(arg);
       return;
     }
-    inProgress.add(key);
+    const running = run(arg);
+    inProgress.set(key, running);
     let succeeded = false;
     try {
-      succeeded = await run(arg);
+      succeeded = await running;
     } finally {
       inProgress.delete(key);
     }
@@ -522,13 +552,26 @@ export function oneAtATimePerKey<T>(
       await call(followUp);
     }
   };
-  return call;
+  return Object.assign(call, {
+    close() {
+      closed = true;
+      followUps.clear();
+    },
+    async idle() {
+      // A follow-up can start as an earlier run settles (unless closed), so loop until nothing is left.
+      while (inProgress.size > 0) {
+        await Promise.allSettled(inProgress.values());
+      }
+    },
+  });
 }
 
 export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): RepaintScheduler {
   const state = loadState(app);
   const unsubscribes: Array<() => void> = [];
   const getApiUrl = createApiUrlResolver(config.signalkApiUrl);
+  let stopping = false;
+  const isStopping = () => stopping;
 
   // The first minute or two of a SignalK server's life is a chaos of plugin dependency sequencing -
   // a repaint attempted before other plugins (e.g. derived-data) have published the data a template
@@ -557,7 +600,9 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
     if (targets.length === 0) {
       return false;
     }
-    const results = await Promise.allSettled(targets.map((target) => considerRepaint(app, config, device, target, state, getApiUrl)));
+    const results = await Promise.allSettled(
+      targets.map((target) => considerRepaint(app, config, device, target, state, getApiUrl, isStopping)),
+    );
     results.forEach((result, i) => {
       if (result.status === "rejected") {
         app.debug(`"${device.friendlyName}" [${targets[i].address}]: repaint failed: ${(result.reason as Error).message}`);
@@ -634,8 +679,21 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   unsubscribes.push(() => clearTimeout(startupCheckTimer));
 
   return {
-    stop() {
+    async stop() {
+      stopping = true;
       for (const unsubscribe of unsubscribes) unsubscribe();
+      repaint.close();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const drained = await Promise.race([
+        repaint.idle().then(() => true),
+        new Promise<boolean>((resolve) => {
+          timer = setTimeout(() => resolve(false), STOP_DRAIN_TIMEOUT_MS);
+        }),
+      ]);
+      clearTimeout(timer);
+      if (!drained) {
+        app.debug(`a repaint was still running ${STOP_DRAIN_TIMEOUT_MS / 1000}s after stop - not waiting any longer`);
+      }
     },
   };
 }

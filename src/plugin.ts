@@ -50,7 +50,11 @@ export function createPlugin(app: ServerAPI): Plugin {
 
   let scheduler: RepaintScheduler | undefined;
   let stopDiscoveryListener: (() => void) | undefined;
-  let stopped = false;
+  // Bumped by every start() and stop(), so a start() whose plugin has since been stopped (or
+  // restarted) can tell it's stale - a plain `stopped` flag would be reset by the next start().
+  let generation = 0;
+  // The last stop()'s drain of any in-flight repaint; start() waits on it before touching BLE.
+  let stopping: Promise<void> = Promise.resolve();
 
   const plugin: Plugin = {
     id: "signalk-einklabel-plugin",
@@ -68,7 +72,9 @@ export function createPlugin(app: ServerAPI): Plugin {
       };
       app.debug(`starting with ${pluginConfig.devices.length} configured device(s)`);
       healStoredConfig(app);
-      stopped = false;
+      const thisGeneration = ++generation;
+      const isCurrent = () => thisGeneration === generation;
+      const previousStop = stopping;
 
       const useBleApi = pluginConfig.useBleApi && bleApiAvailable;
       if (pluginConfig.useBleApi && !bleApiAvailable) {
@@ -78,8 +84,11 @@ export function createPlugin(app: ServerAPI): Plugin {
       }
       app.debug(useBleApi ? "using the SignalK BLE Manager API for Bluetooth access" : "using direct BlueZ access for Bluetooth");
 
-      const start = () => {
-        if (stopped) return;
+      const start = async () => {
+        // A server that doesn't await stop()'s Promise (or calls start() first) would otherwise have
+        // this connect while the previous session's paint is still running.
+        await previousStop;
+        if (!isCurrent()) return;
         if (pluginConfig.scanOnStart) {
           void runStartupScan(app, pluginConfig.scanDurationSeconds, useBleApi);
         }
@@ -95,25 +104,29 @@ export function createPlugin(app: ServerAPI): Plugin {
         // The server/provider governs its own local-adapter readiness once BLE Manager mode owns
         // `hci0` (or has none at all, behind a remote gateway) - waiting on a *local* BlueZ adapter
         // here would be waiting on something this mode may never even need.
-        start();
+        void start();
       } else {
         // Waits (with backoff, indefinitely on Linux) for a BLE adapter before the startup scan or
         // the repaint scheduler touch BLE at all - see `waitForAdapter`'s doc comment on the
-        // boot-time race this covers. `stopped` is checked again inside `start()`, not just passed
+        // boot-time race this covers. `isCurrent` is checked again inside `start()`, not just passed
         // as `cancelled`, since the wait can also resolve `true` on its own right as `stop()` runs.
         void waitForAdapter(
           (message) => app.debug(message),
-          () => stopped,
+          () => !isCurrent(),
         ).then(start);
       }
     },
+    // Returns a Promise, as the server asks of a stop() with async work: it resolves once a paint
+    // already under way has finished (bounded by `STOP_DRAIN_TIMEOUT_MS`), so a config save mid-paint
+    // or a server shutdown doesn't leave that BLE session running behind the next start().
     stop() {
-      stopped = true;
-      scheduler?.stop();
+      generation++;
+      const stoppingScheduler = scheduler;
       scheduler = undefined;
       stopDiscoveryListener?.();
       stopDiscoveryListener = undefined;
-      app.debug("stopped");
+      stopping = (stoppingScheduler?.stop() ?? Promise.resolve()).then(() => app.debug("stopped"));
+      return stopping;
     },
   };
 
