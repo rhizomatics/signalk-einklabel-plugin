@@ -1,15 +1,12 @@
-# 1.3.2
+# 1.3.1
 
 ## 🐛 Bug fixes
 
 - Stopping the plugin mid-paint (saving its config, disabling it, or shutting down the server) now waits up to 30 seconds for that paint to finish, and starts no new paint or retry, so the restarted plugin no longer connects while the old Bluetooth session is still open
 
-# 1.3.1
-
 ## 📚 Documentation
 
 - Docs site made friendlier to AI coding agents: an [llms.txt](https://signalk-einklabel.rhizomatics.org.uk/llms.txt) index plus the whole documentation as Markdown in `llms-full.txt` and `llms-small.txt`, and every page available as Markdown by replacing its trailing `/` with `.md` (e.g. [getting-started.md](https://signalk-einklabel.rhizomatics.org.uk/getting-started.md))
-- No change to the plugin itself
 
 # 1.3.0
 
