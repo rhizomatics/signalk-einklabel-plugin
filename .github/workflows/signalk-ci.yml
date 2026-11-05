@@ -11,9 +11,7 @@ permissions:
 
 jobs:
   test:
-    # Pinned to the last plugin-ci.yml before SignalK/signalk-server#3241 (build once, test that output).
-    # Its Windows extract step fails on our AGENTS.md -> CLAUDE.md symlink. Unpin once fixed upstream.
-    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@5a3165a6902f3f058f22c2ab3b6be0078662fb8f
+    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
     with:
       coverage-command: npm run coverage
       format-check-command: npm run fmt:check
