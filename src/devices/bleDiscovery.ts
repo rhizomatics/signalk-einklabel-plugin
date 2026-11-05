@@ -94,10 +94,19 @@ export async function withDeadline<T>(promise: Promise<T>, ms: number, what: str
   }
 }
 
+/**
+ * Runs `fn` up to `attempts` times, `delayMs` apart, rethrowing the last error if every attempt fails.
+ * `shouldStop` is checked after each failed attempt and again after the pause, so a plugin `stop()`
+ * ends the retry loop instead of opening a fresh BLE session behind the next `start()`.
+ */
 export async function withRetries<T>(
   attempts: number,
   fn: (attempt: number) => Promise<T>,
-  { delayMs = 0, onError }: { delayMs?: number; onError?: (err: unknown, attempt: number) => void } = {},
+  {
+    delayMs = 0,
+    onError,
+    shouldStop = () => false,
+  }: { delayMs?: number; onError?: (err: unknown, attempt: number) => void; shouldStop?: () => boolean } = {},
 ): Promise<T> {
   const total = Math.max(1, attempts);
   let lastErr: unknown;
@@ -107,9 +116,10 @@ export async function withRetries<T>(
     } catch (err) {
       lastErr = err;
       onError?.(err, attempt);
-      if (attempt < total && delayMs > 0) {
+      if (attempt < total && delayMs > 0 && !shouldStop()) {
         await sleep(delayMs);
       }
+      if (shouldStop()) break;
     }
   }
   throw lastErr;

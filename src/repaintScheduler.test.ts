@@ -106,4 +106,48 @@ test("oneAtATimePerKey", async (t) => {
     await assert.rejects(call("tides"), /boom/);
     await assert.rejects(call("tides"), /boom/);
   });
+
+  await t.test("idle() waits for every run in progress, including a follow-up it starts", async () => {
+    const { started, releases, run } = controllable();
+    const call = oneAtATimePerKey((arg: { key: string; id: string }) => arg.key, run);
+
+    void call({ key: "tides", id: "a" });
+    void call({ key: "tides", id: "b" });
+    void call({ key: "watch", id: "c" });
+    await flush();
+    let idle = false;
+    void call.idle().then(() => (idle = true));
+
+    releases[0](true);
+    releases[1](true);
+    await flush();
+    assert.deepEqual(started, ["a", "c", "b"]);
+    assert.equal(idle, false);
+    releases[2](true);
+    await flush();
+    assert.equal(idle, true);
+  });
+
+  await t.test("idle() resolves straight away when nothing is running", async () => {
+    const call = oneAtATimePerKey(
+      (arg: string) => arg,
+      async () => true,
+    );
+    await call.idle();
+  });
+
+  await t.test("close() drops pending follow-ups and ignores later calls", async () => {
+    const { started, releases, run } = controllable();
+    const call = oneAtATimePerKey((arg: { key: string; id: string }) => arg.key, run);
+
+    const first = call({ key: "tides", id: "a" });
+    void call({ key: "tides", id: "b" });
+    await flush();
+    call.close();
+    await call({ key: "watch", id: "c" });
+    releases[0](true);
+    await first;
+    await call.idle();
+    assert.deepEqual(started, ["a"]);
+  });
 });

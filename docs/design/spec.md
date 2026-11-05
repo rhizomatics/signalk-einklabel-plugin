@@ -51,6 +51,7 @@ A SignalK plugin, in TypeScript, that renders selected SignalK data to BLE eInk 
   - "Force repaint" bypasses the unchanged-data skip for one repaint, then clears itself once every target device has painted successfully
   - Only one repaint per device entry runs at a time; a trigger arriving mid-repaint queues one follow-up, run only if the current repaint succeeded
   - A paint is retried up to `paintRetries` times (default 3, 5 seconds apart), each attempt bounded by `paintConnectTimeoutSeconds` (default 30) plus a backstop deadline
+  - Stopping the plugin (a config save, disable, or server shutdown) stops every trigger, drops queued follow-ups and retries, and skips a paint that hasn't connected yet. `stop()` returns a Promise that resolves once a paint already under way has finished, waiting at most 30 seconds, and the next `start()` also waits for it, so two BLE sessions don't overlap
   - If rendering fails (a broken template, a missing file, or a template provider's `render()` rejecting), the bundled `.error` warning template is painted instead, so stale content is never left on screen unmarked. No success hash is saved, so the next trigger retries
 - Template providers
   - An extension package can offer content generated another way, alongside SVG templates, via `registerTemplateProvider` - e.g. `@rhizomatics/signalk-einklabel-genai-plugin` generating content from an LLM prompt. Its entries appear in the same "Template" dropdown, marked by the provider's `suffix`. See [Extending](../extending.md) and `src/render/templateProviders.ts`
