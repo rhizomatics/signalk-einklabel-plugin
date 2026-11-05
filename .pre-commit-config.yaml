@@ -4,7 +4,7 @@
 # "latest" breaks when the newest nodejs.org release is a pre-release. `system` fails on pre-commit.ci,
 # so pin an exact release instead.
 default_language_version:
-  node: 24.22.2
+  node: system
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
