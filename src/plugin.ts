@@ -6,7 +6,7 @@ import { GiciskyDriver } from "./devices/gicisky";
 import { ensureScan, scanInProgressSince, startBleApiDiscoveryListener } from "./devices/discoveryCoordinator";
 import { waitForAdapter } from "./devices/bleDiscovery";
 import { loadDiscoveredDevices } from "./devices/discoveredDevicesStore";
-import { startRepaintScheduler, RepaintScheduler } from "./repaintScheduler";
+import { startRepaintScheduler, RepaintScheduler, SHUTDOWN_DRAIN_TIMEOUT_MS, STOP_DRAIN_TIMEOUT_MS } from "./repaintScheduler";
 import { PLUGIN_NAME } from "./pluginVersion";
 
 /** Mirrors signalk-bluetti-plugin's convention: scan briefly, report finds via plugin status for the user to copy-paste. */
@@ -118,14 +118,20 @@ export function createPlugin(app: ServerAPI): Plugin {
     },
     // Returns a Promise, as the server asks of a stop() with async work: it resolves once a paint
     // already under way has finished (bounded by `STOP_DRAIN_TIMEOUT_MS`), so a config save mid-paint
-    // or a server shutdown doesn't leave that BLE session running behind the next start().
-    stop() {
+    // or a server shutdown doesn't leave that BLE session running behind the next start(). On a
+    // server shutdown (`reason`, passed by signalk-server 2.35.0+) the wait is cut to
+    // `SHUTDOWN_DRAIN_TIMEOUT_MS` to fit the server's own shutdown deadline - see its doc comment.
+    // `reason` is typed loosely so this still compiles against server-api versions before 2.35.0.
+    stop(options?: { reason?: string }) {
       generation++;
       const stoppingScheduler = scheduler;
       scheduler = undefined;
       stopDiscoveryListener?.();
       stopDiscoveryListener = undefined;
-      stopping = (stoppingScheduler?.stop() ?? Promise.resolve()).then(() => app.debug("stopped"));
+      const drainTimeoutMs = options?.reason === "shutdown" ? SHUTDOWN_DRAIN_TIMEOUT_MS : STOP_DRAIN_TIMEOUT_MS;
+      stopping = (stoppingScheduler?.stop(drainTimeoutMs) ?? Promise.resolve()).then(() =>
+        app.debug(options?.reason ? `stopped (${options.reason})` : "stopped"),
+      );
       return stopping;
     },
   };

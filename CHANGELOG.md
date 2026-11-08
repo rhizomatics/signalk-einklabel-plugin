@@ -1,3 +1,13 @@
+# 1.3.2
+
+## 🐛 Bug fixes
+
+- On a SignalK server shutdown or admin UI restart (server v2.35.0+), the plugin now waits at most 5 seconds for a repaint in progress instead of 30, so it stops inside the server's shutdown deadline and the server can close the label's Bluetooth connection cleanly before exiting
+
+## 📚 Documentation
+
+- [Bluetooth](https://signalk-einklabel.rhizomatics.org.uk/bluetooth/) docs updated for the BLE Manager fixes in SignalK v2.34.0 and v2.35.0. v2.34.0 is now the practical minimum for BLE Manager, with v2.35.0 recommended. The BLE Manager setting stays off by default, since Zhsunyco labels still have problems with it.
+
 # 1.3.1
 
 ## 🐛 Bug fixes

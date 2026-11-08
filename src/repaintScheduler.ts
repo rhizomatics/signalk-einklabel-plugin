@@ -49,14 +49,23 @@ const PAINT_ATTEMPT_BACKSTOP_MS = 7 * 60_000;
  * stuck; such a paint is still ended by its own connect timeout and `PAINT_ATTEMPT_BACKSTOP_MS`.
  */
 export const STOP_DRAIN_TIMEOUT_MS = 30_000;
+/**
+ * The drain limit for a server shutdown (signalk-server 2.35.0+ passes `stop()` a `reason`), in place
+ * of `STOP_DRAIN_TIMEOUT_MS`. The server gives all plugins' `stop()`s 6s together before it moves on,
+ * and exits at 8s - so a 30s drain would be cut off anyway, mid-transfer. Resolving inside that
+ * window instead lets the server's own release of this plugin's BLE Manager claims (signalk-server
+ * #3093, run once `stop()` returns) close the connection before the process exits. Since 2.35.0 the
+ * admin UI's Restart button goes through the same shutdown path; a config save doesn't.
+ */
+export const SHUTDOWN_DRAIN_TIMEOUT_MS = 5_000;
 const RESOURCES_API_PATH = "/signalk/v2/api/resources";
 
 export interface RepaintScheduler {
   /**
    * Stops every trigger, lets no new paint or retry start, and resolves once any paint already in
-   * progress finishes - or after `STOP_DRAIN_TIMEOUT_MS`, whichever comes first.
+   * progress finishes - or after `drainTimeoutMs` (default `STOP_DRAIN_TIMEOUT_MS`), whichever comes first.
    */
-  stop(): Promise<void>;
+  stop(drainTimeoutMs?: number): Promise<void>;
 }
 
 /**
@@ -679,7 +688,7 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
   unsubscribes.push(() => clearTimeout(startupCheckTimer));
 
   return {
-    async stop() {
+    async stop(drainTimeoutMs = STOP_DRAIN_TIMEOUT_MS) {
       stopping = true;
       for (const unsubscribe of unsubscribes) unsubscribe();
       repaint.close();
@@ -687,12 +696,12 @@ export function startRepaintScheduler(app: ServerAPI, config: PluginConfig): Rep
       const drained = await Promise.race([
         repaint.idle().then(() => true),
         new Promise<boolean>((resolve) => {
-          timer = setTimeout(() => resolve(false), STOP_DRAIN_TIMEOUT_MS);
+          timer = setTimeout(() => resolve(false), drainTimeoutMs);
         }),
       ]);
       clearTimeout(timer);
       if (!drained) {
-        app.debug(`a repaint was still running ${STOP_DRAIN_TIMEOUT_MS / 1000}s after stop - not waiting any longer`);
+        app.debug(`a repaint was still running ${drainTimeoutMs / 1000}s after stop - not waiting any longer`);
       }
     },
   };

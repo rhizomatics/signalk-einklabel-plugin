@@ -236,7 +236,9 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
       // A previous ungraceful stop (crash, plugin reload mid-paint) can leave a stale GATT claim
       // registered under our own pluginId, which would otherwise block this connect with
       // "already claimed" until the server restarts - see signalk-bluetti-plugin's BleManagerDevice
-      // for the same defensive call. A no-op if we don't currently hold the claim.
+      // for the same defensive call. A no-op if we don't currently hold the claim. Servers from 2.34.0
+      // release a stopped plugin's claims themselves (signalk-server#3093), so this only matters on
+      // older ones - kept for them.
       await boundedCleanup(bleApi.releaseGATTDevice(address, pluginId));
       await ensureDeviceVisible(bleApi, pluginId, address, DEVICE_DISCOVERY_TIMEOUT_MS);
 
@@ -256,9 +258,12 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
         // `connectGATT()` and get rejected with "has a GATT claim in progress" for its trouble.
         await boundedCleanup(bleApi.releaseGATTDevice(address, pluginId));
         // ...except a claim still *connecting* isn't in the server's claim table yet, only its pending
-        // set, which `releaseGATTDevice` doesn't touch - so while the server's own connect is still in
-        // flight, a retry's `connectGATT()` is rejected outright with "has a GATT claim in progress".
-        // Give that connect a bounded chance to settle first, so the retry gets a clean slate.
+        // set. Before 2.34.0 `releaseGATTDevice` didn't touch that at all; since then
+        // (signalk-server#3092) it marks the pending claim released, so the server closes the
+        // connection itself when it arrives - but the device stays reserved until the server's own
+        // connect returns (bounded at 60s since signalk-server#3082), and until then a retry's
+        // `connectGATT()` is rejected outright with "has a GATT claim in progress". Either way, give
+        // that connect a bounded chance to settle first, so the retry gets a clean slate.
         const late = await Promise.race([
           connecting.catch(() => undefined),
           sleep(Math.min(timeoutMs, CONNECT_SETTLE_GRACE_MS)).then(() => undefined),
@@ -305,7 +310,7 @@ export function bleApiBackend(bleApi: BLEApi, pluginId: string): BleBackend {
       // ever reaches `connectGatt` below) stops advertising while claimed - which would otherwise wedge
       // this wait forever, since nothing else in this path ever calls `connectGatt` (and so never gets a
       // chance to release the stale claim) unless a fresh advertisement shows up first. A no-op if we
-      // don't currently hold the claim.
+      // don't currently hold the claim; only needed before server 2.34.0, as in `connectGatt`.
       await boundedCleanup(bleApi.releaseGATTDevice(address, pluginId));
       return new Promise<Buffer | undefined>((resolve) => {
         const timer = setTimeout(() => {

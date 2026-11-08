@@ -32,15 +32,19 @@ SignalK BLE Manager also supports BLE Gateways, which could be an MQTT topic or 
 
 ## BLE Manager Readiness
 
-v2.31.0 is the minumum version of SignalK possible for BLE Manager. Several fixes went in to v2.33.0 so this is the practical minimum version for using the plugin.
+v2.31.0 is the minimum version of SignalK possible for BLE Manager. v2.34.0 is the practical minimum for using it with this plugin, and v2.35.0 is recommended.
 
-Gicisky labels have been painted successfully using BLE Manager, however Zhsunyco have some different interactions that are waiting other fixes.
+Gicisky labels have been painted successfully using BLE Manager. Zhsunyco labels needed three server fixes, all released in v2.34.0:
 
 - [PR#3082](https://github.com/SignalK/signalk-server/pull/3082) - hung connections locking up device
 - [PR#3088](https://github.com/SignalK/signalk-server/pull/3088) - Support plain GATT write requests
 - [PR#3089](https://github.com/SignalK/signalk-server/pull/3089) - Pause scanning while GATT operation in progress
 
-There's a workaround for **PR#3088** available in the _Advanced Options_, and **PR#3082** isn't a problem if operations don't fail, however **PR#3089** is a blocker for using Zhsunyco labels - they'll fail with a `0x0e` error code.
+Zhsunyco labels still have problems through BLE Manager even with these fixes, so the BLE Manager setting stays off by default for now. Direct BlueZ access remains the reliable choice for them.
+
+v2.34.0 also releases a plugin's Bluetooth connections when the plugin stops ([PR#3093](https://github.com/SignalK/signalk-server/pull/3093)). v2.35.0 stops plugins cleanly when the server shuts down or is restarted from the admin UI ([PR#3194](https://github.com/SignalK/signalk-server/pull/3194)). On a shutdown this plugin only waits 5 seconds for a label part way through a repaint, rather than the usual 30, so that it finishes inside the server's shutdown deadline.
+
+With BLE Manager, scanning pauses while any plugin is connecting to a Bluetooth device, for up to 60 seconds. If another plugin's device keeps failing to connect, a label may not be seen in time for a repaint, which then fails and is retried.
 
 ## Weak Signal
 
@@ -64,9 +68,9 @@ Sometime Bluetooth adapters, and/or the Linux services that use them, can get in
 
 ## Zhsunyco Labels and the BLE Manager
 
-With the "Use the SignalK BLE Manager API" setting on, Zhsunyco labels can connect and authenticate, then fail as soon as the image upload starts, with `Operation failed with ATT error: 0x0e` in the log. SignalK's BLE Manager (2.33 and earlier) sends every write that waits for an acknowledgement as a Bluetooth "reliable" write, which these labels don't support.
+With the "Use the SignalK BLE Manager API" setting on, Zhsunyco labels can connect and authenticate, then fail as soon as the image upload starts, with `Operation failed with ATT error: 0x0e` in the log. SignalK's BLE Manager (2.33 and earlier) sends every write that waits for an acknowledgement as a Bluetooth "reliable" write, which these labels don't support. This was fixed in SignalK v2.34.0, so upgrading is the first thing to try.
 
-Either:
+On 2.33 and earlier, either:
 
 - turn on _Send image without waiting for each write (Zhsunyco)_ in the label's _Advanced settings_ - the image is sent with a small gap between writes instead, and the label still confirms once the whole image has arrived; or
 - switch the BLE Manager setting off, if no other plugins need to share Bluetooth with this one.
