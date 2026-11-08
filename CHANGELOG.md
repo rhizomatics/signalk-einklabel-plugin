@@ -6,7 +6,7 @@
 
 ## 📚 Documentation
 
-- [Bluetooth](https://signalk-einklabel.rhizomatics.org.uk/bluetooth/) docs updated for the BLE Manager fixes in SignalK v2.34.0 and v2.35.0. v2.34.0 is now the practical minimum for BLE Manager, with v2.35.0 recommended. The BLE Manager setting stays off by default, since Zhsunyco labels still have problems with it.
+- [Bluetooth](https://signalk-einklabel.rhizomatics.org.uk/bluetooth/) docs updated for the BLE Manager fixes in SignalK v2.34.0 and v2.35.0. v2.34.0 is now the practical minimum for BLE Manager, with v2.35.0 recommended. The BLE Manager setting stays off by default, since Zhsunyco labels not yet proven with it.
 
 # 1.3.1
 
