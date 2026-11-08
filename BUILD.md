@@ -4,9 +4,8 @@
 
 - nodejs
 - npm
-- pre-commit
-  - `apt install pre-commit`
-  - `pre-commit install`
+- prek (from `mise.toml`)
+  - `prek install`
 
 ## Release
 

@@ -15,7 +15,7 @@ npm run docs:templates    # regenerate docs/examples/ template reference blocks
 npm run cli -- scan -d 30 # BLE scan from the CLI (needs a Bluetooth adapter)
 ```
 
-`pre-commit` runs oxlint and oxfmt. Release steps are in `BUILD.md`.
+`prek` (from `mise.toml`) runs the pre-commit hooks: oxlint and oxfmt. Release steps are in `BUILD.md`.
 
 ## Testing without hardware
 
