@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#MISE description="Build, pack and install this working copy into the dev SignalK server's container, then restart it"
+# Installs the same tarball `npm publish` would, so dependencies, templates and docs are tested as released.
+# --no-save keeps ~/.signalk/package.json on the registry version, so the App Store (or a plain
+# `npm install` there) puts the released plugin back.
+set -euo pipefail
+
+# Host, compose directory and container name live outside the repo, as KEY=value lines:
+# SIGNALK_DEV_HOST, SIGNALK_DEV_DEPLOY_DIR, SIGNALK_DEV_CONTAINER
+ENV_FILE="${SIGNALK_DEV_ENV_FILE:-$HOME/Projects/.hq.env/dev/signalk.env}"
+if [[ ! -r "$ENV_FILE" ]]; then
+  echo "dev-deploy: $ENV_FILE not found - create it with SIGNALK_DEV_HOST, SIGNALK_DEV_DEPLOY_DIR and SIGNALK_DEV_CONTAINER" >&2
+  exit 1
+fi
+set -a
+# shellcheck source=/dev/null
+. "$ENV_FILE"
+set +a
+
+SERVER="${SIGNALK_DEV_HOST:?SIGNALK_DEV_HOST not set in $ENV_FILE}"
+DEPLOY_DIR="${SIGNALK_DEV_DEPLOY_DIR:?SIGNALK_DEV_DEPLOY_DIR not set in $ENV_FILE}"
+CONTAINER="${SIGNALK_DEV_CONTAINER:?SIGNALK_DEV_CONTAINER not set in $ENV_FILE}"
+# Host path of the bind mount the container sees as /home/node/.signalk (see docker-compose.yaml there)
+CONF_DIR="$DEPLOY_DIR/signalk_conf"
+
+# Gitignored, and deliberately not dist/ - that's in package.json's `files`, so a tarball left there
+# would be packed into the next one, or published.
+PACK_DIR=pack
+mkdir -p "$PACK_DIR"
+
+npm run build
+
+TARBALL="$(npm pack --silent --pack-destination "$PACK_DIR")"
+
+echo "copying $TARBALL to $SERVER:$CONF_DIR"
+scp -q "$PACK_DIR/$TARBALL" "$SERVER:$CONF_DIR/$TARBALL"
+
+echo "installing into $CONTAINER and restarting it"
+ssh "$SERVER" "docker exec -w /home/node/.signalk '$CONTAINER' npm install --no-save --no-audit --no-fund './$TARBALL' \
+  && rm -f '$CONF_DIR/$TARBALL' \
+  && docker restart '$CONTAINER' >/dev/null"
+
+echo "deployed $TARBALL to $CONTAINER on $SERVER"
