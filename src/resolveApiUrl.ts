@@ -20,12 +20,13 @@ export const SIGNALK_API_URL_OPTIONS = ["http://localhost:3000", "http://localho
 /** Cheap, always-required (for `category=` resolution) and read-only, so safe to use as a connectivity+access probe. */
 const PROBE_PATH = "/signalk/v1/unitpreferences/categories";
 
-async function probe(url: string): Promise<boolean> {
+/** Resolves to `undefined` when `url` answers the probe, or to the failure's message when it doesn't. */
+async function probe(url: string): Promise<string | undefined> {
   try {
     await fetchJson(`${url}${PROBE_PATH}`);
-    return true;
-  } catch {
-    return false;
+    return undefined;
+  } catch (err) {
+    return (err as Error).message;
   }
 }
 
@@ -40,13 +41,19 @@ export async function resolveSignalkApiUrl(configuredUrl: string | undefined): P
   // otherwise double up with the leading slash of every API path appended to it.
   configuredUrl = configuredUrl?.trim().replace(/\/+$/, "") || undefined;
   const candidates = configuredUrl ? [configuredUrl] : SIGNALK_API_URL_OPTIONS;
+  // Kept so the error says *why* each candidate failed - e.g. an http URL redirected to https with a
+  // self-signed certificate, which otherwise looks identical to a wrong port.
+  const failures: string[] = [];
   for (const url of candidates) {
-    if (await probe(url)) return url;
+    const failure = await probe(url);
+    if (failure === undefined) return url;
+    failures.push(failure);
   }
   throw new Error(
-    configuredUrl
+    (configuredUrl
       ? `configured SignalK API base URL "${configuredUrl}" did not respond to ${PROBE_PATH} - check the port, and that anonymous read access is enabled`
-      : `could not reach this server's API on any of ${SIGNALK_API_URL_OPTIONS.join(", ")} - it may be on a different port, or anonymous read access may not be enabled`,
+      : `could not reach this server's API on any of ${SIGNALK_API_URL_OPTIONS.join(", ")} - it may be on a different port, or anonymous read access may not be enabled`) +
+      ` (${failures.join("; ")})`,
   );
 }
 

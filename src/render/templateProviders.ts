@@ -23,9 +23,9 @@ export interface TemplateRenderRequest {
  * Public extension point for a package that wants to offer an alternative way to produce a device's
  * content, alongside hand-authored SVG templates - e.g. `@rhizomatics/signalk-einklabel-genai-plugin`
  * generating content from an LLM prompt. Mirrors `VendorDriver`/`registerDriver`
- * (`../devices/registry.ts`): an extension declares this package as a regular `dependency` (**not** a
- * `peerDependency` - see `registerVendorDriver`'s own doc comment in `../index.ts` for why) plus
- * `"signalk": { "requires": [...] }` in its own package.json, calls `esl.registerTemplateProvider(...)`
+ * (`../devices/registry.ts`): an extension declares this package via `"signalk": { "requires": [...] }`
+ * plus a `devDependency` (**not** a regular `dependency` or `peerDependency` - see
+ * `registerVendorDriver`'s own doc comment in `../index.ts` for why), calls `esl.registerTemplateProvider(...)`
  * from its own SignalK plugin's `start()`, and its entries show up in the same "Template" dropdown as
  * ordinary `.svg` files, distinguished only by `suffix`.
  */

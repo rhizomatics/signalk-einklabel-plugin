@@ -20,7 +20,7 @@ Additional vendors and devices can be added by a separate npm package that imple
 
 - `import esl from '@rhizomatics/signalk-einklabel-plugin'; esl.registerVendorDriver(myDriver)`
 - In the SignalK runtime, call this from the extension's own plugin `start()`. In the CLI, load the extension with `esl-cli --require <module> <command>`.
-- Declare this package as a regular npm `dependency` in the extension package - **not** a `peerDependency`, per SignalK's own guidance that npm's peer-dependency resolution interacts poorly with the server's plugin install layout - and declare the SignalK-level relationship via `"signalk": { "requires": ["@rhizomatics/signalk-einklabel-plugin"] }` in the extension's own `package.json` instead, so the App Store can install/report it.
+- Don't list this package in the extension's `dependencies` or `peerDependencies` - declare the relationship via `"signalk": { "requires": ["@rhizomatics/signalk-einklabel-plugin"] }` in the extension's own `package.json` instead, and add it as a `devDependency` for types and tests. The App Store installs required plugins flat in `~/.signalk/node_modules`, so the extension's `require` still resolves at runtime - and always to the one copy the running plugin uses. A regular `dependency` can leave a separate nested copy under the extension (e.g. on a version mismatch), with its own empty registry, so the registration silently goes nowhere; a `peerDependency` interacts poorly with the server's plugin install layout, per SignalK's own guidance.
 
 ## Template Providers
 

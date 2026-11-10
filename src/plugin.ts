@@ -8,6 +8,7 @@ import { waitForAdapter } from "./devices/bleDiscovery";
 import { loadDiscoveredDevices } from "./devices/discoveredDevicesStore";
 import { startRepaintScheduler, RepaintScheduler, SHUTDOWN_DRAIN_TIMEOUT_MS, STOP_DRAIN_TIMEOUT_MS } from "./repaintScheduler";
 import { PLUGIN_NAME } from "./pluginVersion";
+import { setAllowSelfSignedCertificates } from "./httpJson";
 
 /** Mirrors signalk-bluetti-plugin's convention: scan briefly, report finds via plugin status for the user to copy-paste. */
 async function runStartupScan(app: ServerAPI, durationSeconds: number, useBleApi: boolean): Promise<void> {
@@ -72,6 +73,7 @@ export function createPlugin(app: ServerAPI): Plugin {
       };
       app.debug(`starting with ${pluginConfig.devices.length} configured device(s)`);
       healStoredConfig(app);
+      setAllowSelfSignedCertificates(pluginConfig.allowSelfSignedCertificates);
       const thisGeneration = ++generation;
       const isCurrent = () => thisGeneration === generation;
       const previousStop = stopping;

@@ -212,7 +212,7 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
       // so a pinned binding goes over HTTP instead of the in-process API to actually get what it asked for.
       if (!apiUrl) {
         throw new Error(
-          `binding pins resource "${binding.resource}" to provider "${binding.provider}" but no SignalK API base URL is configured`,
+          `binding pins resource "${binding.resource}" to provider "${binding.provider}" but the SignalK API base URL could not be resolved (see the earlier error)`,
         );
       }
       resources[key] = await fetchJson(
@@ -231,7 +231,7 @@ async function assembleRawContext(app: ServerAPI, apiUrl: string | undefined, bi
   const categoryNames = new Set(bindings.filter((binding) => binding.category).map((binding) => binding.category as string));
   if (categoryNames.size > 0 && !apiUrl) {
     throw new Error(
-      `binding references categor${categoryNames.size > 1 ? "ies" : "y"} "${[...categoryNames].join(", ")}" but no SignalK API base URL is configured`,
+      `binding references categor${categoryNames.size > 1 ? "ies" : "y"} "${[...categoryNames].join(", ")}" but the SignalK API base URL could not be resolved (see the earlier error)`,
     );
   }
   const categories = apiUrl ? await fetchCategoryDisplayUnits(apiUrl, categoryNames) : {};
@@ -353,6 +353,7 @@ async function considerRepaint(
   let dataHash = "";
   let paintDurationMs = 0;
   let repaintReason = "render failed";
+  let renderError = "";
 
   // Built up front, outside the try below, so the fallback warning render gets it too - it's all local
   // facts (no network or template involved), so there's nothing here that can fail a render.
@@ -375,7 +376,9 @@ async function considerRepaint(
 
   try {
     const apiUrl = await getApiUrl().catch((err) => {
-      app.debug(`${label}: ${err.message}`);
+      // An error, not debug - templates that need the API (pinned resources, `category=`) fail to render
+      // without it, and this is the only place the underlying reason is reported.
+      app.error(`${label}: ${err.message}`);
       return undefined;
     });
 
@@ -448,7 +451,10 @@ async function considerRepaint(
             ? "template changed"
             : "data changed";
   } catch (err) {
-    app.debug(`${label}: render failed (${(err as Error).message}) - showing fallback warning`);
+    // An error, not debug - the label shows only a generic warning, so the server log is the one place
+    // the actual cause is visible, and it must be there without the plugin's debug logging enabled.
+    renderError = (err as Error).message;
+    app.error(`${label}: render failed (${renderError}) - showing fallback warning`);
     const fallbackPath = resolveTemplatePath(templatesDir, RENDER_FALLBACK_TEMPLATE_NAME, {
       width: metadata.width,
       height: metadata.height,
@@ -511,7 +517,11 @@ async function considerRepaint(
     state[stateKey] = { templateHash, dataHash, repaintedAt: Date.now() };
     saveState(app, state);
   }
-  app.debug(succeeded ? `${label}: repainted (${repaintReason}, paint took ${paintDurationMs}ms)` : `${label}: repainted fallback warning`);
+  app.debug(
+    succeeded
+      ? `${label}: repainted (${repaintReason}, paint took ${paintDurationMs}ms)`
+      : `${label}: repainted fallback warning (render failed: ${renderError})`,
+  );
 }
 
 /**

@@ -38,6 +38,13 @@ test("resolveSignalkApiUrl", async (t) => {
     );
   });
 
+  await t.test("includes the underlying failure, e.g. a self-signed certificate after an https redirect", async () => {
+    t.mock.method(globalThis, "fetch", async () => {
+      throw Object.assign(new TypeError("fetch failed"), { cause: new Error("self-signed certificate") });
+    });
+    await assert.rejects(resolveSignalkApiUrl("http://localhost:9999"), /did not respond.*self-signed certificate/);
+  });
+
   await t.test("probes SIGNALK_API_URL_OPTIONS in order and returns the first that responds", async () => {
     const [, second] = SIGNALK_API_URL_OPTIONS;
     t.mock.method(globalThis, "fetch", mockFetchOkFor(`${second}/signalk/v1/unitpreferences/categories`));

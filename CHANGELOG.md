@@ -1,3 +1,19 @@
+# 1.3.3
+
+## 🔐 SSL
+
+- New "Allow self-signed certificates" setting, off by default. A SignalK server with SSL enabled redirects its http port to https, usually with a self-signed certificate, which the plugin previously rejected - so templates using the SignalK REST API (`category=` or a resource pinned with `provider=`) failed to render and the label showed the fallback warning. Turn the setting on for a server like this.
+
+## 🐛 Bug fixes
+
+- A render failure that paints the fallback warning on a label is now logged as an error, with its cause, rather than only in debug logging
+- When the SignalK API URL can't be reached, the logged error now gives the underlying reason for each address tried, e.g. a self-signed certificate, rather than only suggesting the port or anonymous access; a certificate failure points to the new setting
+
+## BLE Manager
+
+- The "Use the SignalK BLE Manager API" setting is now on by default. Servers without BLE Manager (before v2.31.0) fall back to direct BlueZ access, and existing configs that already saved the setting keep their value
+- Recent SignalK versions identify Zhsunyco labels by manufacturer, shown as "WOESL" in the BLE Manager device list
+
 # 1.3.2
 
 ## 🐛 Bug fixes

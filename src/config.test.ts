@@ -88,6 +88,7 @@ test("defaultConfig has sane defaults", () => {
   assert.equal(defaults.templatesDir, "");
   assert.equal(defaults.scanOnStart, false);
   assert.equal(defaults.scanDurationSeconds, 20);
+  assert.equal(defaults.useBleApi, true);
   assert.equal(defaults.paintConnectTimeoutSeconds, 30);
   assert.equal(defaults.paintRetries, 3);
   assert.deepEqual(defaults.devices, []);

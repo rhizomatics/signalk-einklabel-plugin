@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fetchJson } from "./httpJson";
+import { createServer, type RequestListener, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { fetchJson, setAllowSelfSignedCertificates } from "./httpJson";
 
 function fakeResponse(overrides: Partial<Response>): Response {
   return {
@@ -101,5 +103,69 @@ test("fetchJson", async (t) => {
       throw new Error("totally unexpected failure");
     });
     await assert.rejects(fetchJson("http://localhost:3000"), /fetch failed: http:\/\/localhost:3000 - totally unexpected failure/);
+  });
+});
+
+test("fetchJson names the self-signed setting on a certificate failure", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => {
+    const err = new TypeError("fetch failed");
+    (err as unknown as { cause: unknown }).cause = Object.assign(new Error("self-signed certificate"), {
+      code: "DEPTH_ZERO_SELF_SIGNED_CERT",
+    });
+    throw err;
+  });
+  await assert.rejects(fetchJson("https://localhost:3443"), /self-signed certificate - .*"Allow self-signed certificates"/);
+});
+
+async function listen(handler: RequestListener): Promise<{ server: Server; base: string }> {
+  const server = createServer(handler);
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return { server, base: `http://127.0.0.1:${(server.address() as AddressInfo).port}` };
+}
+
+test("fetchJson with self-signed certificates allowed", async (t) => {
+  setAllowSelfSignedCertificates(true);
+  t.after(() => setAllowSelfSignedCertificates(false));
+
+  await t.test("follows a redirect and parses the JSON body", async () => {
+    const { server, base } = await listen((req, res) => {
+      if (req.url === "/start") {
+        res.writeHead(302, { location: "/end" }).end();
+      } else {
+        res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ hello: "world" }));
+      }
+    });
+    try {
+      assert.deepEqual(await fetchJson(`${base}/start`), { hello: "world" });
+    } finally {
+      server.close();
+    }
+  });
+
+  await t.test("rejects with the original URL, status and body on a non-2xx response", async () => {
+    const { server, base } = await listen((_req, res) => res.writeHead(404, "Not Found").end("no such resource"));
+    try {
+      await assert.rejects(
+        fetchJson(`${base}/missing`),
+        /fetch failed: http:\/\/127\.0\.0\.1:\d+\/missing \(404 Not Found\) - no such resource/,
+      );
+    } finally {
+      server.close();
+    }
+  });
+
+  await t.test("gives up on a redirect loop", async () => {
+    const { server, base } = await listen((_req, res) => res.writeHead(302, { location: "/loop" }).end());
+    try {
+      await assert.rejects(fetchJson(`${base}/loop`), /more than 5 redirects/);
+    } finally {
+      server.close();
+    }
+  });
+
+  await t.test("reports a connection failure with the underlying cause", async () => {
+    const { server, base } = await listen((_req, res) => res.end());
+    server.close();
+    await assert.rejects(fetchJson(base), /fetch failed: http:\/\/127\.0\.0\.1:\d+ - .*ECONNREFUSED/);
   });
 });

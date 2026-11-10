@@ -30,11 +30,12 @@ import type { Bitmap as BitmapType, TemplateContext as TemplateContextType } fro
  * `start()` (or at module load time). There's no scanning of installed packages -
  * registration is always an explicit call by the extension's own code.
  *
- * Declare this package as a regular `dependency` in the extension package (**not** a
- * `peerDependency` - the SignalK team's own guidance is that npm's peer-dependency resolution
- * interacts poorly with the server's plugin install layout), and declare the SignalK-level
- * relationship via `"signalk": { "requires": ["@rhizomatics/signalk-einklabel-plugin"] }` in the
- * extension's own package.json instead, so the App Store can install/report the dependency.
+ * Declare the relationship via `"signalk": { "requires": ["@rhizomatics/signalk-einklabel-plugin"] }`
+ * in the extension's own package.json, plus a `devDependency` for types/tests - **not** a regular
+ * `dependency` or `peerDependency`. The App Store installs required plugins flat in
+ * `~/.signalk/node_modules`, so the extension's `require` resolves the one copy the running plugin
+ * uses; a regular `dependency` can leave a nested copy with its own empty registry, and a
+ * `peerDependency` interacts poorly with the server's plugin install layout (SignalK's own guidance).
  */
 function plugin(app: ServerAPI): Plugin {
   return createPlugin(app);
@@ -49,7 +50,7 @@ namespace plugin {
    * Public extension point for a package offering an alternative to hand-authored SVG templates - e.g.
    * `@rhizomatics/signalk-einklabel-genai-plugin` generating content from an LLM prompt - see
    * `TemplateProvider`'s own doc comment (`./render/templateProviders.ts`) for the full contract. Same
-   * regular-`dependency`-plus-`signalk.requires` convention as `registerVendorDriver` above.
+   * `signalk.requires`-plus-`devDependency` convention as `registerVendorDriver` above.
    */
   export const registerTemplateProvider = registerTemplateProviderImpl;
   export const getTemplateProvider = findTemplateProviderImpl;

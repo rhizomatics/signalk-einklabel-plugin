@@ -6,11 +6,11 @@ Bluetooth can be used in of three ways by a plugin:
 
 - Direct access to dongle (usually `hci0` device). Not recommended
 - Access via `bluez` and `dbus` services. Better but not ideal
-- Using the BLE Manager added to SignalK in 2026. Recommended with caveats.
-  - "Use the SignalK BLE Manager API" setting is enabled, the adapter and its lifecycle are managed by the SignalK server, under its own Bluetooth admin settings, once for every BLE-consuming plugin.
+- Using the BLE Manager added to SignalK in 2026. Recommended, and the default for this plugin.
+  - With the "Use the SignalK BLE Manager API" setting enabled (the default), the adapter and its lifecycle are managed by the SignalK server, under its own Bluetooth admin settings, once for every BLE-consuming plugin.
   - Under the hood, this uses `bluez` and `dbus` however manages them so that plugins are controlled in how they can impact each other
   - It also has a very useful GUI for seeing all scanned devices, and all GATT claims (GATT being the protocol for directly connecting to BLE devices).
-  - This is still new and settling down, so not yet the default for this plugin
+  - On a server without BLE Manager (before v2.31.0) the plugin falls back to direct `bluez` access
 
 The advice here is general to Bluetooth on Linux, whichever way its being used.
 
@@ -40,7 +40,7 @@ Gicisky labels have been painted successfully using BLE Manager. Zhsunyco labels
 - [PR#3088](https://github.com/SignalK/signalk-server/pull/3088) - Support plain GATT write requests
 - [PR#3089](https://github.com/SignalK/signalk-server/pull/3089) - Pause scanning while GATT operation in progress
 
-Zhsunyco labels still have problems through BLE Manager even with these fixes, so the BLE Manager setting stays off by default for now. Direct BlueZ access remains the reliable choice for them.
+BLE Manager is now the default. If a label misbehaves through it, turn off "Use the SignalK BLE Manager API" to go back to direct BlueZ access.
 
 v2.34.0 also releases a plugin's Bluetooth connections when the plugin stops ([PR#3093](https://github.com/SignalK/signalk-server/pull/3093)). v2.35.0 stops plugins cleanly when the server shuts down or is restarted from the admin UI ([PR#3194](https://github.com/SignalK/signalk-server/pull/3194)). On a shutdown this plugin only waits 5 seconds for a label part way through a repaint, rather than the usual 30, so that it finishes inside the server's shutdown deadline.
 
@@ -67,6 +67,9 @@ Check for the `bluetooth` service working at both host level and inside the Sign
 Sometime Bluetooth adapters, and/or the Linux services that use them, can get into a 'stuck' state, where the only solution is to reboot the server (although unplugging and plugging the dongle may help). The best way to avoid this is using a known good dongle, and using BLE Manager in SignalK wherever possible.
 
 ## Zhsunyco Labels and the BLE Manager
+
+> [!NOTE]
+> ZhSunyCo labels may show as manufacturer label`WOESL`, or as a `WL` prefixed device name, on the BLE Manager.
 
 With the "Use the SignalK BLE Manager API" setting on, Zhsunyco labels can connect and authenticate, then fail as soon as the image upload starts, with `Operation failed with ATT error: 0x0e` in the log. SignalK's BLE Manager (2.33 and earlier) sends every write that waits for an acknowledgement as a Bluetooth "reliable" write, which these labels don't support. This was fixed in SignalK v2.34.0, so upgrading is the first thing to try.
 

@@ -158,8 +158,9 @@ export interface PluginConfig {
   /**
    * Route BLE access through the SignalK server's BLE Manager API (`app.bleApi`, server >= 2.32.0)
    * instead of connecting to BlueZ directly, so this plugin shares the adapter with other BLE plugins
-   * instead of contending for it - see `bleBackend.ts`. Off by default, and only ever offered in the
-   * config schema when the running server actually has `app.bleApi` (see `configSchema` below).
+   * instead of contending for it - see `bleBackend.ts`. On by default; a server without `app.bleApi`
+   * falls back to direct BlueZ access (see `plugin.ts`), and the option is only ever offered in the
+   * config schema when the running server actually has it (see `configSchema` below).
    */
   useBleApi: boolean;
   /** How long to wait for a device to accept a BLE connection before giving up on a repaint attempt, in seconds. */
@@ -191,6 +192,11 @@ export interface PluginConfig {
    * anonymous read access - the plugin has no login flow.
    */
   signalkApiUrl?: string;
+  /**
+   * Accept a self-signed TLS certificate on the plugin's calls to `signalkApiUrl` - see
+   * `setAllowSelfSignedCertificates` in `./httpJson.ts`. Off by default, so certificates are verified.
+   */
+  allowSelfSignedCertificates: boolean;
   devices: DeviceConfig[];
 }
 
@@ -225,10 +231,11 @@ export function defaultConfig(): PluginConfig {
     templatesDir: "",
     scanOnStart: false,
     scanDurationSeconds: 20,
-    useBleApi: false,
+    useBleApi: true,
     paintConnectTimeoutSeconds: 30,
     paintRetries: 3,
     settleSeconds: 120,
+    allowSelfSignedCertificates: false,
     devices: [],
   };
 }
@@ -242,6 +249,7 @@ const PLUGIN_CONFIG_KEYS = [
   "paintRetries",
   "settleSeconds",
   "signalkApiUrl",
+  "allowSelfSignedCertificates",
   "devices",
 ] as const;
 
@@ -644,6 +652,14 @@ export function configSchema(app: ServerAPI, discovered: DiscoveredDevice[] = []
         // autocomplete list in the admin UI's form library (RJSF 5), where `enum` would forbid anything else.
         examples: SIGNALK_API_URL_OPTIONS,
         pattern: "^(\\s*|\\s*https?://\\S+\\s*)$",
+      },
+      allowSelfSignedCertificates: {
+        type: "boolean",
+        title: "Allow self-signed certificates",
+        description:
+          "Accept a self-signed certificate when calling the SignalK API above. Needed when the server has SSL enabled with its own " +
+          "generated certificate - its http port then redirects to https, which otherwise fails certificate checks. Leave off unless needed.",
+        default: defaults.allowSelfSignedCertificates,
       },
       devices: {
         type: "array",
