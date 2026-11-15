@@ -268,7 +268,7 @@ test("configSchema", async (t) => {
       );
       for (const option of schema.oneOf) {
         // Leading en space keeps the label clear of its radio button in the admin UI.
-        assert.match(option.title, /^ \S/);
+        assert.match(option.title, /^\u2002\S/);
         assert.notEqual(option.title.trim(), option.const);
       }
     }

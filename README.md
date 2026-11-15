@@ -56,7 +56,7 @@ Full documentation is at [signalk-einklabel.rhizomatics.org.uk](https://signalk-
 - [Dmitry.gr](https://dmitry.gr/?r=05.Projects&proj=29.%20eInk%20Price%20Tags) - Personal site of an ESL hacker
 - [Aaron Christobel](https://www.youtube.com/@atc1441) - YouTube channel of an ESL hacker.
 - [rbaron.net](https://rbaron.net/blog/2022/07/29/Daisy-chaining-multiple-electronic-shelf-labels) - Blog of an early ESL hacker.
-  ### Retail
+  ### Retail
 - [Pimoroni](https://shop.pimoroni.com/collections/displays?tags=e-ink%20Displays) - All shapes and sizes of eInk displays, aimed at hackers, and with an [inky](https://github.com/pimoroni/inky) GitHub project to support them.
 - [WaveShare](https://www.waveshare.com/product/displays/e-paper.htm) - Wide range of eInk displays for hardware projects, not limited to ESLs.
 

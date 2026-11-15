@@ -48,3 +48,8 @@ repos:
         # supported-extensions list) - oxfmt then errors ("Expected at least one target file")
         # instead of no-op'ing, same class of issue the oxlint hook already guards against below.
         args: ["--no-error-on-unmatched-pattern"]
+  - repo: https://github.com/sirosen/texthooks
+    rev: 1.0.0
+    hooks:
+      # Non-breaking and other irregular spaces break Markdown headings and YAML (hq policies/project_standards.md).
+      - id: fix-spaces
