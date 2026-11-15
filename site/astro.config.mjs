@@ -94,7 +94,12 @@ const syncDocsOnChange = {
 // GitHub Actions build that publishes the site, so local builds and previews aren't counted.
 const goatcounterHead =
   process.env.GITHUB_ACTIONS === "true"
-    ? [{ tag: "script", attrs: { "data-goatcounter": "https://signalk-einklabel.goatcounter.com/count", async: true, src: "//gc.zgo.at/count.js" } }]
+    ? [
+        {
+          tag: "script",
+          attrs: { "data-goatcounter": "https://signalk-einklabel.goatcounter.com/count", async: true, src: "//gc.zgo.at/count.js" },
+        },
+      ]
     : [];
 
 // https://astro.build/config
