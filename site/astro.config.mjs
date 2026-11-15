@@ -90,6 +90,13 @@ const syncDocsOnChange = {
   },
 };
 
+// Page views: GoatCounter, cookieless, so no consent banner (hq policies/project_standards.md). Only in the
+// GitHub Actions build that publishes the site, so local builds and previews aren't counted.
+const goatcounterHead =
+  process.env.GITHUB_ACTIONS === "true"
+    ? [{ tag: "script", attrs: { "data-goatcounter": "https://signalk-einklabel.goatcounter.com/count", async: true, src: "//gc.zgo.at/count.js" } }]
+    : [];
+
 // https://astro.build/config
 export default defineConfig({
   site: "https://signalk-einklabel.rhizomatics.org.uk",
@@ -97,6 +104,7 @@ export default defineConfig({
     syncDocsOnChange,
     starlight({
       title: "eInk Labels for SignalK",
+      head: goatcounterHead,
       description: "Display SignalK data on eInk Electronic Shelf Labels over Bluetooth Low Energy",
       social: [
         {
