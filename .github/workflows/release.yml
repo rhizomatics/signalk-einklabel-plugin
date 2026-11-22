@@ -1,6 +1,9 @@
-# Publishes to npm when a GitHub release is published, using npm trusted
-# publishing (OIDC) - no long-lived NPM_TOKEN secret exists anywhere. npm
-# attaches a provenance attestation linking the tarball to this workflow run.
+# Releases @rhizomatics/signalk-einklabel-plugin when a version tag (v1.2.3, v1.3.0-beta.1) is pushed - see
+# policies/release_workflows.md in rhizomatics/hq. Lint, format and tests run on
+# the tag, the GitHub release is published with the version's CHANGELOG.md
+# notes, and then the package is staged on npm, using npm trusted publishing
+# (OIDC) - no long-lived NPM_TOKEN secret exists anywhere. npm attaches a
+# provenance attestation linking the tarball to this workflow run.
 #
 # One-off setup on npmjs.com (package Settings -> Trusted Publisher):
 #   provider: GitHub Actions, org: rhizomatics, repo: signalk-einklabel-plugin,
@@ -9,9 +12,10 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
 
+# Nothing by default; each job grants only what it needs (OpenSSF Scorecard Token-Permissions).
 permissions: {}
 
 concurrency:
@@ -19,7 +23,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:
+    name: Lint, format and test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          # nothing cached is used in a release
+          package-manager-cache: false
+
+      - name: Check release tag matches package.json version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::Release tag '$TAG' does not match package.json version 'v$version'"
+            exit 1
+          fi
+
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run fmt:check
+      - run: npm test
+
+  github-release:
+    needs: check
+    permissions:
+      contents: write
+    uses: ./.github/workflows/github-release.yml
+
   publish:
+    needs: github-release
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -33,39 +75,29 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
+          package-manager-cache: false
           # No registry-url: it makes setup-node write an .npmrc with
           # _authToken=${NODE_AUTH_TOKEN}, and npm can send that (empty) token
           # instead of exchanging the OIDC one. npm defaults to registry.npmjs.org.
 
-      # Staged publishing needs npm >= 11.15.0.
-      - run: npm install -g npm@latest
-
-      - name: Check release tag matches package.json version
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          version="$(node -p 'require("./package.json").version')"
-          if [ "$TAG" != "v$version" ]; then
-            echo "::error::Release tag '$TAG' does not match package.json version 'v$version'"
-            exit 1
-          fi
+      # Staged publishing needs npm >= 11.15.0. An exact version, bumped by hand
+      # after the usual 7-day cooldown.
+      - run: npm install -g npm@11.21.2 # zizmor: ignore[adhoc-packages] exact version, for staged publishing
 
       - run: npm ci --ignore-scripts
-      - run: npm run lint
-      - run: npm run fmt:check
-      - run: npm test
 
       # The trusted publisher is stage-only: a plain `npm publish` is refused with
       # E403 "OIDC permission denied for this action". The staged version goes
       # live once a maintainer approves it (npmjs.com Staged Packages tab, or
-      # `npm stage approve <stage-id>` with 2FA).
+      # `npm stage approve <stage-id>` with 2FA). The package is built by its
+      # prepack/prepublishOnly script.
       # dist-tag follows the SignalK plugins' convention: alpha/beta/rc in the
-      # release tag picks that dist-tag; any other GitHub pre-release goes to
-      # `next` (npm needs an explicit tag for prerelease versions).
+      # release tag picks that dist-tag; any other pre-release goes to `next`
+      # (npm needs an explicit tag for prerelease versions).
       - name: Stage publish
         env:
-          TAG: ${{ github.event.release.tag_name }}
-          PRERELEASE: ${{ github.event.release.prerelease }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.github-release.outputs.prerelease }}
         run: |
           if [[ "$TAG" == *alpha* ]]; then
             dist_tag=alpha

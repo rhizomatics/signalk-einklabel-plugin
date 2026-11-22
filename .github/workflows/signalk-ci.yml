@@ -6,12 +6,15 @@ on:
   pull_request:
     branches: [main, master]
 
-permissions:
-  contents: read
+# Nothing by default; the job grants what the upstream workflow needs.
+permissions: {}
 
 jobs:
   test:
-    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+    permissions:
+      contents: read
+    # SignalK's shared plugin CI, pinned to a commit of master, where it is maintained
+    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@a99f838a61bdbe8806e3b181aa62bb0cae353ec2
     with:
       coverage-command: npm run coverage
       format-check-command: npm run fmt:check
